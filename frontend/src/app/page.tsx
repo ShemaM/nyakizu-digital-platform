@@ -188,14 +188,14 @@ const ROLE_CONFIG = {
   buyer: {
     Icon: ShoppingBag,
     label: "Buyer",
-    headline: "Buy from trusted wholesalers",
-    description: "Browse approved suppliers, draft orders, track credit balances, and save work for offline days.",
+    headline: "Order from your trusted suppliers",
+    description: "Browse your supplier's catalog, build a shopping list, and send it digitally. No calls or texts needed. Track what you owe from your phone.",
   },
   seller: {
     Icon: Store,
-    label: "Wholesaler",
-    headline: "Sell and manage orders",
-    description: "List products, manage buyer relationships, record M-Pesa payments, and control stock visibility.",
+    label: "Wholesaler / Seller",
+    headline: "Set up your digital store",
+    description: "Create your catalog and share one WhatsApp link. Buyers order from anywhere. You manage fulfillment, record M-Pesa payments, and track every debt.",
   },
 } as const;
 
@@ -730,8 +730,8 @@ function DoneStep({
         </p>
         <ul className="mt-3 space-y-2.5">
           {(isSeller
-            ? ["Wait for admin verification", "Set up your product catalog", "Connect with buyers"]
-            : ["Browse verified suppliers", "Draft your first order", "Track your credit balance"]
+            ? ["Wait for admin verification (we'll call you)", "Add products to your catalog", "Share your store link on WhatsApp"]
+            : ["Open your trusted supplier's store", "Build and send your shopping list", "Track your orders and balances"]
           ).map((item) => (
             <li key={item} className="flex items-center gap-2.5 text-sm font-medium text-slate-700">
               <CheckCircle2 size={15} className="shrink-0 text-green-500" />
@@ -828,17 +828,6 @@ function OnboardingWizard(props: WizardProps) {
 
 // ── App preview mockups ───────────────────────────────────────────────────────
 
-const SAMPLE_SUPPLIERS = [
-  { name: "RNG Plaza Accessories", status: "Trusted",  balance: "KES 7,000" },
-  { name: "Espoir Mobile",         status: "Approved", balance: "KES 0" },
-];
-
-const SAMPLE_ORDER = [
-  { name: "Samsung A54 privacy glass × 2", total: "KES 300" },
-  { name: "iPhone 13 clear cover × 1",     total: "KES 250" },
-  { name: "65W Type-C charger × 1",        total: "KES 450" },
-];
-
 function BuyerPreview() {
   return (
     <div className="rounded-2xl bg-slate-950 p-4 text-white">
@@ -854,31 +843,46 @@ function BuyerPreview() {
         </span>
       </div>
 
+      {/* Trusted suppliers list */}
       <div className="mt-3 space-y-2">
-        {SAMPLE_SUPPLIERS.map((s) => (
+        {[
+          { name: "RNG Plaza Accessories", badge: "Verified",   debt: "KES 7,000 owed" },
+          { name: "Espoir Mobile",          badge: "Verified",   debt: "Cleared ✓" },
+        ].map((s) => (
           <div key={s.name} className="flex items-center justify-between rounded-xl bg-white/6 px-3 py-2.5">
             <div>
               <p className="text-xs font-semibold">{s.name}</p>
-              <p className="text-[11px] text-white/40">{s.status}</p>
+              <p className="text-[11px] text-white/40">{s.badge}</p>
             </div>
-            <p className="text-xs font-bold text-amber-300">{s.balance}</p>
+            <p className={`text-[11px] font-bold ${s.debt.includes("owed") ? "text-amber-300" : "text-green-400"}`}>
+              {s.debt}
+            </p>
           </div>
         ))}
       </div>
 
+      {/* Shopping list draft */}
       <div className="mt-3 rounded-xl bg-white p-3 text-slate-900">
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-xs font-bold text-slate-700">Draft order</p>
+          <p className="text-xs font-bold text-slate-700">Shopping list — RNG Plaza</p>
           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
-            Saved offline
+            Draft
           </span>
         </div>
-        {SAMPLE_ORDER.map((item) => (
+        {[
+          { name: "Samsung A54 tempered glass × 2", total: "KES 300" },
+          { name: "iPhone 13 clear cover × 1",      total: "KES 250" },
+          { name: "65W Type-C charger × 1",         total: "KES 450" },
+        ].map((item) => (
           <div key={item.name} className="flex justify-between gap-2 py-0.5 text-[11px]">
             <span className="text-slate-500">{item.name}</span>
             <span className="font-semibold text-slate-800">{item.total}</span>
           </div>
         ))}
+        <div className="mt-2 flex justify-between border-t border-slate-100 pt-2 text-xs font-bold">
+          <span className="text-slate-600">Draft total</span>
+          <span className="text-slate-900">KES 1,000</span>
+        </div>
       </div>
     </div>
   );
@@ -890,42 +894,45 @@ function SellerPreview() {
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-widest text-blue-600">
-            Seller dashboard
+            Wholesaler dashboard
           </p>
-          <p className="mt-0.5 text-sm font-semibold text-slate-900">Today</p>
+          <p className="mt-0.5 text-sm font-semibold text-slate-900">RNG Plaza · Today</p>
         </div>
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
           <Store size={17} />
         </div>
       </div>
 
+      {/* Key business numbers */}
       <div className="mt-3 grid grid-cols-3 gap-2">
         {[
-          { label: "Orders", value: "12" },
-          { label: "Debt",   value: "9.4k" },
-          { label: "Paid",   value: "6.2k" },
+          { label: "Orders",      value: "12",     color: "text-slate-900" },
+          { label: "Active debt", value: "KES 9k", color: "text-amber-600" },
+          { label: "Cleared",     value: "KES 6k", color: "text-green-600" },
         ].map((m) => (
           <div key={m.label} className="rounded-xl bg-slate-50 p-2.5 text-center">
-            <p className="text-[15px] font-bold text-slate-900">{m.value}</p>
+            <p className={`text-[13px] font-bold ${m.color}`}>{m.value}</p>
             <p className="text-[10px] font-semibold uppercase text-slate-400">{m.label}</p>
           </div>
         ))}
       </div>
 
+      {/* Recent activity — reflects actual order lifecycle */}
       <div className="mt-3 space-y-2">
         {[
-          { Icon: Package, title: "Samsung A54 glass", meta: "Can be sourced" },
-          { Icon: Lock,    title: "Order #1048",       meta: "Packing locked" },
-          { Icon: Wallet,  title: "M-Pesa record",     meta: "KES 3,000 received" },
-        ].map(({ Icon, title, meta }) => (
+          { Icon: ClipboardList, title: "New list from Fatuma",   meta: "Submitted · KES 1,200",  dot: "bg-blue-500" },
+          { Icon: Package,       title: "Order #1048 — sourcing", meta: "Sourcing & Packing",      dot: "bg-amber-500" },
+          { Icon: Wallet,        title: "M-Pesa received",        meta: "KES 3,000 from Hassan",  dot: "bg-green-500" },
+        ].map(({ Icon, title, meta, dot }) => (
           <div key={title} className="flex items-center gap-2.5 rounded-xl border border-slate-100 p-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
               <Icon size={15} />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-slate-900">{title}</p>
               <p className="text-[11px] text-slate-400">{meta}</p>
             </div>
+            <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
           </div>
         ))}
       </div>
@@ -966,19 +973,20 @@ function HeroSection() {
       <div className="space-y-5">
         <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-600 shadow-sm">
           <span className="h-1.5 w-1.5 rounded-full bg-green-500" aria-hidden="true" />
-          Trusted by traders in Rwanda and East Africa
+          For phone accessories traders in Rwanda and East Africa
         </div>
 
         <h1 className="text-4xl font-extrabold leading-[1.12] tracking-tight text-slate-900 sm:text-5xl">
-          The phone accessories<br />
-          <span className="text-blue-600">marketplace your</span><br />
-          community trusts.
+          Set up your store.<br />
+          <span className="text-blue-600">Share it on WhatsApp.</span><br />
+          Your buyers order from anywhere.
         </h1>
 
         <p className="max-w-md text-base leading-relaxed text-slate-500">
-          Nyakizu gives buyers and wholesalers structured orders, credit
-          tracking, and an offline-ready app built for the realities of
-          community trade.
+          Nyakizu gives phone accessories wholesalers a free digital store.
+          Buyers browse your catalog and send shopping lists — no calls, no
+          notebooks. You manage orders, record M-Pesa payments, and track
+          every debt in one place.
         </p>
 
         <div className="flex flex-wrap gap-3">
@@ -986,7 +994,7 @@ function HeroSection() {
             href="#signup"
             className="inline-flex h-11 items-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
           >
-            Get started free <ArrowRight size={16} aria-hidden="true" />
+            Set up your store <ArrowRight size={16} aria-hidden="true" />
           </a>
           <a
             href="#features"
@@ -997,7 +1005,7 @@ function HeroSection() {
         </div>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-          {["Free to sign up", "No credit card needed", "Works offline"].map((item) => (
+          {["No app download needed", "Share via WhatsApp", "Works on weak networks"].map((item) => (
             <span key={item} className="flex items-center gap-1.5 text-xs font-medium text-slate-400">
               <CheckCircle2 size={13} className="text-green-500" aria-hidden="true" />
               {item}
@@ -1018,32 +1026,32 @@ function HeroSection() {
 
 const FEATURES = [
   {
-    Icon: BadgeCheck,
+    Icon: Store,
     bg: "bg-blue-50",
     fg: "text-blue-600",
-    title: "Verified roles",
-    body: "Buyers and sellers are kept separate with admin-controlled verification.",
+    title: "Your storefront, on a link",
+    body: "Create your catalog and share one link on WhatsApp. Buyers open it from any phone — no download, no account needed to browse.",
   },
   {
     Icon: ClipboardList,
     bg: "bg-violet-50",
     fg: "text-violet-600",
-    title: "Structured orders",
-    body: "Turn shopping lists into trackable order records with full status history.",
+    title: "Shopping list orders",
+    body: "Buyers send structured digital lists instead of calling or texting. Lists lock on submission — no more confusion about what was actually ordered.",
   },
   {
     Icon: BookOpen,
     bg: "bg-green-50",
     fg: "text-green-600",
-    title: "Credit ledger",
-    body: "Pay-later balances and partial M-Pesa payments stay organized and visible.",
+    title: "Debt and payment records",
+    body: "Record M-Pesa payments received outside the app. Track credit sales, partial payments, and outstanding balances for every buyer.",
   },
   {
     Icon: Zap,
     bg: "bg-amber-50",
     fg: "text-amber-600",
-    title: "Offline-first PWA",
-    body: "Installable app that saves drafts locally for low-network trading days.",
+    title: "Works on weak networks",
+    body: "Buyers save draft shopping lists offline. Everything syncs automatically when the internet returns — built for real trading conditions.",
   },
 ] as const;
 
@@ -1053,13 +1061,14 @@ function FeatureGrid() {
       <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
         <div className="mb-10 max-w-lg">
           <p className="text-xs font-semibold uppercase tracking-widest text-blue-600">
-            Platform features
+            How it works
           </p>
           <h2 className="mt-2 text-2xl font-bold text-slate-900">
-            Everything traders need in one place
+            Replace calls and notebooks with one link
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-slate-500">
-            Built for the realities of community-based phone accessories trade.
+            Everything your phone accessories business needs — orders, fulfillment,
+            M-Pesa records, and debt tracking — in one place.
           </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

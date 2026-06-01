@@ -2,20 +2,23 @@
 
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, SellerProfile
+from .models import CustomUser, BuyerProfile, SellerProfile
 
 
-# Extend the default UserAdmin to show our extra fields
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
-    # Columns shown in the user list
-    list_display = ('username', 'email', 'role', 'phone_number', 'is_active')
+    list_display = ('username', 'get_full_name', 'role', 'phone_number', 'is_active', 'date_joined')
     list_filter = ('role', 'is_active')
-
-    # Add 'role' and 'phone_number' to the edit form
     fieldsets = UserAdmin.fieldsets + (
         ('Nyakizu Fields', {'fields': ('role', 'phone_number')}),
     )
+
+
+@admin.register(BuyerProfile)
+class BuyerProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'location', 'business_type', 'main_supplier', 'created_at')
+    list_filter = ('business_type',)
+    search_fields = ('user__first_name', 'user__last_name', 'user__username', 'location')
 
 
 @admin.register(SellerProfile)

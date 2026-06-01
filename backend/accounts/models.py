@@ -1,7 +1,7 @@
 """
 accounts/models.py
 
-Models for user authentication and seller profiles.
+Models for user authentication and profiles.
 
 We extend Django's built-in AbstractUser so we keep all the
 password hashing and authentication logic for free, and just
@@ -31,41 +31,90 @@ class CustomUser(AbstractUser):
     phone_number = models.CharField(max_length=20, blank=True)
 
     def __str__(self):
-        return f"{self.username} ({self.role})"
+        return f"{self.get_full_name() or self.username} ({self.role})"
 
     def is_seller(self):
-        """Helper method — returns True if this user is a seller."""
         return self.role == 'seller'
+
+    def is_buyer(self):
+        return self.role == 'buyer'
+
+
+class BuyerProfile(models.Model):
+    """
+    Extra information for buyers.
+
+    Stores where they sell, their usual supplier, and how they trade.
+    Matches the BuyerDetailsForm fields in the frontend.
+    """
+
+    BUSINESS_TYPE_CHOICES = [
+        ('Hawker', 'Hawker'),
+        ('Reseller', 'Reseller'),
+        ('Small shop', 'Small shop'),
+        ('Repair shop', 'Repair shop'),
+    ]
+
+    user = models.OneToOneField(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='buyer_profile',
+    )
+
+    # "Where do you sell from?" — matches the frontend's 'location' field
+    location = models.CharField(max_length=150, blank=True)
+
+    # "Usual supplier" — optional, matches frontend's 'mainSupplier'
+    main_supplier = models.CharField(max_length=200, blank=True)
+
+    # "How do you trade?" — matches frontend's 'businessType' pills
+    business_type = models.CharField(
+        max_length=20,
+        choices=BUSINESS_TYPE_CHOICES,
+        blank=True,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Buyer: {self.user.get_full_name() or self.user.username}"
+
+    class Meta:
+        ordering = ['-created_at']
 
 
 class SellerProfile(models.Model):
     """
-    Extra information for users who are sellers.
+    Extra information for users who are sellers (wholesalers).
 
-    Each seller has exactly one profile (OneToOneField).
-    Buyers do NOT have a SellerProfile.
+    Stores shop name, location, and the categories they sell.
+    Matches the SellerDetailsForm fields in the frontend.
     """
 
-    # OneToOneField means one user <-> one seller profile
     user = models.OneToOneField(
         CustomUser,
-        on_delete=models.CASCADE,   # delete profile if user is deleted
+        on_delete=models.CASCADE,
         related_name='seller_profile',
     )
 
     store_name = models.CharField(max_length=150)
     store_description = models.TextField(blank=True)
-    location = models.CharField(max_length=100, blank=True, help_text="City or district in Rwanda")
+    location = models.CharField(max_length=150, blank=True, help_text="City, street, or district")
 
-    # Whether the admin has approved this seller
+    # Categories they sell — stored as a JSON list of strings,
+    # e.g. ["Screen protectors", "Chargers"].
+    # Matches the multi-select chip UI in the frontend's SellerDetailsForm.
+    categories = models.JSONField(default=list, blank=True)
+
+    # Admin must verify a seller before they appear in buyer searches
     is_verified = models.BooleanField(default=False)
 
-    # Timestamps — Django fills these in automatically
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.store_name} — {self.user.username}"
+        return f"{self.store_name} — {self.user.get_full_name() or self.user.username}"
 
     class Meta:
-        ordering = ['-created_at']   # newest sellers first
+        ordering = ['-created_at']

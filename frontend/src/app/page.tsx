@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   ArrowRight,
   BadgeCheck,
@@ -8,7 +8,8 @@ import {
   CheckCircle2,
   ChevronLeft,
   ClipboardList,
-  Cloud,
+  Eye,
+  EyeOff,
   Loader2,
   Lock,
   Package,
@@ -17,98 +18,42 @@ import {
   Wallet,
   WifiOff,
   X,
+  Zap,
 } from "lucide-react";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 type Role = "buyer" | "seller";
 type Step = "role" | "account" | "details" | "done";
 
-interface AccountFields {
-  fullName: string;
-  phone: string;
-  password: string;
-}
+interface AccountFields  { fullName: string; phone: string; password: string }
+interface BuyerFields    { location: string; mainSupplier: string; businessType: string }
+interface SellerFields   { shopName: string; location: string; categories: string[] }
 
-interface BuyerFields {
-  location: string;
-  mainSupplier: string;
-  businessType: string;
-}
+// ── Constants ─────────────────────────────────────────────────────────────────
 
-interface SellerFields {
-  shopName: string;
-  location: string;
-  categories: string[];
-}
-
-const categoryOptions = [
-  "Screen protectors",
-  "Phone covers",
-  "Chargers",
-  "Cables",
-  "Batteries",
-  "Speakers",
+const CATEGORY_OPTIONS = [
+  "Screen protectors", "Phone covers", "Chargers",
+  "Cables", "Batteries", "Speakers",
 ];
 
-const businessTypes = [
-  "Door-to-door reseller",
-  "Route trader",
-  "Small shop buyer",
-  "Repair shop buyer",
-];
+const BUSINESS_TYPES = ["Hawker", "Reseller", "Small shop", "Repair shop"];
 
-// Reads NEXT_PUBLIC_API_URL from the environment; falls back to the Django dev server
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-const baseInput =
-  "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100";
-
-const roleConfig = {
-  buyer: {
-    label: "Bulk buyer",
-    title: "Buy wholesale and resell across routes",
-    description:
-      "For customers who buy stock in bulk from wholesalers, then resell door-to-door, in estates, towns, and country routes.",
-    icon: ShoppingBag,
-    cta: "Continue as bulk buyer",
-  },
-  seller: {
-    label: "Wholesaler",
-    title: "Own a store and sell at wholesale price",
-    description:
-      "For store owners who manage customers, bulk orders, product catalogs, M-Pesa records, and buyer debt.",
-    icon: Store,
-    cta: "Continue as wholesaler",
-  },
-} satisfies Record<Role, {
-  label: string;
-  title: string;
-  description: string;
-  icon: typeof ShoppingBag;
-  cta: string;
-}>;
-
-const trustedSuppliers = [
-  { name: "RNG Plaza Accessories", status: "Trusted", balance: "KES 7,000" },
-  { name: "Espoir Mobile", status: "Approved", balance: "KES 0" },
-];
-
-const orderItems = [
-  { name: "Samsung A54 privacy glass", qty: "x2", total: "KES 300" },
-  { name: "iPhone 13 clear cover", qty: "x1", total: "KES 250" },
-  { name: "65W Type-C charger", qty: "x1", total: "KES 450" },
-];
+// ── AppLogo ───────────────────────────────────────────────────────────────────
 
 function AppLogo({ inverted = false }: { inverted?: boolean }) {
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 shadow-lg shadow-blue-950/20">
-        <span className="text-sm font-black text-white">N</span>
+    <div className="flex items-center gap-2.5">
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 shadow-sm shadow-blue-900/20">
+        <span className="text-sm font-extrabold tracking-tight text-white">N</span>
       </div>
-      <div>
-        <p className={`text-sm font-black leading-none ${inverted ? "text-white" : "text-slate-950"}`}>
+      <div className="leading-none">
+        <p className={`text-[15px] font-bold leading-none ${inverted ? "text-white" : "text-slate-900"}`}>
           Nyakizu
         </p>
-        <p className={`mt-1 text-[10px] font-semibold uppercase tracking-widest ${inverted ? "text-white/35" : "text-slate-400"}`}>
+        <p className={`mt-1 text-[10px] font-semibold uppercase tracking-widest ${inverted ? "text-white/40" : "text-slate-400"}`}>
           Digital Market
         </p>
       </div>
@@ -116,135 +61,205 @@ function AppLogo({ inverted = false }: { inverted?: boolean }) {
   );
 }
 
-function StatusPill({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-      <CheckCircle2 size={13} />
-      {children}
-    </span>
-  );
-}
+// ── StepIndicator ─────────────────────────────────────────────────────────────
+// HCI: Visibility of system status — users always know which step they are on.
 
 function StepIndicator({ step, role }: { step: Step; role: Role | null }) {
   const steps = [
-    { id: "role", label: "Role" },
-    { id: "account", label: "Account" },
-    { id: "details", label: role === "seller" ? "Store" : "Route" },
-  ] as const;
-  const currentIndex = Math.max(
-    0,
-    steps.findIndex((item) => item.id === step),
-  );
+    { id: "role" as const,    label: "Role" },
+    { id: "account" as const, label: "Account" },
+    { id: "details" as const, label: role === "seller" ? "Shop" : "Profile" },
+  ];
+  const currentIndex = step === "done" ? 3 : steps.findIndex((s) => s.id === step);
 
   return (
-    <div className="grid grid-cols-3 gap-2">
-      {steps.map((item, index) => {
-        const active = index <= currentIndex || step === "done";
-        return (
-          <div key={item.id} className="flex items-center gap-2">
-            <div
-              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black ${
-                active ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-400"
-              }`}
-            >
-              {index + 1}
-            </div>
-            <span
-              className={`hidden text-xs font-bold sm:inline ${
-                active ? "text-slate-900" : "text-slate-400"
-              }`}
-            >
-              {item.label}
-            </span>
+    <nav aria-label="Registration steps">
+      <ol className="flex items-center">
+        {steps.map((s, i) => {
+          const done   = i < currentIndex || step === "done";
+          const active = i === currentIndex && step !== "done";
+          return (
+            <li key={s.id} className={i < steps.length - 1 ? "flex flex-1 items-center" : "flex items-center"}>
+              <div className="flex flex-col items-center gap-1.5">
+                <div
+                  aria-current={active ? "step" : undefined}
+                  className={[
+                    "flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold transition-all duration-200",
+                    done   ? "bg-blue-600 text-white" : "",
+                    active ? "bg-blue-600 text-white shadow-[0_0_0_4px_rgba(59,130,246,0.15)]" : "",
+                    !done && !active ? "bg-slate-100 text-slate-400" : "",
+                  ].filter(Boolean).join(" ")}
+                >
+                  {done ? "✓" : i + 1}
+                </div>
+                <span className={`whitespace-nowrap text-[11px] font-medium ${done || active ? "text-slate-600" : "text-slate-400"}`}>
+                  {s.label}
+                </span>
+              </div>
+              {i < steps.length - 1 && (
+                <div className={`mx-2 mb-5 h-px flex-1 transition-colors duration-300 ${done ? "bg-blue-500" : "bg-slate-200"}`} />
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
+// ── FieldInput ────────────────────────────────────────────────────────────────
+// HCI: Consistency (all inputs identical), error prevention (inline messages
+//      directly below the offending field, not in a banner at the top).
+
+interface FieldInputProps {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+  error?: string;
+  hint?: string;
+  autoComplete?: string;
+  trailing?: React.ReactNode;
+  optional?: boolean;
+}
+
+function FieldInput({
+  id, label, value, onChange, placeholder, type = "text",
+  error, hint, autoComplete, trailing, optional,
+}: FieldInputProps) {
+  return (
+    <div className="space-y-1.5">
+      <label htmlFor={id} className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+        {label}
+        {optional && <span className="text-xs font-normal text-slate-400">(optional)</span>}
+      </label>
+      <div className="relative">
+        <input
+          id={id}
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          autoComplete={autoComplete}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${id}-err` : hint ? `${id}-hint` : undefined}
+          className={[
+            "h-12 w-full rounded-xl border bg-white px-4 text-sm text-slate-900 outline-none transition",
+            "placeholder:text-slate-400 focus:ring-3",
+            trailing ? "pr-12" : "",
+            error
+              ? "border-red-300 focus:border-red-400 focus:ring-red-500/10"
+              : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/10",
+          ].filter(Boolean).join(" ")}
+        />
+        {trailing && (
+          <div className="absolute inset-y-0 right-0 flex items-center pr-3.5">
+            {trailing}
           </div>
-        );
-      })}
+        )}
+      </div>
+      {error ? (
+        <p id={`${id}-err`} role="alert" className="flex items-center gap-1 text-xs font-medium text-red-600">
+          <X size={11} strokeWidth={2.5} />
+          {error}
+        </p>
+      ) : hint ? (
+        <p id={`${id}-hint`} className="text-xs text-slate-400">{hint}</p>
+      ) : null}
     </div>
   );
 }
 
+// ── Step 1 — RoleChoice ───────────────────────────────────────────────────────
+// HCI: Recognition not recall — icons + descriptions communicate each role
+//      without needing the user to already understand the system.
+
+const ROLE_CONFIG = {
+  buyer: {
+    Icon: ShoppingBag,
+    label: "Buyer",
+    headline: "Buy from trusted wholesalers",
+    description: "Browse approved suppliers, draft orders, track credit balances, and save work for offline days.",
+  },
+  seller: {
+    Icon: Store,
+    label: "Wholesaler",
+    headline: "Sell and manage orders",
+    description: "List products, manage buyer relationships, record M-Pesa payments, and control stock visibility.",
+  },
+} as const;
+
 function RoleChoice({
-  selectedRole,
-  setSelectedRole,
-  onNext,
+  selectedRole, setSelectedRole, onNext,
 }: {
   selectedRole: Role | null;
-  setSelectedRole: (role: Role) => void;
+  setSelectedRole: (r: Role) => void;
   onNext: () => void;
 }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div>
-        <p className="text-xs font-bold uppercase tracking-widest text-blue-600">
-          Create account
-        </p>
-        <h1 className="mt-3 text-3xl font-black leading-tight tracking-tight text-slate-950 sm:text-4xl">
-          Choose your trade workspace
-        </h1>
-        <p className="mt-3 text-sm leading-relaxed text-slate-500">
-          Buyers are bulk customers who resell across routes. Wholesalers are
-          store owners who sell at wholesale price and manage customers, orders,
-          payments, and debt.
+        <p className="text-xs font-semibold uppercase tracking-widest text-blue-600">Step 1 of 3</p>
+        <h2 className="mt-2 text-xl font-bold text-slate-900">How do you want to trade?</h2>
+        <p className="mt-1.5 text-sm text-slate-500">
+          Choose your role. You can add the other role later after verification.
         </p>
       </div>
 
       <div className="grid gap-3">
         {(["buyer", "seller"] as Role[]).map((role) => {
-          const Icon = roleConfig[role].icon;
-          const active = selectedRole === role;
+          const { Icon, label, headline, description } = ROLE_CONFIG[role];
+          const selected = selectedRole === role;
           return (
             <button
               key={role}
               type="button"
               onClick={() => setSelectedRole(role)}
-              className={`group flex min-h-32 items-start gap-4 rounded-2xl border p-4 text-left transition ${
-                active
-                  ? "border-blue-500 bg-blue-50 ring-4 ring-blue-100"
-                  : "border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50"
-              }`}
+              className={[
+                "group relative flex items-start gap-4 rounded-2xl border-2 p-4 text-left transition-all duration-150",
+                selected
+                  ? "border-blue-500 bg-blue-50/60 shadow-[0_0_0_1px_#3b82f6]"
+                  : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm",
+              ].join(" ")}
             >
-              <div
-                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
-                  active ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500"
-                }`}
-              >
-                <Icon size={22} />
+              <div className={[
+                "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors duration-150",
+                selected
+                  ? "bg-blue-600 text-white"
+                  : "bg-slate-100 text-slate-500 group-hover:bg-slate-200",
+              ].join(" ")}>
+                <Icon size={20} />
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-black text-slate-950">
-                    {roleConfig[role].label}
-                  </p>
-                  {active && <CheckCircle2 size={18} className="text-blue-600" />}
-                </div>
-                <p className="mt-1 text-sm font-bold text-slate-800">
-                  {roleConfig[role].title}
-                </p>
-                <p className="mt-1 text-sm leading-relaxed text-slate-500">
-                  {roleConfig[role].description}
-                </p>
+              <div className="min-w-0 flex-1 pr-7">
+                <p className="font-semibold text-slate-900">{label}</p>
+                <p className="mt-0.5 text-xs font-medium text-slate-500">{headline}</p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-400">{description}</p>
+              </div>
+              <div className={`absolute right-4 top-4 transition-opacity ${selected ? "opacity-100" : "opacity-0"}`}>
+                <CheckCircle2 size={18} className="text-blue-600" />
               </div>
             </button>
           );
         })}
       </div>
 
-      {/* Google Sign-In */}
-      <div className="relative flex items-center gap-3">
+      <div className="flex items-center gap-3">
         <div className="h-px flex-1 bg-slate-200" />
-        <span className="text-xs font-bold text-slate-400">OR</span>
+        <span className="text-xs font-semibold text-slate-400">OR</span>
         <div className="h-px flex-1 bg-slate-200" />
       </div>
 
       <a
         href={`${API_BASE}/accounts/google/login/`}
-        className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
+        className="flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
       >
-        <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
-          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+        <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" aria-hidden="true">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
         </svg>
         Continue with Google
       </a>
@@ -253,394 +268,392 @@ function RoleChoice({
         type="button"
         disabled={!selectedRole}
         onClick={onNext}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-black text-white shadow-lg shadow-blue-950/15 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none"
+        className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700 active:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
       >
-        {selectedRole ? roleConfig[selectedRole].cta : "Choose a role first"}
+        {selectedRole ? `Continue as ${ROLE_CONFIG[selectedRole].label}` : "Select a role to continue"}
         <ArrowRight size={16} />
       </button>
     </div>
   );
 }
 
+// ── Step 2 — AccountForm ──────────────────────────────────────────────────────
+// HCI: Error prevention (field-level validation), user control (back button),
+//      feedback (password show/hide to reduce anxiety about what was typed).
+
 function AccountForm({
-  account,
-  setAccount,
-  onBack,
-  onNext,
+  account, setAccount, onBack, onNext,
 }: {
   account: AccountFields;
-  setAccount: (patch: Partial<AccountFields>) => void;
+  setAccount: (p: Partial<AccountFields>) => void;
   onBack: () => void;
   onNext: () => void;
 }) {
-  const id = useId();
-  const [error, setError] = useState("");
+  const uid = useId();
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const [errors, setErrors] = useState({ fullName: "", phone: "", password: "" });
+  const [showPass, setShowPass] = useState(false);
 
-  function submit(event: React.FormEvent) {
-    event.preventDefault();
-    if (!account.fullName.trim()) return setError("Enter your full name.");
-    if (!account.phone.trim()) return setError("Enter your phone number.");
-    if (account.password.length < 6) {
-      return setError("Use at least 6 characters for your password.");
-    }
-    setError("");
-    onNext();
+  // Move keyboard focus to heading on mount so screen readers announce the new step
+  useEffect(() => { headingRef.current?.focus(); }, []);
+
+  function validate(): boolean {
+    const e = { fullName: "", phone: "", password: "" };
+    if (!account.fullName.trim())    e.fullName = "Enter your full name.";
+    if (!account.phone.trim())       e.phone    = "Enter your phone number.";
+    if (account.password.length < 6) e.password = "Password must be at least 6 characters.";
+    setErrors(e);
+    return !e.fullName && !e.phone && !e.password;
+  }
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (validate()) onNext();
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} noValidate className="space-y-6">
       <div>
-        <p className="text-xs font-bold uppercase tracking-widest text-blue-600">
-          Account details
-        </p>
-        <h2 className="mt-3 text-2xl font-black text-slate-950">
+        <p className="text-xs font-semibold uppercase tracking-widest text-blue-600">Step 2 of 3</p>
+        <h2 ref={headingRef} tabIndex={-1} className="mt-2 text-xl font-bold text-slate-900 outline-none">
           Set up your login
         </h2>
+        <p className="mt-1.5 text-sm text-slate-500">Your details are private and never shared.</p>
       </div>
 
-      {error && (
-        <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-semibold text-red-700">
-          <X size={15} />
-          {error}
-        </div>
-      )}
-
-      <label className="block">
-        <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
-          Full name
-        </span>
-        <input
-          id={`${id}-name`}
-          className={`${baseInput} mt-1.5`}
+      <div className="space-y-4">
+        <FieldInput
+          id={`${uid}-name`}
+          label="Full name"
           value={account.fullName}
-          onChange={(event) => setAccount({ fullName: event.target.value })}
+          onChange={(v) => setAccount({ fullName: v })}
           placeholder="e.g. Claudine Mutesi"
-          type="text"
+          autoComplete="name"
+          error={errors.fullName}
         />
-      </label>
-
-      <label className="block">
-        <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
-          Phone number
-        </span>
-        <input
-          id={`${id}-phone`}
-          className={`${baseInput} mt-1.5`}
+        <FieldInput
+          id={`${uid}-phone`}
+          label="Phone number"
           value={account.phone}
-          onChange={(event) => setAccount({ phone: event.target.value })}
+          onChange={(v) => setAccount({ phone: v })}
           placeholder="07XX XXX XXX"
           type="tel"
+          autoComplete="tel"
+          hint="This becomes your login identifier"
+          error={errors.phone}
         />
-      </label>
-
-      <label className="block">
-        <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
-          Password
-        </span>
-        <input
-          id={`${id}-password`}
-          autoComplete="new-password"
-          className={`${baseInput} mt-1.5`}
+        <FieldInput
+          id={`${uid}-pass`}
+          label="Password"
           value={account.password}
-          onChange={(event) => setAccount({ password: event.target.value })}
-          placeholder="At least 6 characters"
-          type="password"
+          onChange={(v) => setAccount({ password: v })}
+          placeholder="Minimum 6 characters"
+          type={showPass ? "text" : "password"}
+          autoComplete="new-password"
+          error={errors.password}
+          trailing={
+            <button
+              type="button"
+              onClick={() => setShowPass((p) => !p)}
+              aria-label={showPass ? "Hide password" : "Show password"}
+              className="text-slate-400 transition hover:text-slate-600"
+            >
+              {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          }
         />
-      </label>
+      </div>
 
-      <div className="grid grid-cols-[auto_1fr] gap-3 pt-2">
+      <div className="flex gap-3">
         <button
           type="button"
           onClick={onBack}
-          className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50"
-          aria-label="Go back"
+          aria-label="Back to role selection"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
         >
           <ChevronLeft size={18} />
         </button>
         <button
           type="submit"
-          className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-black text-white shadow-lg shadow-blue-950/15 transition hover:bg-blue-700"
+          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700 active:bg-blue-800"
         >
-          Continue
-          <ArrowRight size={16} />
+          Continue <ArrowRight size={16} />
         </button>
       </div>
     </form>
   );
 }
 
+// ── Step 3a — BuyerDetailsForm ────────────────────────────────────────────────
+
 function BuyerDetailsForm({
-  buyer,
-  setBuyer,
-  onBack,
-  onDone,
-  isLoading,
-  apiError,
+  buyer, setBuyer, onBack, onDone, isLoading, apiError,
 }: {
   buyer: BuyerFields;
-  setBuyer: (patch: Partial<BuyerFields>) => void;
+  setBuyer: (p: Partial<BuyerFields>) => void;
   onBack: () => void;
   onDone: () => void;
   isLoading: boolean;
   apiError: string;
 }) {
-  const [error, setError] = useState("");
+  const uid = useId();
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const [errors, setErrors] = useState({ location: "", businessType: "" });
 
-  function submit(event: React.FormEvent) {
-    event.preventDefault();
-    if (!buyer.location.trim()) return setError("Enter your home base or main selling area.");
-    if (!buyer.businessType) return setError("Choose how you resell.");
-    setError("");
-    onDone();
+  useEffect(() => { headingRef.current?.focus(); }, []);
+
+  function validate(): boolean {
+    const e = { location: "", businessType: "" };
+    if (!buyer.location.trim()) e.location    = "Enter where you sell from.";
+    if (!buyer.businessType)    e.businessType = "Choose how you trade.";
+    setErrors(e);
+    return !e.location && !e.businessType;
   }
 
-  const displayError = error || apiError;
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (validate()) onDone();
+  }
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} noValidate className="space-y-6">
       <div>
-        <p className="text-xs font-bold uppercase tracking-widest text-blue-600">
-          Bulk buyer profile
-        </p>
-        <h2 className="mt-3 text-2xl font-black text-slate-950">
-          How do you buy and resell?
+        <p className="text-xs font-semibold uppercase tracking-widest text-blue-600">Step 3 of 3</p>
+        <h2 ref={headingRef} tabIndex={-1} className="mt-2 text-xl font-bold text-slate-900 outline-none">
+          Tell suppliers about you
         </h2>
+        <p className="mt-1.5 text-sm text-slate-500">
+          Helps wholesalers approve your requests quickly.
+        </p>
       </div>
 
-      {displayError && (
-        <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-semibold text-red-700">
-          <X size={15} />
-          {displayError}
+      {apiError && (
+        <div role="alert" className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          <X size={15} className="mt-0.5 shrink-0" strokeWidth={2.5} />
+          {apiError}
         </div>
       )}
 
-      <label className="block">
-        <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
-          Home base / main selling area
-        </span>
-        <input
-          className={`${baseInput} mt-1.5`}
+      <div className="space-y-4">
+        <FieldInput
+          id={`${uid}-loc`}
+          label="Where do you sell from?"
           value={buyer.location}
-          onChange={(event) => setBuyer({ location: event.target.value })}
+          onChange={(v) => setBuyer({ location: v })}
           placeholder="e.g. Eastleigh, Nairobi"
-          type="text"
+          error={errors.location}
         />
-      </label>
 
-      <label className="block">
-        <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
-          Usual wholesaler
-        </span>
-        <input
-          className={`${baseInput} mt-1.5`}
-          value={buyer.mainSupplier}
-          onChange={(event) => setBuyer({ mainSupplier: event.target.value })}
-          placeholder="Optional: wholesale store or supplier name"
-          type="text"
-        />
-      </label>
-
-      <div>
-        <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
-          How do you resell?
-        </p>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          {businessTypes.map((type) => {
-            const active = buyer.businessType === type;
-            return (
-              <button
-                key={type}
-                type="button"
-                onClick={() => setBuyer({ businessType: type })}
-                className={`rounded-xl border px-3 py-3 text-sm font-bold transition ${
-                  active
-                    ? "border-blue-500 bg-blue-50 text-blue-700"
-                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                }`}
-              >
-                {type}
-              </button>
-            );
-          })}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-slate-700">How do you trade?</p>
+            {errors.businessType && (
+              <p role="alert" className="flex items-center gap-1 text-xs font-medium text-red-600">
+                <X size={11} strokeWidth={2.5} />{errors.businessType}
+              </p>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {BUSINESS_TYPES.map((type) => {
+              const active = buyer.businessType === type;
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setBuyer({ businessType: type })}
+                  className={[
+                    "rounded-xl border py-3 text-sm font-semibold transition-all duration-150",
+                    active
+                      ? "border-blue-500 bg-blue-50 text-blue-700 shadow-[0_0_0_1px_#3b82f6]"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50",
+                  ].join(" ")}
+                >
+                  {type}
+                </button>
+              );
+            })}
+          </div>
         </div>
+
+        <FieldInput
+          id={`${uid}-sup`}
+          label="Usual supplier"
+          value={buyer.mainSupplier}
+          onChange={(v) => setBuyer({ mainSupplier: v })}
+          placeholder="e.g. RNG Plaza Accessories"
+          optional
+        />
       </div>
 
-      <div className="grid grid-cols-[auto_1fr] gap-3 pt-2">
+      <div className="flex gap-3">
         <button
           type="button"
           onClick={onBack}
           disabled={isLoading}
-          className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-40"
-          aria-label="Go back"
+          aria-label="Back to account details"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-40"
         >
           <ChevronLeft size={18} />
         </button>
         <button
           type="submit"
           disabled={isLoading}
-          className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-black text-white shadow-lg shadow-blue-950/15 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
+          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700 active:bg-blue-800 disabled:cursor-not-allowed disabled:bg-blue-400"
         >
-          {isLoading ? (
-            <>
-              <Loader2 size={16} className="animate-spin" />
-              Creating account…
-            </>
-          ) : (
-            <>
-              Create bulk buyer account
-              <ArrowRight size={16} />
-            </>
-          )}
+          {isLoading
+            ? <><Loader2 size={15} className="animate-spin" /> Creating account…</>
+            : <>Create buyer account <ArrowRight size={16} /></>
+          }
         </button>
       </div>
     </form>
   );
 }
 
+// ── Step 3b — SellerDetailsForm ───────────────────────────────────────────────
+
 function SellerDetailsForm({
-  seller,
-  setSeller,
-  onBack,
-  onDone,
-  isLoading,
-  apiError,
+  seller, setSeller, onBack, onDone, isLoading, apiError,
 }: {
   seller: SellerFields;
-  setSeller: (patch: Partial<SellerFields>) => void;
+  setSeller: (p: Partial<SellerFields>) => void;
   onBack: () => void;
   onDone: () => void;
   isLoading: boolean;
   apiError: string;
 }) {
-  const [error, setError] = useState("");
+  const uid = useId();
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const [errors, setErrors] = useState({ shopName: "", location: "", categories: "" });
 
-  function toggleCategory(category: string) {
+  useEffect(() => { headingRef.current?.focus(); }, []);
+
+  function toggleCat(cat: string) {
     setSeller({
-      categories: seller.categories.includes(category)
-        ? seller.categories.filter((item) => item !== category)
-        : [...seller.categories, category],
+      categories: seller.categories.includes(cat)
+        ? seller.categories.filter((c) => c !== cat)
+        : [...seller.categories, cat],
     });
   }
 
-  function submit(event: React.FormEvent) {
-    event.preventDefault();
-    if (!seller.shopName.trim()) return setError("Enter your store name.");
-    if (!seller.location.trim()) return setError("Enter your store location.");
-    if (!seller.categories.length) return setError("Choose what you sell.");
-    setError("");
-    onDone();
+  function validate(): boolean {
+    const e = { shopName: "", location: "", categories: "" };
+    if (!seller.shopName.trim())   e.shopName   = "Enter your shop name.";
+    if (!seller.location.trim())   e.location   = "Enter your shop location.";
+    if (!seller.categories.length) e.categories = "Choose at least one category.";
+    setErrors(e);
+    return !e.shopName && !e.location && !e.categories;
   }
 
-  const displayError = error || apiError;
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (validate()) onDone();
+  }
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} noValidate className="space-y-6">
       <div>
-        <p className="text-xs font-bold uppercase tracking-widest text-blue-600">
-          Wholesaler profile
-        </p>
-        <h2 className="mt-3 text-2xl font-black text-slate-950">
+        <p className="text-xs font-semibold uppercase tracking-widest text-blue-600">Step 3 of 3</p>
+        <h2 ref={headingRef} tabIndex={-1} className="mt-2 text-xl font-bold text-slate-900 outline-none">
           Register your shop
         </h2>
+        <p className="mt-1.5 text-sm text-slate-500">
+          Your shop is reviewed by our team before going live.
+        </p>
       </div>
 
-      {displayError && (
-        <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-semibold text-red-700">
-          <X size={15} />
-          {displayError}
+      {apiError && (
+        <div role="alert" className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          <X size={15} className="mt-0.5 shrink-0" strokeWidth={2.5} />
+          {apiError}
         </div>
       )}
 
-      <label className="block">
-        <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
-          Shop name
-        </span>
-        <input
-          className={`${baseInput} mt-1.5`}
+      <div className="space-y-4">
+        <FieldInput
+          id={`${uid}-shopname`}
+          label="Shop name"
           value={seller.shopName}
-          onChange={(event) => setSeller({ shopName: event.target.value })}
+          onChange={(v) => setSeller({ shopName: v })}
           placeholder="e.g. RNG Plaza Accessories"
-          type="text"
+          error={errors.shopName}
         />
-      </label>
-
-      <label className="block">
-        <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
-          Shop location
-        </span>
-        <input
-          className={`${baseInput} mt-1.5`}
+        <FieldInput
+          id={`${uid}-loc`}
+          label="Shop location"
           value={seller.location}
-          onChange={(event) => setSeller({ location: event.target.value })}
+          onChange={(v) => setSeller({ location: v })}
           placeholder="e.g. Luthuli Avenue, Nairobi"
-          type="text"
+          error={errors.location}
         />
-      </label>
 
-      <div>
-        <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
-          Categories
-        </p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {categoryOptions.map((category) => {
-            const active = seller.categories.includes(category);
-            return (
-              <button
-                key={category}
-                type="button"
-                onClick={() => toggleCategory(category)}
-                className={`rounded-full border px-3 py-2 text-xs font-bold transition ${
-                  active
-                    ? "border-blue-500 bg-blue-50 text-blue-700"
-                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                }`}
-              >
-                {category}
-              </button>
-            );
-          })}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-slate-700">What do you sell?</p>
+            {errors.categories && (
+              <p role="alert" className="flex items-center gap-1 text-xs font-medium text-red-600">
+                <X size={11} strokeWidth={2.5} />{errors.categories}
+              </p>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {CATEGORY_OPTIONS.map((cat) => {
+              const active = seller.categories.includes(cat);
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => toggleCat(cat)}
+                  aria-pressed={active}
+                  className={[
+                    "rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all duration-150",
+                    active
+                      ? "border-blue-500 bg-blue-600 text-white shadow-sm"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50",
+                  ].join(" ")}
+                >
+                  {cat}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-slate-400">
+            {seller.categories.length === 0
+              ? "Select all that apply"
+              : `${seller.categories.length} selected`}
+          </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-[auto_1fr] gap-3 pt-2">
+      <div className="flex gap-3">
         <button
           type="button"
           onClick={onBack}
           disabled={isLoading}
-          className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-40"
-          aria-label="Go back"
+          aria-label="Back to account details"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-40"
         >
           <ChevronLeft size={18} />
         </button>
         <button
           type="submit"
           disabled={isLoading}
-          className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-black text-white shadow-lg shadow-blue-950/15 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
+          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700 active:bg-blue-800 disabled:cursor-not-allowed disabled:bg-blue-400"
         >
-          {isLoading ? (
-            <>
-              <Loader2 size={16} className="animate-spin" />
-              Submitting…
-            </>
-          ) : (
-            <>
-              Submit for verification
-              <ArrowRight size={16} />
-            </>
-          )}
+          {isLoading
+            ? <><Loader2 size={15} className="animate-spin" /> Submitting…</>
+            : <>Submit for verification <ArrowRight size={16} /></>
+          }
         </button>
       </div>
     </form>
   );
 }
 
-function DoneState({
-  role,
-  account,
-  buyer,
-  seller,
-  savedOffline,
-  reset,
+// ── Step 4 — DoneStep ─────────────────────────────────────────────────────────
+
+function DoneStep({
+  role, account, buyer, seller, savedOffline, reset,
 }: {
   role: Role;
   account: AccountFields;
@@ -649,50 +662,54 @@ function DoneState({
   savedOffline: boolean;
   reset: () => void;
 }) {
-  const headline =
-    role === "seller" ? "Wholesale store verification requested" : "Bulk buyer account created";
-  const body =
-    role === "seller"
-      ? `${seller.shopName} is queued for review. We will call ${account.fullName.split(" ")[0] || "you"} on ${account.phone}.`
-      : `Your buyer workspace is ready for ${buyer.location}. Start with your trusted wholesalers and route orders.`;
+  const isSeller  = role === "seller";
+  const firstName = account.fullName.split(" ")[0] || "you";
 
   return (
-    <div className="space-y-5 text-center">
-      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-        <CheckCircle2 size={34} />
+    <div className="space-y-6 py-2 text-center">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-green-50">
+        <CheckCircle2 size={32} className="text-green-600" />
       </div>
+
       <div>
-        <h2 className="text-2xl font-black text-slate-950">{headline}</h2>
-        <p className="mt-2 text-sm leading-relaxed text-slate-500">{body}</p>
+        <h2 className="text-xl font-bold text-slate-900">
+          {isSeller ? "Verification submitted!" : "You're all set!"}
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-slate-500">
+          {isSeller
+            ? `${seller.shopName} is queued for admin review. We'll contact ${firstName} on ${account.phone}.`
+            : `Welcome, ${firstName}! Your buyer workspace is ready for ${buyer.location}.`}
+        </p>
       </div>
 
       {savedOffline && (
-        <div className="flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
-          <WifiOff size={15} />
+        <div className="flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700">
+          <WifiOff size={14} />
           Saved offline — will sync when you reconnect.
         </div>
       )}
 
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
-        <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
-          Next inside the app
+      <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+          Your next steps
         </p>
-        <div className="mt-3 space-y-3">
-          {(role === "seller"
-            ? ["Admin verification", "Wholesale catalog setup", "Customer approval list"]
-            : ["Find trusted wholesaler", "Draft first bulk order", "Track credit balance"]
+        <ul className="mt-3 space-y-2.5">
+          {(isSeller
+            ? ["Wait for admin verification", "Set up your product catalog", "Connect with buyers"]
+            : ["Browse verified suppliers", "Draft your first order", "Track your credit balance"]
           ).map((item) => (
-            <div key={item} className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-              <CheckCircle2 size={15} className="text-emerald-600" />
+            <li key={item} className="flex items-center gap-2.5 text-sm font-medium text-slate-700">
+              <CheckCircle2 size={15} className="shrink-0 text-green-500" />
               {item}
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
+
       <button
         type="button"
         onClick={reset}
-        className="w-full rounded-xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+        className="w-full rounded-xl border border-slate-200 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
       >
         Create another account
       </button>
@@ -700,143 +717,133 @@ function DoneState({
   );
 }
 
-function OnboardingPanel({
-  role,
-  setRole,
-  step,
-  setStep,
-  account,
-  setAccount,
-  buyer,
-  setBuyer,
-  seller,
-  setSeller,
-  isLoading,
-  apiError,
-  savedOffline,
-  reset,
-  onDone,
-}: {
-  role: Role | null;
-  setRole: (role: Role) => void;
-  step: Step;
-  setStep: (step: Step) => void;
-  account: AccountFields;
-  setAccount: (patch: Partial<AccountFields>) => void;
-  buyer: BuyerFields;
-  setBuyer: (patch: Partial<BuyerFields>) => void;
-  seller: SellerFields;
-  setSeller: (patch: Partial<SellerFields>) => void;
+// ── OnboardingWizard ──────────────────────────────────────────────────────────
+
+interface WizardProps {
+  role: Role | null;        setRole: (r: Role) => void;
+  step: Step;               setStep: (s: Step) => void;
+  account: AccountFields;   setAccount: (p: Partial<AccountFields>) => void;
+  buyer: BuyerFields;       setBuyer: (p: Partial<BuyerFields>) => void;
+  seller: SellerFields;     setSeller: (p: Partial<SellerFields>) => void;
   isLoading: boolean;
   apiError: string;
   savedOffline: boolean;
   reset: () => void;
   onDone: () => void;
-}) {
+}
+
+function OnboardingWizard(props: WizardProps) {
+  const { role, setRole, step, setStep, account, setAccount, buyer, setBuyer,
+          seller, setSeller, isLoading, apiError, savedOffline, reset, onDone } = props;
+
   return (
-    <section className="rounded-4xl border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-950/10 sm:p-6">
-      <StepIndicator step={step} role={role} />
-      <div className="mt-7">
-        {step === "role" && (
-          <RoleChoice
-            selectedRole={role}
-            setSelectedRole={setRole}
-            onNext={() => setStep("account")}
-          />
-        )}
-        {step === "account" && (
-          <AccountForm
-            account={account}
-            setAccount={setAccount}
-            onBack={() => setStep("role")}
-            onNext={() => setStep("details")}
-          />
-        )}
-        {step === "details" && role === "buyer" && (
-          <BuyerDetailsForm
-            buyer={buyer}
-            setBuyer={setBuyer}
-            onBack={() => setStep("account")}
-            onDone={onDone}
-            isLoading={isLoading}
-            apiError={apiError}
-          />
-        )}
-        {step === "details" && role === "seller" && (
-          <SellerDetailsForm
-            seller={seller}
-            setSeller={setSeller}
-            onBack={() => setStep("account")}
-            onDone={onDone}
-            isLoading={isLoading}
-            apiError={apiError}
-          />
-        )}
-        {step === "done" && role && (
-          <DoneState
-            role={role}
-            account={account}
-            buyer={buyer}
-            seller={seller}
-            savedOffline={savedOffline}
-            reset={reset}
-          />
-        )}
+    <div className="overflow-hidden rounded-2xl bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.06),0_8px_32px_rgba(0,0,0,0.08)]">
+      {step !== "done" && (
+        <div className="border-b border-slate-100 px-6 py-5 sm:px-8">
+          <StepIndicator step={step} role={role} />
+        </div>
+      )}
+
+      <div className="px-6 py-7 sm:px-8">
+        {/* key prop triggers step-in CSS animation on each step change */}
+        <div key={step} className="step-in">
+          {step === "role" && (
+            <RoleChoice
+              selectedRole={role}
+              setSelectedRole={setRole}
+              onNext={() => setStep("account")}
+            />
+          )}
+          {step === "account" && (
+            <AccountForm
+              account={account} setAccount={setAccount}
+              onBack={() => setStep("role")}
+              onNext={() => setStep("details")}
+            />
+          )}
+          {step === "details" && role === "buyer" && (
+            <BuyerDetailsForm
+              buyer={buyer} setBuyer={setBuyer}
+              onBack={() => setStep("account")}
+              onDone={onDone}
+              isLoading={isLoading}
+              apiError={apiError}
+            />
+          )}
+          {step === "details" && role === "seller" && (
+            <SellerDetailsForm
+              seller={seller} setSeller={setSeller}
+              onBack={() => setStep("account")}
+              onDone={onDone}
+              isLoading={isLoading}
+              apiError={apiError}
+            />
+          )}
+          {step === "done" && role && (
+            <DoneStep
+              role={role} account={account} buyer={buyer} seller={seller}
+              savedOffline={savedOffline} reset={reset}
+            />
+          )}
+        </div>
       </div>
-    </section>
+    </div>
   );
 }
 
+// ── App preview mockups ───────────────────────────────────────────────────────
+
+const SAMPLE_SUPPLIERS = [
+  { name: "RNG Plaza Accessories", status: "Trusted",  balance: "KES 7,000" },
+  { name: "Espoir Mobile",         status: "Approved", balance: "KES 0" },
+];
+
+const SAMPLE_ORDER = [
+  { name: "Samsung A54 privacy glass × 2", total: "KES 300" },
+  { name: "iPhone 13 clear cover × 1",     total: "KES 250" },
+  { name: "65W Type-C charger × 1",        total: "KES 450" },
+];
+
 function BuyerPreview() {
   return (
-    <div className="rounded-4xl border border-slate-800 bg-slate-950 p-4 text-white shadow-2xl shadow-slate-950/25">
-      <div className="flex items-center justify-between border-b border-white/10 pb-4">
+    <div className="rounded-2xl bg-slate-950 p-4 text-white">
+      <div className="flex items-center justify-between border-b border-white/10 pb-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-blue-300">
-            Bulk buyer workspace
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-blue-300">
+            Buyer workspace
           </p>
-          <p className="mt-1 text-lg font-black">Trusted wholesalers</p>
+          <p className="mt-0.5 text-sm font-semibold">My Suppliers</p>
         </div>
-        <StatusPill>Offline ready</StatusPill>
+        <span className="rounded-full bg-green-500/15 px-2.5 py-1 text-[10px] font-semibold text-green-300">
+          Offline ready
+        </span>
       </div>
 
-      <div className="mt-4 grid gap-3">
-        {trustedSuppliers.map((supplier) => (
-          <div key={supplier.name} className="rounded-2xl bg-white/6 p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-bold">{supplier.name}</p>
-                <p className="mt-1 text-xs text-white/35">{supplier.status}</p>
-              </div>
-              <p className="text-xs font-black text-amber-300">{supplier.balance}</p>
+      <div className="mt-3 space-y-2">
+        {SAMPLE_SUPPLIERS.map((s) => (
+          <div key={s.name} className="flex items-center justify-between rounded-xl bg-white/6 px-3 py-2.5">
+            <div>
+              <p className="text-xs font-semibold">{s.name}</p>
+              <p className="text-[11px] text-white/40">{s.status}</p>
             </div>
+            <p className="text-xs font-bold text-amber-300">{s.balance}</p>
           </div>
         ))}
       </div>
 
-      <div className="mt-4 rounded-2xl bg-white p-4 text-slate-950">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-blue-600">
-              Bulk order draft
-            </p>
-            <p className="mt-1 text-sm font-black">RNG Plaza Accessories</p>
-          </div>
-          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black text-amber-700">
+      <div className="mt-3 rounded-xl bg-white p-3 text-slate-900">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-xs font-bold text-slate-700">Draft order</p>
+          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
             Saved offline
           </span>
         </div>
-        <div className="mt-3 space-y-2">
-          {orderItems.map((item) => (
-            <div key={item.name} className="grid grid-cols-[1fr_auto] gap-3 rounded-xl bg-slate-50 p-3">
-              <div>
-                <p className="text-xs font-bold">{item.name}</p>
-                <p className="mt-0.5 text-[11px] text-slate-500">{item.qty}</p>
-              </div>
-              <p className="text-xs font-black">{item.total}</p>
-            </div>
-          ))}
-        </div>
+        {SAMPLE_ORDER.map((item) => (
+          <div key={item.name} className="flex justify-between gap-2 py-0.5 text-[11px]">
+            <span className="text-slate-500">{item.name}</span>
+            <span className="font-semibold text-slate-800">{item.total}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -844,47 +851,45 @@ function BuyerPreview() {
 
 function SellerPreview() {
   return (
-    <div className="rounded-4xl border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-950/10">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-blue-600">
-            Wholesaler workspace
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-blue-600">
+            Seller dashboard
           </p>
-          <p className="mt-1 text-lg font-black text-slate-950">Store command center</p>
+          <p className="mt-0.5 text-sm font-semibold text-slate-900">Today</p>
         </div>
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
-          <Store size={20} />
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+          <Store size={17} />
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-2">
+      <div className="mt-3 grid grid-cols-3 gap-2">
         {[
-          { label: "Bulk orders", value: "12" },
-          { label: "Debt", value: "9.4k" },
-          { label: "Paid", value: "6.2k" },
-        ].map((metric) => (
-          <div key={metric.label} className="rounded-2xl bg-slate-50 p-3 text-center">
-            <p className="text-lg font-black text-slate-950">{metric.value}</p>
-            <p className="text-[10px] font-bold uppercase text-slate-400">
-              {metric.label}
-            </p>
+          { label: "Orders", value: "12" },
+          { label: "Debt",   value: "9.4k" },
+          { label: "Paid",   value: "6.2k" },
+        ].map((m) => (
+          <div key={m.label} className="rounded-xl bg-slate-50 p-2.5 text-center">
+            <p className="text-[15px] font-bold text-slate-900">{m.value}</p>
+            <p className="text-[10px] font-semibold uppercase text-slate-400">{m.label}</p>
           </div>
         ))}
       </div>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-3 space-y-2">
         {[
-          { icon: Package, title: "Samsung A54 glass", meta: "Can be sourced" },
-          { icon: Lock, title: "Order #1048", meta: "Packing locked" },
-          { icon: Wallet, title: "M-Pesa record", meta: "KES 3,000 received" },
-        ].map(({ icon: Icon, title, meta }) => (
-          <div key={title} className="flex items-center gap-3 rounded-2xl border border-slate-100 p-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-              <Icon size={18} />
+          { Icon: Package, title: "Samsung A54 glass", meta: "Can be sourced" },
+          { Icon: Lock,    title: "Order #1048",       meta: "Packing locked" },
+          { Icon: Wallet,  title: "M-Pesa record",     meta: "KES 3,000 received" },
+        ].map(({ Icon, title, meta }) => (
+          <div key={title} className="flex items-center gap-2.5 rounded-xl border border-slate-100 p-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+              <Icon size={15} />
             </div>
             <div>
-              <p className="text-sm font-black text-slate-950">{title}</p>
-              <p className="text-xs text-slate-500">{meta}</p>
+              <p className="text-xs font-semibold text-slate-900">{title}</p>
+              <p className="text-[11px] text-slate-400">{meta}</p>
             </div>
           </div>
         ))}
@@ -893,72 +898,184 @@ function SellerPreview() {
   );
 }
 
-function AppPreviewGrid() {
+// ── Navbar ────────────────────────────────────────────────────────────────────
+
+function Navbar() {
   return (
-    <section className="border-y border-slate-200 bg-white">
-      <div className="mx-auto grid max-w-6xl gap-4 px-4 py-10 sm:px-6 lg:grid-cols-4">
-        {[
-          {
-            icon: BadgeCheck,
-            title: "Verified roles",
-            body: "Bulk buyers and wholesale store owners get separate workflows.",
-          },
-          {
-            icon: ClipboardList,
-            title: "Bulk order records",
-            body: "Door-to-door stock lists become clear wholesale order records.",
-          },
-          {
-            icon: BookOpen,
-            title: "Credit ledger",
-            body: "Pay-later balances between wholesalers and bulk buyers stay visible.",
-          },
-          {
-            icon: Cloud,
-            title: "PWA ready",
-            body: "Installable, mobile-first, and prepared for offline sync.",
-          },
-        ].map(({ icon: Icon, title, body }) => (
-          <article key={title} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-blue-600">
-              <Icon size={19} />
-            </div>
-            <h3 className="mt-4 text-sm font-black text-slate-950">{title}</h3>
-            <p className="mt-1 text-sm leading-relaxed text-slate-500">{body}</p>
-          </article>
-        ))}
+    <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+        <AppLogo />
+        <nav aria-label="Site navigation" className="flex items-center gap-2">
+          <span className="hidden items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-500 sm:inline-flex">
+            <WifiOff size={12} aria-hidden="true" />
+            Works offline
+          </span>
+          <a
+            href="#signup"
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 active:bg-blue-800"
+          >
+            Get started
+            <ArrowRight size={14} aria-hidden="true" />
+          </a>
+        </nav>
+      </div>
+    </header>
+  );
+}
+
+// ── HeroSection ───────────────────────────────────────────────────────────────
+
+function HeroSection() {
+  return (
+    <div className="space-y-10 py-2">
+      <div className="space-y-5">
+        <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-600 shadow-sm">
+          <span className="h-1.5 w-1.5 rounded-full bg-green-500" aria-hidden="true" />
+          Trusted by traders in Rwanda and East Africa
+        </div>
+
+        <h1 className="text-4xl font-extrabold leading-[1.12] tracking-tight text-slate-900 sm:text-5xl">
+          The phone accessories<br />
+          <span className="text-blue-600">marketplace your</span><br />
+          community trusts.
+        </h1>
+
+        <p className="max-w-md text-base leading-relaxed text-slate-500">
+          Nyakizu gives buyers and wholesalers structured orders, credit
+          tracking, and an offline-ready app built for the realities of
+          community trade.
+        </p>
+
+        <div className="flex flex-wrap gap-3">
+          <a
+            href="#signup"
+            className="inline-flex h-11 items-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+          >
+            Get started free <ArrowRight size={16} aria-hidden="true" />
+          </a>
+          <a
+            href="#features"
+            className="inline-flex h-11 items-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+          >
+            See how it works
+          </a>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+          {["Free to sign up", "No credit card needed", "Works offline"].map((item) => (
+            <span key={item} className="flex items-center gap-1.5 text-xs font-medium text-slate-400">
+              <CheckCircle2 size={13} className="text-green-500" aria-hidden="true" />
+              {item}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <BuyerPreview />
+        <SellerPreview />
+      </div>
+    </div>
+  );
+}
+
+// ── FeatureGrid ───────────────────────────────────────────────────────────────
+
+const FEATURES = [
+  {
+    Icon: BadgeCheck,
+    bg: "bg-blue-50",
+    fg: "text-blue-600",
+    title: "Verified roles",
+    body: "Buyers and sellers are kept separate with admin-controlled verification.",
+  },
+  {
+    Icon: ClipboardList,
+    bg: "bg-violet-50",
+    fg: "text-violet-600",
+    title: "Structured orders",
+    body: "Turn shopping lists into trackable order records with full status history.",
+  },
+  {
+    Icon: BookOpen,
+    bg: "bg-green-50",
+    fg: "text-green-600",
+    title: "Credit ledger",
+    body: "Pay-later balances and partial M-Pesa payments stay organized and visible.",
+  },
+  {
+    Icon: Zap,
+    bg: "bg-amber-50",
+    fg: "text-amber-600",
+    title: "Offline-first PWA",
+    body: "Installable app that saves drafts locally for low-network trading days.",
+  },
+] as const;
+
+function FeatureGrid() {
+  return (
+    <section id="features" className="border-y border-slate-200 bg-white">
+      <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+        <div className="mb-10 max-w-lg">
+          <p className="text-xs font-semibold uppercase tracking-widest text-blue-600">
+            Platform features
+          </p>
+          <h2 className="mt-2 text-2xl font-bold text-slate-900">
+            Everything traders need in one place
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-slate-500">
+            Built for the realities of community-based phone accessories trade.
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {FEATURES.map(({ Icon, bg, fg, title, body }) => (
+            <article key={title} className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+              <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${bg} ${fg}`}>
+                <Icon size={18} aria-hidden="true" />
+              </div>
+              <h3 className="mt-4 font-semibold text-slate-900">{title}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-slate-500">{body}</p>
+            </article>
+          ))}
+        </div>
       </div>
     </section>
   );
 }
 
+// ── Footer ────────────────────────────────────────────────────────────────────
+
+function Footer() {
+  return (
+    <footer className="bg-slate-950 text-white">
+      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <AppLogo inverted />
+            <p className="mt-3 text-sm text-white/40">Digitizing trusted community trade.</p>
+          </div>
+          <p className="text-xs text-white/25">© 2026 Nyakizu Digital Market · SWE3090XA</p>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+// ── Home ──────────────────────────────────────────────────────────────────────
+
 export default function Home() {
   const [role, setRole] = useState<Role | null>(null);
   const [step, setStep] = useState<Step>("role");
-  const [account, setAccountState] = useState<AccountFields>({
-    fullName: "",
-    phone: "",
-    password: "",
-  });
-  const [buyer, setBuyerState] = useState<BuyerFields>({
-    location: "",
-    mainSupplier: "",
-    businessType: "",
-  });
-  const [seller, setSellerState] = useState<SellerFields>({
-    shopName: "",
-    location: "",
-    categories: [],
-  });
-
-  // API interaction state
-  const [isLoading, setIsLoading] = useState(false);
-  const [apiError, setApiError] = useState("");
+  const [account,  setAccountState]  = useState<AccountFields>({ fullName: "", phone: "", password: "" });
+  const [buyer,    setBuyerState]    = useState<BuyerFields>({ location: "", mainSupplier: "", businessType: "" });
+  const [seller,   setSellerState]   = useState<SellerFields>({ shopName: "", location: "", categories: [] });
+  const [isLoading,    setIsLoading]    = useState(false);
+  const [apiError,     setApiError]     = useState("");
   const [savedOffline, setSavedOffline] = useState(false);
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
     }
   }, []);
 
@@ -974,56 +1091,34 @@ export default function Home() {
 
   async function handleDone() {
     if (!role) return;
-
     setIsLoading(true);
     setApiError("");
 
-    // Build the payload that exactly matches backend RegisterSerializer fields
     const payload =
       role === "seller"
-        ? {
-            full_name: account.fullName,
-            phone: account.phone,
-            password: account.password,
-            role: "seller",
-            shop_name: seller.shopName,
-            shop_location: seller.location,
-            categories: seller.categories,
-          }
-        : {
-            full_name: account.fullName,
-            phone: account.phone,
-            password: account.password,
-            role: "buyer",
-            location: buyer.location,
-            main_supplier: buyer.mainSupplier,
-            business_type: buyer.businessType,
-          };
+        ? { full_name: account.fullName, phone: account.phone, password: account.password,
+            role: "seller", shop_name: seller.shopName, shop_location: seller.location,
+            categories: seller.categories }
+        : { full_name: account.fullName, phone: account.phone, password: account.password,
+            role: "buyer", location: buyer.location, main_supplier: buyer.mainSupplier,
+            business_type: buyer.businessType };
 
     try {
-      const response = await fetch(`${API_BASE}/api/accounts/register/`, {
+      const res = await fetch(`${API_BASE}/api/accounts/register/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-        credentials: "include", // carry the session cookie back
+        credentials: "include",
       });
 
-      if (!response.ok) {
-        const errors: Record<string, string[]> = await response.json().catch(() => ({}));
-        const firstMessage =
-          Object.values(errors).flat()[0] ?? "Registration failed. Please try again.";
-        setApiError(String(firstMessage));
+      if (!res.ok) {
+        const errs: Record<string, string[]> = await res.json().catch(() => ({}));
+        setApiError(String(Object.values(errs).flat()[0] ?? "Registration failed. Please try again."));
         return;
       }
-
       setStep("done");
     } catch {
-      // Network unavailable — save to localStorage for later sync
-      try {
-        localStorage.setItem("nyakizu_pending_registration", JSON.stringify(payload));
-      } catch {
-        // Private browsing or storage full — silently continue
-      }
+      try { localStorage.setItem("nyakizu_pending_registration", JSON.stringify(payload)); } catch {}
       setSavedOffline(true);
       setStep("done");
     } finally {
@@ -1032,93 +1127,33 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 text-slate-950">
-      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-          <AppLogo />
-          <div className="flex items-center gap-2">
-            <span className="hidden items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600 sm:inline-flex">
-              <WifiOff size={13} />
-              Offline drafts
-            </span>
-            <a
-              href="#signup"
-              className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-black text-white shadow-lg shadow-blue-950/10 transition hover:bg-blue-700"
-            >
-              Sign up
-            </a>
-          </div>
-        </div>
-      </header>
+    <main className="min-h-dvh bg-slate-50">
+      <Navbar />
 
-      <section id="signup" className="mx-auto grid max-w-6xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[1fr_0.92fr] lg:py-10">
-        <div className="flex flex-col gap-6">
-          <section className="rounded-4xl bg-slate-950 p-5 text-white shadow-2xl shadow-slate-950/20 sm:p-8">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-blue-500/15 px-3 py-1.5 text-xs font-bold text-blue-200">
-                Installable PWA
-              </span>
-              <span className="rounded-full bg-emerald-500/15 px-3 py-1.5 text-xs font-bold text-emerald-200">
-                Built for trusted trade
-              </span>
-            </div>
-            <h1 className="mt-8 max-w-2xl text-4xl font-black leading-[1.03] tracking-tight sm:text-6xl">
-              A trade app for bulk buyers and wholesalers.
-            </h1>
-            <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-300">
-              Buyers purchase wholesale stock and resell door-to-door or across
-              country routes. Wholesalers run stores, customers, orders, M-Pesa
-              records, and credit balances from one workspace.
-            </p>
-            <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              {[
-                ["Bulk buyer", "Buy wholesale stock"],
-                ["Wholesaler", "Run a digital store"],
-                ["Admin", "Verify shops later"],
-              ].map(([title, body]) => (
-                <div key={title} className="rounded-2xl border border-white/10 bg-white/4 p-4">
-                  <p className="text-sm font-black">{title}</p>
-                  <p className="mt-1 text-xs text-white/40">{body}</p>
-                </div>
-              ))}
-            </div>
-          </section>
+      <div
+        id="signup"
+        className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:grid lg:grid-cols-[1fr_460px] lg:gap-12 lg:py-16"
+      >
+        <HeroSection />
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            <BuyerPreview />
-            <SellerPreview />
-          </div>
-        </div>
+        <aside className="mt-8 lg:mt-0 lg:sticky lg:top-8 lg:self-start">
+          <OnboardingWizard
+            role={role}       setRole={setRole}
+            step={step}       setStep={setStep}
+            account={account} setAccount={(p) => setAccountState((c) => ({ ...c, ...p }))}
+            buyer={buyer}     setBuyer={(p)   => setBuyerState((c)   => ({ ...c, ...p }))}
+            seller={seller}   setSeller={(p)  => setSellerState((c)  => ({ ...c, ...p }))}
+            isLoading={isLoading}
+            apiError={apiError}
+            savedOffline={savedOffline}
+            reset={reset}
+            onDone={handleDone}
+          />
+        </aside>
+      </div>
 
-        <OnboardingPanel
-          role={role}
-          setRole={setRole}
-          step={step}
-          setStep={setStep}
-          account={account}
-          setAccount={(patch) => setAccountState((current) => ({ ...current, ...patch }))}
-          buyer={buyer}
-          setBuyer={(patch) => setBuyerState((current) => ({ ...current, ...patch }))}
-          seller={seller}
-          setSeller={(patch) => setSellerState((current) => ({ ...current, ...patch }))}
-          isLoading={isLoading}
-          apiError={apiError}
-          savedOffline={savedOffline}
-          reset={reset}
-          onDone={handleDone}
-        />
-      </section>
-
-      <AppPreviewGrid />
-
-      <footer className="bg-slate-950">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 text-white sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <AppLogo inverted />
-          <p className="text-xs font-semibold text-white/40">
-            Digitizing trusted community wholesale trade.
-          </p>
-        </div>
-      </footer>
+      <FeatureGrid />
+      <Footer />
     </main>
   );
 }

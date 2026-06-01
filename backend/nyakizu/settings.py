@@ -34,6 +34,13 @@ INSTALLED_APPS = [
     'rest_framework',       # Django REST Framework — builds our API
     'corsheaders',          # Allows the Next.js frontend to call our API
 
+    # django-allauth — handles Google (and other) OAuth2 logins
+    'django.contrib.sites',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+
     # Our apps
     'accounts',
     'products',
@@ -47,6 +54,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'allauth.account.middleware.AccountMiddleware',   # required by django-allauth
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -137,3 +145,42 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
 ]
+CORS_ALLOW_CREDENTIALS = True   # needed so the session cookie is sent back
+
+# ---------------------------------------------------------------------------
+# django-allauth configuration
+# ---------------------------------------------------------------------------
+SITE_ID = 1   # required by django.contrib.sites
+
+AUTHENTICATION_BACKENDS = [
+    # Default — lets users log in with username/password through the admin
+    'django.contrib.auth.backends.ModelBackend',
+    # Allauth — handles Google OAuth2
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+# After a successful Google login, redirect back to the Next.js app
+LOGIN_REDIRECT_URL = 'http://localhost:3000/'
+ACCOUNT_LOGOUT_REDIRECT_URL = 'http://localhost:3000/'
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        # Scopes we request from Google — just email and profile for now
+        'SCOPE': ['profile', 'email'],
+        'AUTH_PARAMS': {'access_type': 'online'},
+        # Store tokens so we can call Google APIs later if needed
+        'FETCH_USERINFO': True,
+    }
+}
+
+# Signup fields for allauth (allauth >= 65.4 syntax)
+SOCIALACCOUNT_AUTO_SIGNUP = True
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
+ACCOUNT_LOGIN_METHODS = ['email']
+
+# Needed when AUTH_USER_MODEL is a custom model
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'http'   # use 'https' in production
+
+# Point allauth to our custom adapters
+ACCOUNT_ADAPTER = 'accounts.adapters.AccountAdapter'
+SOCIALACCOUNT_ADAPTER = 'accounts.adapters.SocialAccountAdapter'

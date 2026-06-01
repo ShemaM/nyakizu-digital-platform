@@ -2,158 +2,109 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import {
-  ArrowRight,
-  BookOpen,
-  CheckCircle2,
-  ChevronLeft,
-  ClipboardList,
-  Eye,
-  EyeOff,
-  Loader2,
-  Package,
-  ShoppingBag,
-  Store,
-  Wallet,
-  WifiOff,
-  X,
-  Zap,
+  ArrowRight, BookOpen, CheckCircle2, ChevronLeft,
+  ClipboardList, Eye, EyeOff, Loader2, Package,
+  ShoppingBag, Store, Wallet, WifiOff, X, Zap,
 } from "lucide-react";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ─── types ────────────────────────────────────────────────────────────────────
 
 type Role = "buyer" | "seller";
 type Step = "role" | "account" | "details" | "done";
 
-interface AccountFields { fullName: string; phone: string; password: string }
-interface BuyerFields   { location: string; mainSupplier: string; businessType: string }
-interface SellerFields  { shopName: string; location: string; categories: string[] }
+interface AccountFields  { fullName: string; phone: string; password: string }
+interface BuyerFields    { location: string; mainSupplier: string; businessType: string }
+interface SellerFields   { shopName: string; location: string; categories: string[] }
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+// ─── constants ────────────────────────────────────────────────────────────────
 
-const CATEGORY_OPTIONS = [
-  "Tempered glass",
-  "Phone cases & covers",
-  "Chargers & adapters",
-  "USB & charging cables",
-  "Batteries & power banks",
-  "Earphones & earbuds",
-  "Memory cards (SD cards)",
-  "Phone repair parts",
+const CATS = [
+  "Tempered glass",       "Phone cases & covers",
+  "Chargers & adapters",  "USB & charging cables",
+  "Batteries & power banks", "Earphones & earbuds",
+  "Memory cards (SD cards)", "Phone repair parts",
 ];
 
-const BUSINESS_TYPES = ["Hawker", "Retail shop", "Repair shop", "Online seller"];
+const BIZ_TYPES = ["Hawker", "Retail shop", "Repair shop", "Online seller"];
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// ─── tiny helpers ─────────────────────────────────────────────────────────────
 
-// ── Utility ───────────────────────────────────────────────────────────────────
-
-function cx(...classes: (string | false | undefined)[]) {
-  return classes.filter(Boolean).join(" ");
+function c(...cls: (string | false | undefined | null)[]) {
+  return cls.filter(Boolean).join(" ");
 }
 
-// ── AppLogo ───────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// WIZARD COMPONENTS
+// ─────────────────────────────────────────────────────────────────────────────
 
-function AppLogo({ inverted = false }: { inverted?: boolean }) {
-  return (
-    <div className="flex items-center gap-2.5">
-      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600">
-        <span className="text-sm font-extrabold tracking-tight text-white">N</span>
-      </div>
-      <div className="leading-none">
-        <p className={cx("text-[15px] font-bold leading-none", inverted ? "text-white" : "text-slate-900")}>
-          Nyakizu
-        </p>
-        <p className={cx("mt-1 text-[10px] font-semibold uppercase tracking-widest", inverted ? "text-white/40" : "text-slate-400")}>
-          Digital Market
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// ── StepDots — compact progress indicator ─────────────────────────────────────
-
-function StepDots({ step, role }: { step: Step; role: Role | null }) {
-  const steps = [
-    { id: "role" as const,    label: "Role" },
-    { id: "account" as const, label: "Account" },
-    { id: "details" as const, label: role === "seller" ? "Shop" : "Profile" },
-  ];
-  const idx = step === "done" ? 3 : steps.findIndex((s) => s.id === step);
+// Progress bar ─────────────────────────────────────────────────────────────────
+function Progress({ step, role }: { step: Step; role: Role | null }) {
+  const labels = ["Role", "Account", role === "seller" ? "Shop" : "Profile"];
+  const cur = step === "done" ? 3 : ["role", "account", "details"].indexOf(step);
 
   return (
-    <nav aria-label="Registration progress" className="flex items-center gap-2">
-      {steps.map((s, i) => {
-        const done   = i < idx || step === "done";
-        const active = i === idx && step !== "done";
+    <div className="flex items-center gap-0">
+      {labels.map((lbl, i) => {
+        const done   = i < cur || step === "done";
+        const active = i === cur && step !== "done";
         return (
-          <div key={s.id} className="flex items-center gap-2">
-            <div className="flex flex-col items-center gap-1">
-              <div
-                aria-current={active ? "step" : undefined}
-                className={cx(
-                  "flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold transition-all duration-200",
-                  done   && "bg-blue-600 text-white",
-                  active && "bg-blue-600 text-white ring-4 ring-blue-500/20",
-                  !done && !active && "bg-slate-100 text-slate-400",
-                )}
-              >
+          <div key={lbl} className="flex items-center">
+            <div className="flex flex-col items-center">
+              <div className={c(
+                "flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold transition-all",
+                done   && "bg-blue-600 text-white",
+                active && "bg-blue-600 text-white ring-4 ring-blue-600/20",
+                !done && !active && "bg-white/10 text-white/40",
+              )}>
                 {done ? "✓" : i + 1}
               </div>
-              <span className={cx(
-                "text-[10px] font-semibold whitespace-nowrap",
-                done || active ? "text-slate-600" : "text-slate-400",
-              )}>
-                {s.label}
-              </span>
+              <span className={c(
+                "mt-1 text-[10px] font-semibold",
+                done || active ? "text-white/70" : "text-white/25",
+              )}>{lbl}</span>
             </div>
-            {i < steps.length - 1 && (
-              <div className={cx(
-                "mb-4 h-px w-8 transition-colors duration-300",
-                done ? "bg-blue-400" : "bg-slate-200",
+            {i < 2 && (
+              <div className={c(
+                "mx-2 mb-4 h-px w-8 transition-colors",
+                done ? "bg-blue-500" : "bg-white/15",
               )} />
             )}
           </div>
         );
       })}
-    </nav>
+    </div>
   );
 }
 
-// ── FieldInput ────────────────────────────────────────────────────────────────
-
-interface FieldProps {
-  id: string; label: string; value: string;
-  onChange: (v: string) => void;
-  placeholder?: string; type?: string;
-  error?: string; hint?: string;
-  autoComplete?: string;
-  trailing?: React.ReactNode;
-  optional?: boolean;
-}
-
-function FieldInput({ id, label, value, onChange, placeholder, type = "text",
-  error, hint, autoComplete, trailing, optional }: FieldProps) {
+// Input ────────────────────────────────────────────────────────────────────────
+function Input({
+  id, label, value, onChange, placeholder, type = "text",
+  error, hint, autoComplete, trailing, optional,
+}: {
+  id: string; label: string; value: string; onChange: (v: string) => void;
+  placeholder?: string; type?: string; error?: string; hint?: string;
+  autoComplete?: string; trailing?: React.ReactNode; optional?: boolean;
+}) {
   return (
     <div className="space-y-1.5">
-      <label htmlFor={id} className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+      <label htmlFor={id} className="flex items-center gap-1.5 text-sm font-medium text-white/80">
         {label}
-        {optional && <span className="text-xs font-normal text-slate-400">(optional)</span>}
+        {optional && <span className="text-xs font-normal text-white/30">(optional)</span>}
       </label>
       <div className="relative">
         <input
-          id={id} type={type} value={value}
+          id={id} type={type} value={value} placeholder={placeholder}
+          autoComplete={autoComplete}
           onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder} autoComplete={autoComplete}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? `${id}-err` : hint ? `${id}-hint` : undefined}
-          className={cx(
-            "h-11 w-full rounded-xl border bg-white px-4 text-sm text-slate-900 outline-none transition",
-            "placeholder:text-slate-400 focus:ring-3",
+          className={c(
+            "h-11 w-full rounded-xl border bg-white/6 px-4 text-sm text-white",
+            "placeholder:text-white/25 outline-none transition",
+            "focus:ring-2 focus:ring-blue-500/50",
             trailing ? "pr-11" : "",
-            error
-              ? "border-red-300 focus:border-red-400 focus:ring-red-500/10"
-              : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/10",
+            error ? "border-red-500/60 focus:border-red-400" : "border-white/12 focus:border-blue-500",
           )}
         />
         {trailing && (
@@ -163,195 +114,162 @@ function FieldInput({ id, label, value, onChange, placeholder, type = "text",
         )}
       </div>
       {error ? (
-        <p id={`${id}-err`} role="alert" className="flex items-center gap-1 text-xs font-medium text-red-600">
+        <p id={`${id}-err`} role="alert" className="flex items-center gap-1 text-xs font-medium text-red-400">
           <X size={11} strokeWidth={2.5} />{error}
         </p>
       ) : hint ? (
-        <p id={`${id}-hint`} className="text-xs text-slate-400">{hint}</p>
+        <p id={`${id}-hint`} className="text-xs text-white/30">{hint}</p>
       ) : null}
     </div>
   );
 }
 
-// ── Step 1 — RoleChoice ───────────────────────────────────────────────────────
-
-const ROLE_CONFIG = {
-  buyer: {
-    Icon: ShoppingBag,
-    label: "Buyer",
-    headline: "Order from your trusted suppliers",
-    description: "Browse your supplier's catalog, build a shopping list, and send it digitally. Track what you owe from your phone.",
-  },
-  seller: {
-    Icon: Store,
-    label: "Wholesaler / Seller",
-    headline: "Set up your digital store",
-    description: "Create your catalog, share one WhatsApp link. Buyers order from anywhere. Track fulfillment, M-Pesa payments, and debts.",
-  },
-} as const;
-
-function RoleChoice({ selectedRole, setSelectedRole, onNext }: {
-  selectedRole: Role | null;
-  setSelectedRole: (r: Role) => void;
+// ── Step 1: Role ──────────────────────────────────────────────────────────────
+function StepRole({ selected, setSelected, onNext }: {
+  selected: Role | null;
+  setSelected: (r: Role) => void;
   onNext: () => void;
 }) {
+  const roles: { id: Role; Icon: typeof Store; title: string; sub: string }[] = [
+    {
+      id: "seller", Icon: Store,
+      title: "Wholesaler / Seller",
+      sub: "Set up your catalog, share a link, manage orders and debts.",
+    },
+    {
+      id: "buyer", Icon: ShoppingBag,
+      title: "Buyer / Hawker",
+      sub: "Browse suppliers, send shopping lists, track what you owe.",
+    },
+  ];
+
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-bold text-slate-900">How do you want to trade?</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Choose your role. You can add the other one later.
-        </p>
+        <p className="text-lg font-bold text-white">Create your account</p>
+        <p className="mt-1 text-sm text-white/40">Pick how you trade. You can add the other role later.</p>
       </div>
 
-      {/* Role cards */}
       <div className="space-y-2.5">
-        {(["buyer", "seller"] as Role[]).map((role) => {
-          const { Icon, label, headline, description } = ROLE_CONFIG[role];
-          const selected = selectedRole === role;
+        {roles.map(({ id, Icon, title, sub }) => {
+          const on = selected === id;
           return (
             <button
-              key={role}
+              key={id}
               type="button"
-              onClick={() => setSelectedRole(role)}
-              className={cx(
-                "group relative w-full rounded-2xl border-2 p-4 text-left transition-all duration-150",
-                selected
-                  ? "border-blue-500 bg-blue-50/60"
-                  : "border-slate-200 bg-white hover:border-slate-300",
+              onClick={() => setSelected(id)}
+              className={c(
+                "w-full rounded-2xl border p-4 text-left transition-all duration-150",
+                on  ? "border-blue-500 bg-blue-600/15"
+                    : "border-white/10 bg-white/4 hover:border-white/20 hover:bg-white/7",
               )}
             >
-              <div className="flex items-start gap-3">
-                <div className={cx(
-                  "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors",
-                  selected ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500 group-hover:bg-slate-200",
+              <div className="flex items-center gap-3">
+                <div className={c(
+                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors",
+                  on ? "bg-blue-600 text-white" : "bg-white/8 text-white/50",
                 )}>
                   <Icon size={19} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-semibold text-slate-900">{label}</p>
-                    {selected && <CheckCircle2 size={16} className="shrink-0 text-blue-600" />}
-                  </div>
-                  <p className="mt-0.5 text-xs font-medium text-slate-500">{headline}</p>
-                  <p className="mt-1 text-xs leading-relaxed text-slate-400">{description}</p>
+                  <p className="font-semibold text-white">{title}</p>
+                  <p className="mt-0.5 text-xs text-white/40 leading-relaxed">{sub}</p>
                 </div>
+                {on && <CheckCircle2 size={17} className="shrink-0 text-blue-400" />}
               </div>
             </button>
           );
         })}
       </div>
 
-      {/* Divider + Google */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="h-px flex-1 bg-slate-200" />
-          <span className="text-xs font-semibold text-slate-400">or</span>
-          <div className="h-px flex-1 bg-slate-200" />
-        </div>
-        <a
-          href={`${API_BASE}/accounts/google/login/`}
-          className="flex h-10 w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-        >
-          <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" aria-hidden="true">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-          </svg>
-          Continue with Google
-        </a>
+      {/* Google */}
+      <div className="flex items-center gap-3">
+        <div className="h-px flex-1 bg-white/10" />
+        <span className="text-xs text-white/30 font-medium">or</span>
+        <div className="h-px flex-1 bg-white/10" />
       </div>
 
-      {/* Primary CTA */}
-      <button
-        type="button"
-        disabled={!selectedRole}
-        onClick={onNext}
-        className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700 active:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+      <a
+        href={`${API}/accounts/google/login/`}
+        className="flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-white/12 bg-white/6 text-sm font-medium text-white/80 transition hover:bg-white/10"
       >
-        {selectedRole ? `Continue as ${ROLE_CONFIG[selectedRole].label}` : "Select a role to continue"}
-        {selectedRole && <ArrowRight size={15} />}
+        <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" aria-hidden>
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Continue with Google
+      </a>
+
+      <button
+        type="button" disabled={!selected} onClick={onNext}
+        className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:bg-white/10 disabled:text-white/30 disabled:cursor-not-allowed"
+      >
+        {selected ? `Continue as ${selected === "seller" ? "Wholesaler" : "Buyer"}` : "Choose a role to continue"}
+        {selected && <ArrowRight size={15} />}
       </button>
     </div>
   );
 }
 
-// ── Step 2 — AccountForm ──────────────────────────────────────────────────────
-
-function AccountForm({ account, setAccount, onBack, onNext }: {
-  account: AccountFields;
-  setAccount: (p: Partial<AccountFields>) => void;
-  onBack: () => void;
-  onNext: () => void;
+// ── Step 2: Account ────────────────────────────────────────────────────────────
+function StepAccount({ data, setData, onBack, onNext }: {
+  data: AccountFields; setData: (p: Partial<AccountFields>) => void;
+  onBack: () => void; onNext: () => void;
 }) {
   const uid = useId();
-  const headingRef = useRef<HTMLHeadingElement>(null);
-  const [errors, setErrors] = useState({ fullName: "", phone: "", password: "" });
-  const [showPass, setShowPass] = useState(false);
+  const h2 = useRef<HTMLHeadingElement>(null);
+  const [err, setErr] = useState({ fullName: "", phone: "", password: "" });
+  const [show, setShow] = useState(false);
 
-  useEffect(() => { headingRef.current?.focus(); }, []);
+  useEffect(() => { h2.current?.focus(); }, []);
 
   function validate() {
     const e = { fullName: "", phone: "", password: "" };
-    if (!account.fullName.trim())    e.fullName = "Enter your full name.";
-    if (!account.phone.trim())       e.phone    = "Enter your phone number.";
-    if (account.password.length < 6) e.password = "Use at least 6 characters.";
-    setErrors(e);
-    return !e.fullName && !e.phone && !e.password;
+    if (!data.fullName.trim())    e.fullName = "Enter your full name.";
+    if (!data.phone.trim())       e.phone    = "Enter your phone number.";
+    if (data.password.length < 6) e.password = "At least 6 characters.";
+    setErr(e);
+    return !Object.values(e).some(Boolean);
   }
 
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
+  function submit(ev: React.FormEvent) {
+    ev.preventDefault();
     if (validate()) onNext();
   }
 
   return (
     <form onSubmit={submit} noValidate className="space-y-5">
       <div>
-        <h2 ref={headingRef} tabIndex={-1} className="text-xl font-bold text-slate-900 outline-none">
-          Create your account
-        </h2>
-        <p className="mt-1 text-sm text-slate-500">Your details are private and never shared.</p>
+        <p ref={h2} tabIndex={-1} className="text-lg font-bold text-white outline-none">Your login details</p>
+        <p className="mt-1 text-sm text-white/40">Private and never shared.</p>
       </div>
-
       <div className="space-y-3.5">
-        <FieldInput
-          id={`${uid}-name`} label="Full name"
-          value={account.fullName} onChange={(v) => setAccount({ fullName: v })}
-          placeholder="e.g. Claudine Mutesi" autoComplete="name"
-          error={errors.fullName}
-        />
-        <FieldInput
-          id={`${uid}-phone`} label="Phone number"
-          value={account.phone} onChange={(v) => setAccount({ phone: v })}
+        <Input id={`${uid}-n`} label="Full name" value={data.fullName} onChange={(v) => setData({ fullName: v })}
+          placeholder="e.g. Claudine Mutesi" autoComplete="name" error={err.fullName} />
+        <Input id={`${uid}-p`} label="Phone number" value={data.phone} onChange={(v) => setData({ phone: v })}
           placeholder="07XX XXX XXX" type="tel" autoComplete="tel"
-          hint="Used to log in — no username to remember"
-          error={errors.phone}
-        />
-        <FieldInput
-          id={`${uid}-pass`} label="Password"
-          value={account.password} onChange={(v) => setAccount({ password: v })}
-          placeholder="At least 6 characters"
-          type={showPass ? "text" : "password"} autoComplete="new-password"
-          error={errors.password}
+          hint="You'll use this to log in" error={err.phone} />
+        <Input id={`${uid}-pw`} label="Password" value={data.password} onChange={(v) => setData({ password: v })}
+          placeholder="At least 6 characters" type={show ? "text" : "password"} autoComplete="new-password"
+          error={err.password}
           trailing={
-            <button type="button" onClick={() => setShowPass((p) => !p)}
-              aria-label={showPass ? "Hide password" : "Show password"}
-              className="text-slate-400 transition hover:text-slate-600">
-              {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+            <button type="button" onClick={() => setShow((s) => !s)}
+              aria-label={show ? "Hide password" : "Show password"}
+              className="text-white/30 transition hover:text-white/60">
+              {show ? <EyeOff size={15} /> : <Eye size={15} />}
             </button>
           }
         />
       </div>
-
-      <div className="flex gap-2.5">
+      <div className="flex gap-2">
         <button type="button" onClick={onBack} aria-label="Back"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50">
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/12 text-white/50 transition hover:bg-white/8">
           <ChevronLeft size={18} />
         </button>
         <button type="submit"
-          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700 active:bg-blue-800">
+          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-500">
           Continue <ArrowRight size={15} />
         </button>
       </div>
@@ -359,190 +277,166 @@ function AccountForm({ account, setAccount, onBack, onNext }: {
   );
 }
 
-// ── Step 3a — BuyerDetailsForm ────────────────────────────────────────────────
-
-function BuyerDetailsForm({ buyer, setBuyer, onBack, onDone, isLoading, apiError }: {
-  buyer: BuyerFields; setBuyer: (p: Partial<BuyerFields>) => void;
-  onBack: () => void; onDone: () => void;
-  isLoading: boolean; apiError: string;
+// ── Step 3a: Buyer details ─────────────────────────────────────────────────────
+function StepBuyer({ data, setData, onBack, onDone, loading, apiErr }: {
+  data: BuyerFields; setData: (p: Partial<BuyerFields>) => void;
+  onBack: () => void; onDone: () => void; loading: boolean; apiErr: string;
 }) {
   const uid = useId();
-  const headingRef = useRef<HTMLHeadingElement>(null);
-  const [errors, setErrors] = useState({ location: "", businessType: "" });
+  const h2 = useRef<HTMLHeadingElement>(null);
+  const [err, setErr] = useState({ location: "", biz: "" });
 
-  useEffect(() => { headingRef.current?.focus(); }, []);
+  useEffect(() => { h2.current?.focus(); }, []);
 
   function validate() {
-    const e = { location: "", businessType: "" };
-    if (!buyer.location.trim()) e.location     = "Enter where you sell from.";
-    if (!buyer.businessType)    e.businessType  = "Choose how you trade.";
-    setErrors(e);
-    return !e.location && !e.businessType;
+    const e = { location: "", biz: "" };
+    if (!data.location.trim()) e.location = "Enter where you sell from.";
+    if (!data.businessType)    e.biz      = "Choose your business type.";
+    setErr(e);
+    return !e.location && !e.biz;
   }
 
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
+  function submit(ev: React.FormEvent) {
+    ev.preventDefault();
     if (validate()) onDone();
   }
 
   return (
     <form onSubmit={submit} noValidate className="space-y-5">
       <div>
-        <h2 ref={headingRef} tabIndex={-1} className="text-xl font-bold text-slate-900 outline-none">
-          Tell suppliers about you
-        </h2>
-        <p className="mt-1 text-sm text-slate-500">Helps wholesalers approve you faster.</p>
+        <p ref={h2} tabIndex={-1} className="text-lg font-bold text-white outline-none">About your business</p>
+        <p className="mt-1 text-sm text-white/40">Helps wholesalers approve you quickly.</p>
       </div>
 
-      {apiError && (
-        <div role="alert" className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-          <X size={14} className="mt-0.5 shrink-0" strokeWidth={2.5} />{apiError}
+      {apiErr && (
+        <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          <X size={14} className="mt-0.5 shrink-0" strokeWidth={2.5} />{apiErr}
         </div>
       )}
 
       <div className="space-y-3.5">
-        <FieldInput
-          id={`${uid}-loc`} label="Where do you sell from?"
-          value={buyer.location} onChange={(v) => setBuyer({ location: v })}
-          placeholder="e.g. Eastleigh, Nairobi" error={errors.location}
-        />
+        <Input id={`${uid}-l`} label="Where do you sell from?" value={data.location}
+          onChange={(v) => setData({ location: v })} placeholder="e.g. Eastleigh, Nairobi"
+          error={err.location} />
 
         <div className="space-y-2">
           <div className="flex items-baseline justify-between">
-            <p className="text-sm font-medium text-slate-700">How do you trade?</p>
-            {errors.businessType && (
-              <p role="alert" className="flex items-center gap-1 text-xs font-medium text-red-600">
-                <X size={10} strokeWidth={2.5} />{errors.businessType}
+            <p className="text-sm font-medium text-white/80">How do you trade?</p>
+            {err.biz && (
+              <p role="alert" className="flex items-center gap-0.5 text-xs text-red-400">
+                <X size={10} strokeWidth={2.5} />{err.biz}
               </p>
             )}
           </div>
           <div className="grid grid-cols-2 gap-2">
-            {BUSINESS_TYPES.map((type) => {
-              const active = buyer.businessType === type;
+            {BIZ_TYPES.map((t) => {
+              const on = data.businessType === t;
               return (
-                <button key={type} type="button" onClick={() => setBuyer({ businessType: type })}
-                  className={cx(
-                    "rounded-xl border py-2.5 text-sm font-medium transition-all duration-150",
-                    active
-                      ? "border-blue-500 bg-blue-600 text-white"
-                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50",
+                <button key={t} type="button" onClick={() => setData({ businessType: t })}
+                  className={c(
+                    "rounded-xl border py-2.5 text-sm font-medium transition-all",
+                    on ? "border-blue-500 bg-blue-600 text-white"
+                       : "border-white/12 bg-white/5 text-white/60 hover:bg-white/10",
                   )}>
-                  {type}
+                  {t}
                 </button>
               );
             })}
           </div>
         </div>
 
-        <FieldInput
-          id={`${uid}-sup`} label="Usual supplier"
-          value={buyer.mainSupplier} onChange={(v) => setBuyer({ mainSupplier: v })}
-          placeholder="e.g. RNG Plaza Accessories" optional
-        />
+        <Input id={`${uid}-s`} label="Usual supplier" value={data.mainSupplier}
+          onChange={(v) => setData({ mainSupplier: v })}
+          placeholder="e.g. RNG Plaza Accessories" optional />
       </div>
 
-      <div className="flex gap-2.5">
-        <button type="button" onClick={onBack} disabled={isLoading} aria-label="Back"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-40">
+      <div className="flex gap-2">
+        <button type="button" onClick={onBack} disabled={loading} aria-label="Back"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/12 text-white/50 transition hover:bg-white/8 disabled:opacity-40">
           <ChevronLeft size={18} />
         </button>
-        <button type="submit" disabled={isLoading}
-          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:bg-blue-400">
-          {isLoading
-            ? <><Loader2 size={14} className="animate-spin" /> Creating…</>
-            : <>Create buyer account <ArrowRight size={15} /></>}
+        <button type="submit" disabled={loading}
+          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:bg-blue-600/50">
+          {loading ? <><Loader2 size={14} className="animate-spin" />Creating…</> : <>Create account <ArrowRight size={15} /></>}
         </button>
       </div>
     </form>
   );
 }
 
-// ── Step 3b — SellerDetailsForm ───────────────────────────────────────────────
-
-function SellerDetailsForm({ seller, setSeller, onBack, onDone, isLoading, apiError }: {
-  seller: SellerFields; setSeller: (p: Partial<SellerFields>) => void;
-  onBack: () => void; onDone: () => void;
-  isLoading: boolean; apiError: string;
+// ── Step 3b: Seller details ────────────────────────────────────────────────────
+function StepSeller({ data, setData, onBack, onDone, loading, apiErr }: {
+  data: SellerFields; setData: (p: Partial<SellerFields>) => void;
+  onBack: () => void; onDone: () => void; loading: boolean; apiErr: string;
 }) {
   const uid = useId();
-  const headingRef = useRef<HTMLHeadingElement>(null);
-  const [errors, setErrors] = useState({ shopName: "", location: "", categories: "" });
+  const h2 = useRef<HTMLHeadingElement>(null);
+  const [err, setErr] = useState({ name: "", loc: "", cats: "" });
 
-  useEffect(() => { headingRef.current?.focus(); }, []);
+  useEffect(() => { h2.current?.focus(); }, []);
 
-  function toggleCat(cat: string) {
-    setSeller({
-      categories: seller.categories.includes(cat)
-        ? seller.categories.filter((c) => c !== cat)
-        : [...seller.categories, cat],
+  function toggle(cat: string) {
+    setData({
+      categories: data.categories.includes(cat)
+        ? data.categories.filter((c) => c !== cat)
+        : [...data.categories, cat],
     });
   }
 
   function validate() {
-    const e = { shopName: "", location: "", categories: "" };
-    if (!seller.shopName.trim())   e.shopName   = "Enter your shop name.";
-    if (!seller.location.trim())   e.location   = "Enter your shop location.";
-    if (!seller.categories.length) e.categories = "Choose at least one.";
-    setErrors(e);
-    return !e.shopName && !e.location && !e.categories;
+    const e = { name: "", loc: "", cats: "" };
+    if (!data.shopName.trim())    e.name = "Enter your shop name.";
+    if (!data.location.trim())    e.loc  = "Enter your shop location.";
+    if (!data.categories.length)  e.cats = "Choose at least one.";
+    setErr(e);
+    return !Object.values(e).some(Boolean);
   }
 
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
+  function submit(ev: React.FormEvent) {
+    ev.preventDefault();
     if (validate()) onDone();
   }
 
   return (
     <form onSubmit={submit} noValidate className="space-y-5">
       <div>
-        <h2 ref={headingRef} tabIndex={-1} className="text-xl font-bold text-slate-900 outline-none">
-          Register your shop
-        </h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Reviewed by our team before going live.
-        </p>
+        <p ref={h2} tabIndex={-1} className="text-lg font-bold text-white outline-none">Register your shop</p>
+        <p className="mt-1 text-sm text-white/40">Reviewed by our team before going live.</p>
       </div>
 
-      {apiError && (
-        <div role="alert" className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-          <X size={14} className="mt-0.5 shrink-0" strokeWidth={2.5} />{apiError}
+      {apiErr && (
+        <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          <X size={14} className="mt-0.5 shrink-0" strokeWidth={2.5} />{apiErr}
         </div>
       )}
 
       <div className="space-y-3.5">
-        <FieldInput
-          id={`${uid}-shopname`} label="Shop name"
-          value={seller.shopName} onChange={(v) => setSeller({ shopName: v })}
-          placeholder="e.g. RNG Plaza Accessories" error={errors.shopName}
-        />
-        <FieldInput
-          id={`${uid}-loc`} label="Shop location"
-          value={seller.location} onChange={(v) => setSeller({ location: v })}
-          placeholder="e.g. Luthuli Avenue, Nairobi" error={errors.location}
-        />
+        <Input id={`${uid}-n`} label="Shop name" value={data.shopName}
+          onChange={(v) => setData({ shopName: v })} placeholder="e.g. RNG Plaza Accessories"
+          error={err.name} />
+        <Input id={`${uid}-l`} label="Shop location" value={data.location}
+          onChange={(v) => setData({ location: v })} placeholder="e.g. Luthuli Avenue, Nairobi"
+          error={err.loc} />
 
         <div className="space-y-2">
           <div className="flex items-baseline justify-between">
-            <p className="text-sm font-medium text-slate-700">What do you sell?</p>
-            {errors.categories
-              ? <p role="alert" className="flex items-center gap-1 text-xs font-medium text-red-600">
-                  <X size={10} strokeWidth={2.5} />{errors.categories}
-                </p>
-              : seller.categories.length > 0
-                ? <p className="text-xs text-blue-600 font-medium">{seller.categories.length} selected</p>
-                : <p className="text-xs text-slate-400">Select all that apply</p>
+            <p className="text-sm font-medium text-white/80">What do you sell?</p>
+            {err.cats
+              ? <p role="alert" className="flex items-center gap-0.5 text-xs text-red-400"><X size={10} strokeWidth={2.5} />{err.cats}</p>
+              : data.categories.length > 0
+                ? <p className="text-xs text-blue-400 font-medium">{data.categories.length} selected</p>
+                : <p className="text-xs text-white/30">Select all that apply</p>
             }
           </div>
           <div className="grid grid-cols-2 gap-2">
-            {CATEGORY_OPTIONS.map((cat) => {
-              const active = seller.categories.includes(cat);
+            {CATS.map((cat) => {
+              const on = data.categories.includes(cat);
               return (
-                <button key={cat} type="button" onClick={() => toggleCat(cat)} aria-pressed={active}
-                  className={cx(
-                    "rounded-xl border px-3 py-2 text-left text-xs font-medium transition-all duration-150",
-                    active
-                      ? "border-blue-500 bg-blue-600 text-white"
-                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50",
+                <button key={cat} type="button" onClick={() => toggle(cat)} aria-pressed={on}
+                  className={c(
+                    "rounded-xl border px-3 py-2 text-left text-xs font-medium transition-all",
+                    on ? "border-blue-500 bg-blue-600 text-white"
+                       : "border-white/12 bg-white/5 text-white/60 hover:bg-white/10",
                   )}>
                   {cat}
                 </button>
@@ -552,51 +446,42 @@ function SellerDetailsForm({ seller, setSeller, onBack, onDone, isLoading, apiEr
         </div>
       </div>
 
-      <div className="flex gap-2.5">
-        <button type="button" onClick={onBack} disabled={isLoading} aria-label="Back"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-40">
+      <div className="flex gap-2">
+        <button type="button" onClick={onBack} disabled={loading} aria-label="Back"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/12 text-white/50 transition hover:bg-white/8 disabled:opacity-40">
           <ChevronLeft size={18} />
         </button>
-        <button type="submit" disabled={isLoading}
-          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:bg-blue-400">
-          {isLoading
-            ? <><Loader2 size={14} className="animate-spin" /> Submitting…</>
-            : <>Submit for verification <ArrowRight size={15} /></>}
+        <button type="submit" disabled={loading}
+          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:bg-blue-600/50">
+          {loading ? <><Loader2 size={14} className="animate-spin" />Submitting…</> : <>Submit for verification <ArrowRight size={15} /></>}
         </button>
       </div>
     </form>
   );
 }
 
-// ── Step 4 — DoneStep ─────────────────────────────────────────────────────────
-
-function DoneStep({ role, account, buyer, seller, savedOffline, reset }: {
+// ── Step 4: Done ───────────────────────────────────────────────────────────────
+function StepDone({ role, account, buyer, seller, offline, reset }: {
   role: Role; account: AccountFields; buyer: BuyerFields;
-  seller: SellerFields; savedOffline: boolean; reset: () => void;
+  seller: SellerFields; offline: boolean; reset: () => void;
 }) {
-  const isSeller  = role === "seller";
-  const firstName = account.fullName.split(" ")[0] || "you";
+  const name = account.fullName.split(" ")[0] || "you";
+  const isSeller = role === "seller";
 
-  if (savedOffline) {
+  if (offline) {
     return (
-      <div className="space-y-5 py-2 text-center">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50">
-          <WifiOff size={28} className="text-amber-500" />
+      <div className="space-y-5 text-center">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/15">
+          <WifiOff size={26} className="text-amber-400" />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-slate-900">No internet connection</h2>
-          <p className="mt-1.5 text-sm leading-relaxed text-slate-500">
-            Details saved on this device. Come back with Wi-Fi or data to complete registration.
+          <p className="text-lg font-bold text-white">No internet</p>
+          <p className="mt-1.5 text-sm leading-relaxed text-white/40">
+            Details saved on this device. Reconnect and try again to complete registration.
           </p>
         </div>
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-left">
-          <ol className="space-y-1 pl-4 list-decimal text-sm text-amber-800">
-            <li>Connect to the internet.</li>
-            <li>Return to this page and resubmit.</li>
-          </ol>
-        </div>
-        <button type="button" onClick={reset}
-          className="w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition hover:bg-blue-700">
+        <button onClick={reset}
+          className="w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition hover:bg-blue-500">
           Try again
         </button>
       </div>
@@ -604,360 +489,339 @@ function DoneStep({ role, account, buyer, seller, savedOffline, reset }: {
   }
 
   return (
-    <div className="space-y-5 py-2">
-      {/* Success header */}
+    <div className="space-y-5">
       <div className="text-center">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-green-50">
-          <CheckCircle2 size={28} className="text-green-600" />
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-green-500/15">
+          <CheckCircle2 size={26} className="text-green-400" />
         </div>
-        <h2 className="text-xl font-bold text-slate-900">
-          {isSeller ? "Verification submitted!" : "Account created!"}
-        </h2>
-        <p className="mt-1.5 text-sm leading-relaxed text-slate-500">
+        <p className="text-lg font-bold text-white">
+          {isSeller ? "Verification submitted!" : `Welcome, ${name}!`}
+        </p>
+        <p className="mt-1.5 text-sm leading-relaxed text-white/40">
           {isSeller
-            ? `${seller.shopName} is queued for review. We'll contact ${firstName} on ${account.phone}.`
-            : `Welcome, ${firstName}! Your buyer account is ready.`}
+            ? `${seller.shopName} is queued for review. We'll contact you on ${account.phone}.`
+            : "Your buyer account is ready. Find a supplier and send your first shopping list."}
         </p>
       </div>
 
-      {/* Next steps */}
-      <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">
-          What to do next
-        </p>
+      <div className="rounded-xl border border-white/10 bg-white/4 p-4">
+        <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-white/30">Next steps</p>
         <ul className="space-y-2.5">
           {(isSeller
-            ? ["Wait for admin verification (we'll call you)", "Add products to your catalog", "Share your store link on WhatsApp"]
-            : ["Open your trusted supplier's store", "Build and send your shopping list", "Track your orders and balances"]
+            ? ["Wait for admin verification — we'll call you", "Add products to your catalog", "Share your store link on WhatsApp"]
+            : ["Open a trusted supplier's store", "Build and send your shopping list", "Track your orders and balances"]
           ).map((item) => (
-            <li key={item} className="flex items-start gap-2.5 text-sm text-slate-700">
-              <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-green-500" />
-              {item}
+            <li key={item} className="flex items-start gap-2.5 text-sm text-white/70">
+              <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-green-400" />{item}
             </li>
           ))}
         </ul>
       </div>
 
-      <button type="button" onClick={reset}
-        className="w-full rounded-xl border border-slate-200 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+      <button onClick={reset}
+        className="w-full rounded-xl border border-white/10 py-3 text-sm font-semibold text-white/50 transition hover:bg-white/5">
         Create another account
       </button>
     </div>
   );
 }
 
-// ── OnboardingWizard ──────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// WIZARD SHELL
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface WizardProps {
-  role: Role | null;      setRole: (r: Role) => void;
-  step: Step;             setStep: (s: Step) => void;
+  role: Role | null; setRole: (r: Role) => void;
+  step: Step; setStep: (s: Step) => void;
   account: AccountFields; setAccount: (p: Partial<AccountFields>) => void;
-  buyer: BuyerFields;     setBuyer: (p: Partial<BuyerFields>) => void;
-  seller: SellerFields;   setSeller: (p: Partial<SellerFields>) => void;
-  isLoading: boolean; apiError: string; savedOffline: boolean;
+  buyer: BuyerFields; setBuyer: (p: Partial<BuyerFields>) => void;
+  seller: SellerFields; setSeller: (p: Partial<SellerFields>) => void;
+  loading: boolean; apiErr: string; offline: boolean;
   reset: () => void; onDone: () => void;
 }
 
-function OnboardingWizard(props: WizardProps) {
-  const { role, setRole, step, setStep, account, setAccount, buyer, setBuyer,
-          seller, setSeller, isLoading, apiError, savedOffline, reset, onDone } = props;
+function Wizard(props: WizardProps) {
+  const { role, setRole, step, setStep,
+          account, setAccount, buyer, setBuyer, seller, setSeller,
+          loading, apiErr, offline, reset, onDone } = props;
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.07),0_16px_48px_rgba(0,0,0,0.12)]">
-      {/* Progress header */}
+    <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#111827] shadow-2xl shadow-black/40">
+      {/* Header */}
       {step !== "done" && (
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <StepDots step={step} role={role} />
-          <p className="text-xs font-medium text-slate-400">Free · No card needed</p>
+        <div className="flex items-center justify-between border-b border-white/8 px-6 py-4">
+          <Progress step={step} role={role} />
+          <span className="text-xs text-white/25 font-medium hidden sm:block">Free · No card</span>
         </div>
       )}
 
-      {/* Step content */}
-      <div className="px-6 py-6">
-        <div key={step} className="step-in">
-          {step === "role" && (
-            <RoleChoice selectedRole={role} setSelectedRole={setRole} onNext={() => setStep("account")} />
-          )}
-          {step === "account" && (
-            <AccountForm account={account} setAccount={setAccount} onBack={() => setStep("role")} onNext={() => setStep("details")} />
-          )}
-          {step === "details" && role === "buyer" && (
-            <BuyerDetailsForm buyer={buyer} setBuyer={setBuyer} onBack={() => setStep("account")} onDone={onDone} isLoading={isLoading} apiError={apiError} />
-          )}
-          {step === "details" && role === "seller" && (
-            <SellerDetailsForm seller={seller} setSeller={setSeller} onBack={() => setStep("account")} onDone={onDone} isLoading={isLoading} apiError={apiError} />
-          )}
-          {step === "done" && role && (
-            <DoneStep role={role} account={account} buyer={buyer} seller={seller} savedOffline={savedOffline} reset={reset} />
-          )}
+      {/* Body */}
+      <div className="p-6">
+        <div key={step} className="animate-up">
+          {step === "role" && <StepRole selected={role} setSelected={setRole} onNext={() => setStep("account")} />}
+          {step === "account" && <StepAccount data={account} setData={setAccount} onBack={() => setStep("role")} onNext={() => setStep("details")} />}
+          {step === "details" && role === "buyer" && <StepBuyer data={buyer} setData={setBuyer} onBack={() => setStep("account")} onDone={onDone} loading={loading} apiErr={apiErr} />}
+          {step === "details" && role === "seller" && <StepSeller data={seller} setData={setSeller} onBack={() => setStep("account")} onDone={onDone} loading={loading} apiErr={apiErr} />}
+          {step === "done" && role && <StepDone role={role} account={account} buyer={buyer} seller={seller} offline={offline} reset={reset} />}
         </div>
       </div>
     </div>
   );
 }
 
-// ── App previews ──────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// LANDING SECTIONS
+// ─────────────────────────────────────────────────────────────────────────────
 
-function BuyerPreview() {
+// Logo ──────────────────────────────────────────────────────────────────────────
+function Logo() {
   return (
-    <div className="overflow-hidden rounded-2xl bg-slate-900 text-white">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-blue-300">Buyer</p>
-          <p className="text-sm font-bold mt-0.5">My Suppliers</p>
-        </div>
-        <span className="flex items-center gap-1 rounded-full bg-green-500/15 px-2.5 py-1 text-[10px] font-semibold text-green-300">
-          <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
-          Online
-        </span>
+    <div className="flex items-center gap-2.5">
+      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-600">
+        <span className="text-sm font-black text-white">N</span>
       </div>
-
-      {/* Suppliers */}
-      <div className="px-4 pt-3 space-y-2">
-        {[
-          { name: "RNG Plaza Accessories", tag: "Verified", debt: "KES 7,000 owed", debtColor: "text-amber-300" },
-          { name: "Espoir Mobile",          tag: "Verified", debt: "Cleared",        debtColor: "text-green-400" },
-        ].map((s) => (
-          <div key={s.name} className="flex items-center justify-between rounded-xl bg-white/8 px-3 py-2.5">
-            <div>
-              <p className="text-xs font-semibold">{s.name}</p>
-              <p className="text-[10px] text-white/40 mt-0.5">{s.tag}</p>
-            </div>
-            <p className={`text-[11px] font-bold ${s.debtColor}`}>{s.debt}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Shopping list */}
-      <div className="m-4 mt-3 rounded-xl bg-white p-3 text-slate-900">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs font-bold text-slate-700">Shopping list · RNG Plaza</p>
-          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold text-amber-700 uppercase tracking-wide">
-            Draft
-          </span>
-        </div>
-        {[
-          { item: "Samsung A54 tempered glass × 2", price: "KES 300" },
-          { item: "iPhone 13 clear cover × 1",      price: "KES 250" },
-          { item: "65W Type-C charger × 1",         price: "KES 450" },
-        ].map((r) => (
-          <div key={r.item} className="flex justify-between py-0.5 text-[11px]">
-            <span className="text-slate-500 truncate pr-2">{r.item}</span>
-            <span className="font-semibold text-slate-800 shrink-0">{r.price}</span>
-          </div>
-        ))}
-        <div className="mt-2.5 flex justify-between border-t border-slate-100 pt-2 text-xs font-bold">
-          <span className="text-slate-500">Draft total</span>
-          <span className="text-slate-900">KES 1,000</span>
-        </div>
-      </div>
+      <span className="text-[15px] font-bold text-white">Nyakizu</span>
     </div>
   );
 }
 
-function SellerPreview() {
+// Navbar ────────────────────────────────────────────────────────────────────────
+function Nav() {
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-blue-600">Wholesaler</p>
-          <p className="text-sm font-bold text-slate-900 mt-0.5">RNG Plaza · Today</p>
-        </div>
-        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-          <Store size={16} />
-        </div>
-      </div>
-
-      {/* Metrics */}
-      <div className="grid grid-cols-3 gap-2 px-4 pt-3">
-        {[
-          { label: "Orders",      value: "12",     fg: "text-slate-900" },
-          { label: "Active debt", value: "KES 9k", fg: "text-amber-600" },
-          { label: "Cleared",     value: "KES 6k", fg: "text-green-600" },
-        ].map((m) => (
-          <div key={m.label} className="rounded-xl bg-slate-50 p-2 text-center">
-            <p className={`text-sm font-bold ${m.fg}`}>{m.value}</p>
-            <p className="text-[9px] font-semibold uppercase text-slate-400 mt-0.5">{m.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Activity */}
-      <div className="px-4 pb-4 pt-3 space-y-2">
-        {[
-          { Icon: ClipboardList, title: "New list from Fatuma",   meta: "Submitted · KES 1,200", dot: "bg-blue-500" },
-          { Icon: Package,       title: "Order #1048 sourcing",   meta: "Sourcing & Packing",    dot: "bg-amber-500" },
-          { Icon: Wallet,        title: "M-Pesa received",        meta: "KES 3,000 · Hassan",   dot: "bg-green-500" },
-        ].map(({ Icon, title, meta, dot }) => (
-          <div key={title} className="flex items-center gap-2.5 rounded-xl border border-slate-100 px-3 py-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
-              <Icon size={13} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-slate-900 truncate">{title}</p>
-              <p className="text-[10px] text-slate-400">{meta}</p>
-            </div>
-            <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ── Navbar ────────────────────────────────────────────────────────────────────
-
-function Navbar() {
-  return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-950/95 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-        <AppLogo inverted />
-        <nav className="flex items-center gap-1 sm:gap-2">
-          <a href="#features"
-            className="hidden h-9 items-center px-3 text-sm font-medium text-white/60 transition hover:text-white sm:inline-flex">
+    <header className="sticky top-0 z-50 border-b border-white/8 bg-[#0a0f1c]/90 backdrop-blur-lg">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
+        <Logo />
+        <div className="flex items-center gap-1">
+          <a href="#how" className="hidden h-9 items-center px-3 text-sm text-white/50 transition hover:text-white sm:flex">
             How it works
           </a>
-          <a href={`${API_BASE}/accounts/login/`}
-            className="hidden h-9 items-center rounded-xl px-3 text-sm font-medium text-white/70 transition hover:text-white sm:inline-flex">
+          <a href={`${API}/admin/`} className="hidden h-9 items-center px-3 text-sm text-white/50 transition hover:text-white sm:flex">
             Sign in
           </a>
-          <a href="#signup"
-            className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-500">
-            Get started
-            <ArrowRight size={14} />
+          <a href="#start"
+            className="flex h-9 items-center gap-1.5 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-500">
+            Get started <ArrowRight size={14} />
           </a>
-        </nav>
+        </div>
       </div>
     </header>
   );
 }
 
-// ── HeroSection ───────────────────────────────────────────────────────────────
-
-function HeroSection() {
+// Hero ──────────────────────────────────────────────────────────────────────────
+function Hero() {
   return (
-    <div className="space-y-10 py-10 lg:py-16">
-      {/* Text block */}
-      <div className="space-y-6">
-        <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-3.5 py-1.5 text-xs font-semibold text-white/70">
-          <span className="h-1.5 w-1.5 rounded-full bg-green-400" aria-hidden />
-          For phone accessories traders in Rwanda &amp; East Africa
-        </div>
+    <section className="relative overflow-hidden">
+      {/* Background grid */}
+      <div className="pointer-events-none absolute inset-0"
+        style={{ backgroundImage: "radial-gradient(rgba(37,99,235,0.12) 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
+      {/* Blue glow */}
+      <div className="pointer-events-none absolute left-1/3 top-0 h-96 w-96 -translate-x-1/2 rounded-full bg-blue-600/15 blur-3xl" />
 
-        <h1 className="text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-6xl">
-          Set up your store.<br />
-          <span className="text-blue-400">Share it on WhatsApp.</span><br />
-          <span className="text-white/80">Buyers order from anywhere.</span>
-        </h1>
+      <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-16 sm:px-6 sm:pt-24">
+        <div className="grid items-start gap-10 lg:grid-cols-[1fr_400px] lg:gap-16">
 
-        <p className="max-w-lg text-base leading-relaxed text-slate-400">
-          Nyakizu replaces WhatsApp orders and notebooks with a free digital store.
-          Buyers browse your catalog and send shopping lists. You track orders,
-          M-Pesa payments, and every debt — all in one place.
-        </p>
+          {/* Left: copy */}
+          <div className="space-y-8">
+            <div className="space-y-5">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/60">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400" />
+                Phone accessories trade · Rwanda &amp; East Africa
+              </div>
 
-        <div className="flex flex-wrap gap-3">
-          <a href="#signup"
-            className="inline-flex h-12 items-center gap-2 rounded-xl bg-blue-600 px-6 text-sm font-bold text-white shadow-lg shadow-blue-900/30 transition hover:bg-blue-500">
-            Set up your store
-            <ArrowRight size={16} />
-          </a>
-          <a href="#signup"
-            className="inline-flex h-12 items-center gap-2 rounded-xl border border-white/20 bg-white/8 px-6 text-sm font-semibold text-white transition hover:bg-white/15">
-            Start as a buyer
-          </a>
-        </div>
+              <h1 className="text-[clamp(2.5rem,6vw,4.5rem)] font-black leading-[1.04] tracking-tight">
+                <span className="text-white">Your store.</span><br />
+                <span className="bg-gradient-to-r from-blue-400 to-blue-300 bg-clip-text text-transparent">One WhatsApp link.</span><br />
+                <span className="text-white/60">Buyers order from anywhere.</span>
+              </h1>
 
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          {[
-            "No app download needed",
-            "Share via WhatsApp",
-            "Works on weak networks",
-          ].map((item) => (
-            <span key={item} className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
-              <CheckCircle2 size={13} className="text-green-500" />
-              {item}
-            </span>
-          ))}
+              <p className="max-w-lg text-base leading-relaxed text-white/50">
+                Replace WhatsApp order chaos and paper notebooks. Set up your
+                digital store, let buyers send shopping lists, and track every
+                order, M-Pesa payment, and debt — all in one place.
+              </p>
+            </div>
+
+            {/* CTAs */}
+            <div className="flex flex-wrap gap-3">
+              <a href="#start"
+                className="inline-flex h-12 items-center gap-2 rounded-xl bg-blue-600 px-6 text-sm font-bold text-white shadow-lg shadow-blue-900/50 transition hover:bg-blue-500">
+                Set up your store
+                <ArrowRight size={16} />
+              </a>
+              <a href="#start"
+                className="inline-flex h-12 items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-6 text-sm font-semibold text-white/80 transition hover:bg-white/10">
+                Start as a buyer
+              </a>
+            </div>
+
+            {/* Social proof chips */}
+            <div className="flex flex-wrap items-center gap-3">
+              {[
+                "No app download",
+                "Share on WhatsApp",
+                "Works offline",
+                "Free to start",
+              ].map((t) => (
+                <span key={t} className="flex items-center gap-1.5 text-xs font-medium text-white/35">
+                  <CheckCircle2 size={12} className="text-green-500" />{t}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Right: wizard */}
+          <div id="start" className="lg:sticky lg:top-20">
+            {/* Let the parent provide the wizard via children or portal —
+                we render a placeholder that the Home component replaces */}
+          </div>
         </div>
       </div>
-
-      {/* App previews */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <BuyerPreview />
-        <SellerPreview />
-      </div>
-    </div>
+    </section>
   );
 }
 
-// ── HowItWorks (numbered steps) ───────────────────────────────────────────────
-
-const HOW_IT_WORKS = [
-  {
-    num: "01",
-    Icon: Store,
-    color: "text-blue-600",
-    bg: "bg-blue-50",
-    title: "Set up your digital store",
-    body: "Create your catalog in minutes. Add products, set prices, and get a unique link you can share anywhere.",
-  },
-  {
-    num: "02",
-    Icon: ClipboardList,
-    color: "text-violet-600",
-    bg: "bg-violet-50",
-    title: "Buyers send shopping lists",
-    body: "Your buyers open your link, build their list, and submit. No calls, no texts. Lists lock when submitted.",
-  },
-  {
-    num: "03",
-    Icon: Package,
-    color: "text-amber-600",
-    bg: "bg-amber-50",
-    title: "You pack and update the invoice",
-    body: "Review each list, source special requests, update the final total, and mark orders ready for pickup.",
-  },
-  {
-    num: "04",
-    Icon: BookOpen,
-    color: "text-green-600",
-    bg: "bg-green-50",
-    title: "Track payments and debts",
-    body: "Record M-Pesa payments and credit sales. Every buyer's balance is clear — no more chasing debts in your notebook.",
-  },
-] as const;
-
-function HowItWorks() {
+// App previews ──────────────────────────────────────────────────────────────────
+function Previews() {
   return (
-    <section id="features" className="bg-white">
-      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-        {/* Section header */}
-        <div className="mb-12 max-w-xl">
-          <p className="text-xs font-bold uppercase tracking-widest text-blue-600">How it works</p>
-          <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900">
-            Replace calls and notebooks<br className="hidden sm:block" /> with one link.
+    <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+      <div className="grid gap-5 sm:grid-cols-2">
+
+        {/* Buyer */}
+        <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#111827]">
+          <div className="flex items-center justify-between border-b border-white/8 px-4 py-3">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-blue-400">Buyer</p>
+              <p className="mt-0.5 text-sm font-bold text-white">My Suppliers</p>
+            </div>
+            <span className="flex items-center gap-1.5 rounded-full bg-green-500/12 px-2.5 py-1 text-[10px] font-semibold text-green-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-green-400" />Offline ready
+            </span>
+          </div>
+          <div className="p-4 space-y-2.5">
+            {[
+              { name: "RNG Plaza Accessories", tag: "Verified ✓", bal: "KES 7,000 owed", red: true },
+              { name: "Espoir Mobile",          tag: "Verified ✓", bal: "Cleared",        red: false },
+            ].map((s) => (
+              <div key={s.name} className="flex items-center justify-between rounded-xl bg-white/5 px-3.5 py-3">
+                <div>
+                  <p className="text-sm font-semibold text-white">{s.name}</p>
+                  <p className="mt-0.5 text-[11px] text-white/35">{s.tag}</p>
+                </div>
+                <span className={`text-xs font-bold ${s.red ? "text-amber-300" : "text-green-400"}`}>
+                  {s.bal}
+                </span>
+              </div>
+            ))}
+            {/* Shopping list card */}
+            <div className="rounded-xl bg-white p-3.5 text-slate-900">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold text-slate-700">Shopping list · RNG Plaza</p>
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-700">Draft</span>
+              </div>
+              <div className="mt-2 space-y-1">
+                {[
+                  { n: "Samsung A54 tempered glass × 2", p: "KES 300" },
+                  { n: "iPhone 13 clear cover × 1",      p: "KES 250" },
+                  { n: "65W Type-C charger × 1",         p: "KES 450" },
+                ].map((r) => (
+                  <div key={r.n} className="flex justify-between text-[11px]">
+                    <span className="text-slate-500 truncate pr-2">{r.n}</span>
+                    <span className="font-semibold text-slate-800 shrink-0">{r.p}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-2 flex justify-between border-t border-slate-100 pt-2 text-xs font-bold">
+                <span className="text-slate-500">Draft total</span>
+                <span>KES 1,000</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Seller */}
+        <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#111827]">
+          <div className="flex items-center justify-between border-b border-white/8 px-4 py-3">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-blue-400">Wholesaler</p>
+              <p className="mt-0.5 text-sm font-bold text-white">RNG Plaza · Today</p>
+            </div>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600/20 text-blue-400">
+              <Store size={15} />
+            </div>
+          </div>
+          <div className="p-4 space-y-3">
+            {/* Metrics */}
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { l: "Orders",      v: "12",     cls: "text-white" },
+                { l: "Active debt", v: "KES 9k", cls: "text-amber-400" },
+                { l: "Cleared",     v: "KES 6k", cls: "text-green-400" },
+              ].map((m) => (
+                <div key={m.l} className="rounded-xl bg-white/5 p-2.5 text-center">
+                  <p className={`text-sm font-bold ${m.cls}`}>{m.v}</p>
+                  <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/30">{m.l}</p>
+                </div>
+              ))}
+            </div>
+            {/* Activity */}
+            {[
+              { Icon: ClipboardList, t: "New list · Fatuma",    m: "Submitted · KES 1,200",  dot: "bg-blue-500" },
+              { Icon: Package,       t: "Order #1048 sourcing", m: "Sourcing & Packing",      dot: "bg-amber-500" },
+              { Icon: Wallet,        t: "M-Pesa received",      m: "KES 3,000 · Hassan",     dot: "bg-green-500" },
+            ].map(({ Icon, t, m, dot }) => (
+              <div key={t} className="flex items-center gap-3 rounded-xl bg-white/4 border border-white/6 px-3 py-2.5">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/8 text-white/50">
+                  <Icon size={13} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-white truncate">{t}</p>
+                  <p className="text-[10px] text-white/35">{m}</p>
+                </div>
+                <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+    </section>
+  );
+}
+
+// How it works ──────────────────────────────────────────────────────────────────
+function HowItWorks() {
+  const steps = [
+    { n: "01", Icon: Store,          c: "text-blue-400",   title: "Set up your store",         body: "Create your catalog, set prices, and get a shareable link in minutes. No technical knowledge needed." },
+    { n: "02", Icon: ClipboardList,  c: "text-violet-400", title: "Buyers send shopping lists", body: "Your buyers open your link, select what they need, and submit. Lists lock immediately on submission — no confusion." },
+    { n: "03", Icon: Package,        c: "text-amber-400",  title: "You pack and update",        body: "Review submitted lists, source special items, update the final invoice amount, and mark orders ready." },
+    { n: "04", Icon: BookOpen,       c: "text-green-400",  title: "Track payments and debts",   body: "Record M-Pesa payments and credit sales. Every buyer's running balance is visible — no more notebook chasing." },
+  ] as const;
+
+  return (
+    <section id="how" className="border-t border-white/8 py-20">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="mb-14">
+          <p className="text-xs font-bold uppercase tracking-widest text-blue-400">How it works</p>
+          <h2 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">
+            From WhatsApp chaos<br className="hidden sm:block" /> to a clean digital system.
           </h2>
-          <p className="mt-3 text-base leading-relaxed text-slate-500">
-            Four steps — from store setup to a clean debt ledger. No training required.
+          <p className="mt-4 max-w-xl text-base text-white/40 leading-relaxed">
+            Four steps. No training required. Your buyers don't even need an account to browse.
           </p>
         </div>
 
-        {/* Steps */}
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {HOW_IT_WORKS.map(({ num, Icon, color, bg, title, body }) => (
-            <div key={title} className="relative">
-              {/* Step number — large, behind the content */}
-              <p className="mb-4 text-7xl font-black leading-none text-slate-100 select-none">
-                {num}
-              </p>
-              <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-xl ${bg} ${color}`}>
-                <Icon size={20} />
+          {steps.map(({ n, Icon, c: col, title, body }) => (
+            <div key={n} className="group">
+              <div className="mb-5 flex items-end gap-3">
+                <span className="text-6xl font-black leading-none text-white/8 select-none group-hover:text-white/12 transition-colors">{n}</span>
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/6 ${col} mb-1`}>
+                  <Icon size={18} />
+                </div>
               </div>
-              <h3 className="font-bold text-slate-900">{title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-slate-500">{body}</p>
+              <h3 className="font-bold text-white">{title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-white/40">{body}</p>
             </div>
           ))}
         </div>
@@ -966,80 +830,83 @@ function HowItWorks() {
   );
 }
 
-// ── ConversionCTA section ─────────────────────────────────────────────────────
-
-function ConversionCTA() {
+// CTA ────────────────────────────────────────────────────────────────────────────
+function CTA() {
   return (
-    <section className="bg-slate-950 text-white">
-      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
-            Ready to replace your notebooks<br className="hidden sm:block" /> and WhatsApp chaos?
-          </h2>
-          <p className="mt-4 text-base leading-relaxed text-slate-400">
-            Takes 3 minutes to set up your store. Your buyers can start ordering from a link — no app download needed.
-          </p>
-
-          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-            <a href="#signup"
-              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-8 text-sm font-bold text-white shadow-lg shadow-blue-900/40 transition hover:bg-blue-500 sm:w-auto">
-              Set up your store
-              <ArrowRight size={16} />
-            </a>
-            <a href="#signup"
-              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/20 px-8 text-sm font-semibold text-white/80 transition hover:bg-white/8 sm:w-auto">
-              Start as a buyer
-            </a>
-          </div>
-
-          <p className="mt-6 text-xs text-slate-600">
-            Free to join · No app download · Works offline
-          </p>
+    <section className="relative overflow-hidden border-t border-white/8 py-20">
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-transparent" />
+      <div className="relative mx-auto max-w-3xl px-4 text-center sm:px-6">
+        <p className="text-xs font-bold uppercase tracking-widest text-blue-400">Get started today</p>
+        <h2 className="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl">
+          Still managing orders<br className="hidden sm:block" /> on WhatsApp and notebooks?
+        </h2>
+        <p className="mx-auto mt-5 max-w-lg text-base leading-relaxed text-white/40">
+          It takes 3 minutes to set up your store. Your buyers can start ordering from a link — no app download, no friction.
+        </p>
+        <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <a href="#start"
+            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-8 text-sm font-bold text-white shadow-lg shadow-blue-900/40 transition hover:bg-blue-500 sm:w-auto">
+            Set up your store <ArrowRight size={16} />
+          </a>
+          <a href="#start"
+            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/5 px-8 text-sm font-semibold text-white/70 transition hover:bg-white/10 sm:w-auto">
+            Start as a buyer
+          </a>
         </div>
+        <p className="mt-5 text-xs text-white/25">Free to join · No card needed · Works offline</p>
       </div>
     </section>
   );
 }
 
-// ── Footer ────────────────────────────────────────────────────────────────────
-
+// Footer ────────────────────────────────────────────────────────────────────────
 function Footer() {
   return (
-    <footer className="border-t border-white/5 bg-slate-950 text-white">
+    <footer className="border-t border-white/8">
       <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <AppLogo inverted />
-            <p className="mt-3 max-w-xs text-sm leading-relaxed text-white/35">
-              Digitizing trusted community trade for phone accessories wholesalers and buyers.
+        <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-3">
+            <Logo />
+            <p className="max-w-xs text-sm text-white/30 leading-relaxed">
+              Digitizing trusted community trade for phone accessories wholesalers and buyers in East Africa.
             </p>
           </div>
-          <div className="flex flex-col gap-1.5 text-sm text-white/40">
-            <p className="font-semibold text-white/60 mb-1">Platform</p>
-            <a href="#signup" className="transition hover:text-white/70">Set up your store</a>
-            <a href="#signup" className="transition hover:text-white/70">Start as a buyer</a>
-            <a href="#features" className="transition hover:text-white/70">How it works</a>
+          <div className="grid grid-cols-2 gap-8 text-sm sm:flex sm:gap-12">
+            <div className="space-y-2.5">
+              <p className="font-semibold text-white/50">Platform</p>
+              <a href="#start" className="block text-white/30 transition hover:text-white/60">Set up your store</a>
+              <a href="#start" className="block text-white/30 transition hover:text-white/60">Start as a buyer</a>
+              <a href="#how"   className="block text-white/30 transition hover:text-white/60">How it works</a>
+            </div>
+            <div className="space-y-2.5">
+              <p className="font-semibold text-white/50">Account</p>
+              <a href={`${API}/admin/`} className="block text-white/30 transition hover:text-white/60">Sign in</a>
+              <a href="#start"          className="block text-white/30 transition hover:text-white/60">Register</a>
+            </div>
           </div>
         </div>
-        <div className="mt-8 border-t border-white/8 pt-6 text-xs text-white/25">
-          © 2026 Nyakizu Digital Market · SWE3090XA · Nzabakamira Shema Manasse
+        <div className="mt-10 border-t border-white/8 pt-6 flex flex-col gap-1 sm:flex-row sm:justify-between">
+          <p className="text-xs text-white/20">© 2026 Nyakizu Digital Market</p>
+          <p className="text-xs text-white/15">SWE3090XA · Nzabakamira Shema Manasse</p>
         </div>
       </div>
     </footer>
   );
 }
 
-// ── Home ──────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// HOME
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function Home() {
-  const [role,   setRole]   = useState<Role | null>(null);
-  const [step,   setStep]   = useState<Step>("role");
-  const [account,  setAccountState]  = useState<AccountFields>({ fullName: "", phone: "", password: "" });
-  const [buyer,    setBuyerState]    = useState<BuyerFields>({ location: "", mainSupplier: "", businessType: "" });
-  const [seller,   setSellerState]   = useState<SellerFields>({ shopName: "", location: "", categories: [] });
-  const [isLoading,    setIsLoading]    = useState(false);
-  const [apiError,     setApiError]     = useState("");
-  const [savedOffline, setSavedOffline] = useState(false);
+  const [role,   setRole]  = useState<Role | null>(null);
+  const [step,   setStep]  = useState<Step>("role");
+  const [account, setAcct] = useState<AccountFields>({ fullName: "", phone: "", password: "" });
+  const [buyer,   setBuyer] = useState<BuyerFields>({ location: "", mainSupplier: "", businessType: "" });
+  const [seller,  setSeller] = useState<SellerFields>({ shopName: "", location: "", categories: [] });
+  const [loading, setLoading] = useState(false);
+  const [apiErr,  setApiErr]  = useState("");
+  const [offline, setOffline] = useState(false);
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
@@ -1049,16 +916,15 @@ export default function Home() {
 
   function reset() {
     setRole(null); setStep("role");
-    setAccountState({ fullName: "", phone: "", password: "" });
-    setBuyerState({ location: "", mainSupplier: "", businessType: "" });
-    setSellerState({ shopName: "", location: "", categories: [] });
-    setApiError(""); setSavedOffline(false);
+    setAcct({ fullName: "", phone: "", password: "" });
+    setBuyer({ location: "", mainSupplier: "", businessType: "" });
+    setSeller({ shopName: "", location: "", categories: [] });
+    setApiErr(""); setOffline(false);
   }
 
   async function handleDone() {
     if (!role) return;
-    setIsLoading(true);
-    setApiError("");
+    setLoading(true); setApiErr("");
 
     const payload = role === "seller"
       ? { full_name: account.fullName, phone: account.phone, password: account.password,
@@ -1067,59 +933,106 @@ export default function Home() {
           role: "buyer", location: buyer.location, main_supplier: buyer.mainSupplier, business_type: buyer.businessType };
 
     try {
-      const res = await fetch(`${API_BASE}/api/accounts/register/`, {
+      const res = await fetch(`${API}/api/accounts/register/`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload), credentials: "include",
       });
       if (!res.ok) {
-        const errs: Record<string, string[]> = await res.json().catch(() => ({}));
-        setApiError(String(Object.values(errs).flat()[0] ?? "Registration failed. Please try again."));
+        const e: Record<string, string[]> = await res.json().catch(() => ({}));
+        setApiErr(String(Object.values(e).flat()[0] ?? "Registration failed. Please try again."));
         return;
       }
       setStep("done");
     } catch {
-      try { localStorage.setItem("nyakizu_pending_registration", JSON.stringify(payload)); } catch {}
-      setSavedOffline(true);
-      setStep("done");
+      try { localStorage.setItem("nyakizu_pending", JSON.stringify(payload)); } catch {}
+      setOffline(true); setStep("done");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }
 
-  return (
-    <main className="min-h-dvh">
-      {/* ── Dark header + hero + wizard ─────────────────────────────────────── */}
-      <div className="bg-slate-950">
-        <Navbar />
-        <div
-          id="signup"
-          className="mx-auto max-w-6xl px-4 sm:px-6 lg:grid lg:grid-cols-[1fr_420px] lg:gap-14"
-        >
-          {/* Left: hero text + app previews */}
-          <HeroSection />
+  const wizardProps: WizardProps = {
+    role, setRole, step, setStep,
+    account, setAccount: (p) => setAcct((c) => ({ ...c, ...p })),
+    buyer,  setBuyer:  (p) => setBuyer((c)  => ({ ...c, ...p })),
+    seller, setSeller: (p) => setSeller((c) => ({ ...c, ...p })),
+    loading, apiErr, offline, reset, onDone: handleDone,
+  };
 
-          {/* Right: wizard card — sticky on desktop, stacked on mobile */}
-          <div className="pb-12 lg:sticky lg:top-20 lg:self-start lg:py-16">
-            <OnboardingWizard
-              role={role}     setRole={setRole}
-              step={step}     setStep={setStep}
-              account={account} setAccount={(p) => setAccountState((c) => ({ ...c, ...p }))}
-              buyer={buyer}   setBuyer={(p) => setBuyerState((c) => ({ ...c, ...p }))}
-              seller={seller} setSeller={(p) => setSellerState((c) => ({ ...c, ...p }))}
-              isLoading={isLoading} apiError={apiError} savedOffline={savedOffline}
-              reset={reset} onDone={handleDone}
-            />
+  return (
+    <main className="min-h-dvh bg-[#0a0f1c]">
+      <Nav />
+
+      {/* Hero + wizard (side by side on desktop) */}
+      <section className="relative overflow-hidden">
+        <div className="pointer-events-none absolute inset-0"
+          style={{ backgroundImage: "radial-gradient(rgba(37,99,235,0.10) 1px,transparent 1px)", backgroundSize: "32px 32px" }} />
+        <div className="pointer-events-none absolute left-1/4 top-0 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-blue-700/10 blur-3xl" />
+
+        <div className="relative mx-auto max-w-6xl px-4 pb-4 pt-16 sm:px-6 sm:pt-24">
+          <div className="grid items-start gap-12 lg:grid-cols-[1fr_400px] lg:gap-16">
+
+            {/* Copy */}
+            <div className="space-y-8">
+              <div className="space-y-5">
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/4 px-3 py-1.5 text-xs font-medium text-white/50">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400" />
+                  Phone accessories trade · Rwanda &amp; East Africa
+                </div>
+
+                <h1 className="text-[clamp(2.4rem,5.5vw,4.2rem)] font-black leading-[1.05] tracking-tight">
+                  <span className="text-white">Your store.</span><br />
+                  <span className="bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
+                    One WhatsApp link.
+                  </span><br />
+                  <span className="text-white/55">Buyers order from anywhere.</span>
+                </h1>
+
+                <p className="max-w-md text-[15px] leading-relaxed text-white/45">
+                  Replace WhatsApp order chaos and paper notebooks. Give your buyers
+                  a digital store link, let them send structured shopping lists, and
+                  track every order, payment, and debt in one place.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <a href="#start"
+                  className="inline-flex h-12 items-center gap-2 rounded-xl bg-blue-600 px-6 text-sm font-bold text-white shadow-lg shadow-blue-900/50 transition hover:bg-blue-500">
+                  Set up your store <ArrowRight size={16} />
+                </a>
+                <a href="#start"
+                  className="inline-flex h-12 items-center gap-2 rounded-xl border border-white/12 bg-white/5 px-6 text-sm font-semibold text-white/75 transition hover:bg-white/10">
+                  Start as a buyer
+                </a>
+              </div>
+
+              <div className="flex flex-wrap gap-x-5 gap-y-2">
+                {["No app download", "Share on WhatsApp", "Works offline", "Free to start"].map((t) => (
+                  <span key={t} className="flex items-center gap-1.5 text-xs text-white/30">
+                    <CheckCircle2 size={12} className="text-green-500" />{t}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Wizard */}
+            <div id="start" className="lg:sticky lg:top-20">
+              <Wizard {...wizardProps} />
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* ── How it works ────────────────────────────────────────────────────── */}
+      {/* App previews */}
+      <Previews />
+
+      {/* How it works */}
       <HowItWorks />
 
-      {/* ── Conversion CTA ──────────────────────────────────────────────────── */}
-      <ConversionCTA />
+      {/* Conversion CTA */}
+      <CTA />
 
-      {/* ── Footer ──────────────────────────────────────────────────────────── */}
+      {/* Footer */}
       <Footer />
     </main>
   );

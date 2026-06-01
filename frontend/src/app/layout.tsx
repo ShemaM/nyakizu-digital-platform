@@ -1,10 +1,21 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  applicationName: "Nyakizu",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Nyakizu",
+  },
   title: "Nyakizu Digital Market",
   description:
-    "A trusted digital market for phone accessories wholesalers and hawkers.",
+    "A trusted PWA for phone accessories wholesalers, hawkers, and buyers.",
+  manifest: "/manifest.webmanifest",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#2563eb",
 };
 
 export default function RootLayout({

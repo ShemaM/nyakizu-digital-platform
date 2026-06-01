@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ClipboardList,
   Cloud,
+  Loader2,
   Lock,
   Package,
   ShoppingBag,
@@ -49,6 +50,9 @@ const categoryOptions = [
 ];
 
 const businessTypes = ["Hawker", "Reseller", "Small shop", "Repair shop"];
+
+// Reads NEXT_PUBLIC_API_URL from the environment; falls back to the Django dev server
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 const baseInput =
   "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100";
@@ -219,13 +223,33 @@ function RoleChoice({
         })}
       </div>
 
+      {/* Google Sign-In */}
+      <div className="relative flex items-center gap-3">
+        <div className="h-px flex-1 bg-slate-200" />
+        <span className="text-xs font-bold text-slate-400">OR</span>
+        <div className="h-px flex-1 bg-slate-200" />
+      </div>
+
+      <a
+        href={`${API_BASE}/accounts/google/login/`}
+        className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
+      >
+        <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+        </svg>
+        Continue with Google
+      </a>
+
       <button
         type="button"
         disabled={!selectedRole}
         onClick={onNext}
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-black text-white shadow-lg shadow-blue-950/15 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none"
       >
-        {selectedRole ? roleConfig[selectedRole].cta : "Choose a role"}
+        {selectedRole ? roleConfig[selectedRole].cta : "Choose a role first"}
         <ArrowRight size={16} />
       </button>
     </div>
@@ -344,11 +368,15 @@ function BuyerDetailsForm({
   setBuyer,
   onBack,
   onDone,
+  isLoading,
+  apiError,
 }: {
   buyer: BuyerFields;
   setBuyer: (patch: Partial<BuyerFields>) => void;
   onBack: () => void;
   onDone: () => void;
+  isLoading: boolean;
+  apiError: string;
 }) {
   const [error, setError] = useState("");
 
@@ -359,6 +387,8 @@ function BuyerDetailsForm({
     setError("");
     onDone();
   }
+
+  const displayError = error || apiError;
 
   return (
     <form onSubmit={submit} className="space-y-4">
@@ -371,10 +401,10 @@ function BuyerDetailsForm({
         </h2>
       </div>
 
-      {error && (
+      {displayError && (
         <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-semibold text-red-700">
           <X size={15} />
-          {error}
+          {displayError}
         </div>
       )}
 
@@ -433,17 +463,28 @@ function BuyerDetailsForm({
         <button
           type="button"
           onClick={onBack}
-          className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50"
+          disabled={isLoading}
+          className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-40"
           aria-label="Go back"
         >
           <ChevronLeft size={18} />
         </button>
         <button
           type="submit"
-          className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-black text-white shadow-lg shadow-blue-950/15 transition hover:bg-blue-700"
+          disabled={isLoading}
+          className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-black text-white shadow-lg shadow-blue-950/15 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
         >
-          Create buyer account
-          <ArrowRight size={16} />
+          {isLoading ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              Creating account…
+            </>
+          ) : (
+            <>
+              Create buyer account
+              <ArrowRight size={16} />
+            </>
+          )}
         </button>
       </div>
     </form>
@@ -455,11 +496,15 @@ function SellerDetailsForm({
   setSeller,
   onBack,
   onDone,
+  isLoading,
+  apiError,
 }: {
   seller: SellerFields;
   setSeller: (patch: Partial<SellerFields>) => void;
   onBack: () => void;
   onDone: () => void;
+  isLoading: boolean;
+  apiError: string;
 }) {
   const [error, setError] = useState("");
 
@@ -480,6 +525,8 @@ function SellerDetailsForm({
     onDone();
   }
 
+  const displayError = error || apiError;
+
   return (
     <form onSubmit={submit} className="space-y-4">
       <div>
@@ -491,10 +538,10 @@ function SellerDetailsForm({
         </h2>
       </div>
 
-      {error && (
+      {displayError && (
         <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-semibold text-red-700">
           <X size={15} />
-          {error}
+          {displayError}
         </div>
       )}
 
@@ -553,17 +600,28 @@ function SellerDetailsForm({
         <button
           type="button"
           onClick={onBack}
-          className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50"
+          disabled={isLoading}
+          className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-40"
           aria-label="Go back"
         >
           <ChevronLeft size={18} />
         </button>
         <button
           type="submit"
-          className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-black text-white shadow-lg shadow-blue-950/15 transition hover:bg-blue-700"
+          disabled={isLoading}
+          className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-black text-white shadow-lg shadow-blue-950/15 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
         >
-          Submit for verification
-          <ArrowRight size={16} />
+          {isLoading ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              Submitting…
+            </>
+          ) : (
+            <>
+              Submit for verification
+              <ArrowRight size={16} />
+            </>
+          )}
         </button>
       </div>
     </form>
@@ -575,12 +633,14 @@ function DoneState({
   account,
   buyer,
   seller,
+  savedOffline,
   reset,
 }: {
   role: Role;
   account: AccountFields;
   buyer: BuyerFields;
   seller: SellerFields;
+  savedOffline: boolean;
   reset: () => void;
 }) {
   const headline =
@@ -599,6 +659,14 @@ function DoneState({
         <h2 className="text-2xl font-black text-slate-950">{headline}</h2>
         <p className="mt-2 text-sm leading-relaxed text-slate-500">{body}</p>
       </div>
+
+      {savedOffline && (
+        <div className="flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
+          <WifiOff size={15} />
+          Saved offline — will sync when you reconnect.
+        </div>
+      )}
+
       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
         <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
           Next inside the app
@@ -637,7 +705,11 @@ function OnboardingPanel({
   setBuyer,
   seller,
   setSeller,
+  isLoading,
+  apiError,
+  savedOffline,
   reset,
+  onDone,
 }: {
   role: Role | null;
   setRole: (role: Role) => void;
@@ -649,10 +721,14 @@ function OnboardingPanel({
   setBuyer: (patch: Partial<BuyerFields>) => void;
   seller: SellerFields;
   setSeller: (patch: Partial<SellerFields>) => void;
+  isLoading: boolean;
+  apiError: string;
+  savedOffline: boolean;
   reset: () => void;
+  onDone: () => void;
 }) {
   return (
-    <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-950/10 sm:p-6">
+    <section className="rounded-4xl border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-950/10 sm:p-6">
       <StepIndicator step={step} role={role} />
       <div className="mt-7">
         {step === "role" && (
@@ -675,7 +751,9 @@ function OnboardingPanel({
             buyer={buyer}
             setBuyer={setBuyer}
             onBack={() => setStep("account")}
-            onDone={() => setStep("done")}
+            onDone={onDone}
+            isLoading={isLoading}
+            apiError={apiError}
           />
         )}
         {step === "details" && role === "seller" && (
@@ -683,7 +761,9 @@ function OnboardingPanel({
             seller={seller}
             setSeller={setSeller}
             onBack={() => setStep("account")}
-            onDone={() => setStep("done")}
+            onDone={onDone}
+            isLoading={isLoading}
+            apiError={apiError}
           />
         )}
         {step === "done" && role && (
@@ -692,6 +772,7 @@ function OnboardingPanel({
             account={account}
             buyer={buyer}
             seller={seller}
+            savedOffline={savedOffline}
             reset={reset}
           />
         )}
@@ -702,7 +783,7 @@ function OnboardingPanel({
 
 function BuyerPreview() {
   return (
-    <div className="rounded-[2rem] border border-slate-800 bg-slate-950 p-4 text-white shadow-2xl shadow-slate-950/25">
+    <div className="rounded-4xl border border-slate-800 bg-slate-950 p-4 text-white shadow-2xl shadow-slate-950/25">
       <div className="flex items-center justify-between border-b border-white/10 pb-4">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-blue-300">
@@ -715,7 +796,7 @@ function BuyerPreview() {
 
       <div className="mt-4 grid gap-3">
         {trustedSuppliers.map((supplier) => (
-          <div key={supplier.name} className="rounded-2xl bg-white/[0.06] p-4">
+          <div key={supplier.name} className="rounded-2xl bg-white/6 p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-bold">{supplier.name}</p>
@@ -757,7 +838,7 @@ function BuyerPreview() {
 
 function SellerPreview() {
   return (
-    <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-950/10">
+    <div className="rounded-4xl border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-950/10">
       <div className="flex items-center justify-between border-b border-slate-100 pb-4">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-blue-600">
@@ -864,6 +945,11 @@ export default function Home() {
     categories: [],
   });
 
+  // API interaction state
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState("");
+  const [savedOffline, setSavedOffline] = useState(false);
+
   useEffect(() => {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch(() => undefined);
@@ -876,6 +962,67 @@ export default function Home() {
     setAccountState({ fullName: "", phone: "", password: "" });
     setBuyerState({ location: "", mainSupplier: "", businessType: "" });
     setSellerState({ shopName: "", location: "", categories: [] });
+    setApiError("");
+    setSavedOffline(false);
+  }
+
+  async function handleDone() {
+    if (!role) return;
+
+    setIsLoading(true);
+    setApiError("");
+
+    // Build the payload that exactly matches backend RegisterSerializer fields
+    const payload =
+      role === "seller"
+        ? {
+            full_name: account.fullName,
+            phone: account.phone,
+            password: account.password,
+            role: "seller",
+            shop_name: seller.shopName,
+            shop_location: seller.location,
+            categories: seller.categories,
+          }
+        : {
+            full_name: account.fullName,
+            phone: account.phone,
+            password: account.password,
+            role: "buyer",
+            location: buyer.location,
+            main_supplier: buyer.mainSupplier,
+            business_type: buyer.businessType,
+          };
+
+    try {
+      const response = await fetch(`${API_BASE}/api/accounts/register/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        credentials: "include", // carry the session cookie back
+      });
+
+      if (!response.ok) {
+        const errors: Record<string, string[]> = await response.json().catch(() => ({}));
+        const firstMessage =
+          Object.values(errors).flat()[0] ?? "Registration failed. Please try again.";
+        setApiError(String(firstMessage));
+        return;
+      }
+
+      setStep("done");
+    } catch {
+      // Network unavailable — save to localStorage for later sync
+      try {
+        localStorage.setItem("nyakizu_pending_registration", JSON.stringify(payload));
+      } catch {
+        // Private browsing or storage full — silently continue
+      }
+      setSavedOffline(true);
+      setStep("done");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -900,7 +1047,7 @@ export default function Home() {
 
       <section id="signup" className="mx-auto grid max-w-6xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[1fr_0.92fr] lg:py-10">
         <div className="flex flex-col gap-6">
-          <section className="rounded-[2rem] bg-slate-950 p-5 text-white shadow-2xl shadow-slate-950/20 sm:p-8">
+          <section className="rounded-4xl bg-slate-950 p-5 text-white shadow-2xl shadow-slate-950/20 sm:p-8">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-blue-500/15 px-3 py-1.5 text-xs font-bold text-blue-200">
                 Installable PWA
@@ -923,7 +1070,7 @@ export default function Home() {
                 ["Seller", "Manage orders"],
                 ["Admin", "Verify shops later"],
               ].map(([title, body]) => (
-                <div key={title} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                <div key={title} className="rounded-2xl border border-white/10 bg-white/4 p-4">
                   <p className="text-sm font-black">{title}</p>
                   <p className="mt-1 text-xs text-white/40">{body}</p>
                 </div>
@@ -948,7 +1095,11 @@ export default function Home() {
           setBuyer={(patch) => setBuyerState((current) => ({ ...current, ...patch }))}
           seller={seller}
           setSeller={(patch) => setSellerState((current) => ({ ...current, ...patch }))}
+          isLoading={isLoading}
+          apiError={apiError}
+          savedOffline={savedOffline}
           reset={reset}
+          onDone={handleDone}
         />
       </section>
 

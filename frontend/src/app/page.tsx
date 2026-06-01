@@ -32,12 +32,20 @@ interface SellerFields   { shopName: string; location: string; categories: strin
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
+// Seller product categories — specific enough for Kenyan/Rwandan traders
 const CATEGORY_OPTIONS = [
-  "Screen protectors", "Phone covers", "Chargers",
-  "Cables", "Batteries", "Speakers",
+  "Tempered glass",
+  "Phone cases & covers",
+  "Chargers & adapters",
+  "USB & charging cables",
+  "Batteries & power banks",
+  "Earphones & earbuds",
+  "Memory cards (SD cards)",
+  "Phone repair parts",
 ];
 
-const BUSINESS_TYPES = ["Hawker", "Reseller", "Small shop", "Repair shop"];
+// Buyer business types — must match BuyerProfile.BUSINESS_TYPE_CHOICES in models.py
+const BUSINESS_TYPES = ["Hawker", "Retail shop", "Repair shop", "Online seller"];
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -347,7 +355,7 @@ function AccountForm({
           label="Password"
           value={account.password}
           onChange={(v) => setAccount({ password: v })}
-          placeholder="Minimum 6 characters"
+          placeholder="At least 6 characters"
           type={showPass ? "text" : "password"}
           autoComplete="new-password"
           error={errors.password}
@@ -665,6 +673,40 @@ function DoneStep({
   const isSeller  = role === "seller";
   const firstName = account.fullName.split(" ")[0] || "you";
 
+  // When offline, swap the entire success view for a clear warning so the user
+  // knows the account was NOT yet sent to the server.
+  if (savedOffline) {
+    return (
+      <div className="space-y-5 py-2 text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50">
+          <WifiOff size={32} className="text-amber-500" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">No internet connection</h2>
+          <p className="mt-2 text-sm leading-relaxed text-slate-500">
+            Your details were saved on this device. To complete registration,
+            open this page again when you have data or Wi-Fi and resubmit.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left text-sm text-amber-800">
+          <p className="font-semibold">What to do next:</p>
+          <ol className="mt-2 space-y-1 pl-4 list-decimal text-amber-700">
+            <li>Connect to the internet (data or Wi-Fi).</li>
+            <li>Come back to this page and fill in the form again.</li>
+            <li>Your account will be created once you submit successfully.</li>
+          </ol>
+        </div>
+        <button
+          type="button"
+          onClick={reset}
+          className="w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 py-2 text-center">
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-green-50">
@@ -681,13 +723,6 @@ function DoneStep({
             : `Welcome, ${firstName}! Your buyer workspace is ready for ${buyer.location}.`}
         </p>
       </div>
-
-      {savedOffline && (
-        <div className="flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700">
-          <WifiOff size={14} />
-          Saved offline — will sync when you reconnect.
-        </div>
-      )}
 
       <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">

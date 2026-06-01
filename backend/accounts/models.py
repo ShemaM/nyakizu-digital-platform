@@ -49,10 +49,10 @@ class BuyerProfile(models.Model):
     """
 
     BUSINESS_TYPE_CHOICES = [
-        ('Hawker', 'Hawker'),
-        ('Reseller', 'Reseller'),
-        ('Small shop', 'Small shop'),
-        ('Repair shop', 'Repair shop'),
+        ('Hawker', 'Hawker / Street vendor'),
+        ('Retail shop', 'Retail shop owner'),
+        ('Repair shop', 'Phone repair shop'),
+        ('Online seller', 'Online seller (WhatsApp / social media)'),
     ]
 
     user = models.OneToOneField(

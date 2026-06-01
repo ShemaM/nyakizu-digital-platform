@@ -1,0 +1,34 @@
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Django
+*.sqlite3
+db.sqlite3
+*.log
+
+# Environment variables
+.env
+
+# Migrations (keep __init__.py, ignore actual migration files for dev flexibility)
+# Uncomment the next line if you want to ignore migrations:
+# */migrations/*.py
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Collected static files
+staticfiles/
+static_root/

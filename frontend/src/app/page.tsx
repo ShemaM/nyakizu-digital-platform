@@ -49,7 +49,12 @@ const categoryOptions = [
   "Speakers",
 ];
 
-const businessTypes = ["Hawker", "Reseller", "Small shop", "Repair shop"];
+const businessTypes = [
+  "Door-to-door reseller",
+  "Route trader",
+  "Small shop buyer",
+  "Repair shop buyer",
+];
 
 // Reads NEXT_PUBLIC_API_URL from the environment; falls back to the Django dev server
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -59,20 +64,20 @@ const baseInput =
 
 const roleConfig = {
   buyer: {
-    label: "Buyer",
-    title: "Buy from trusted wholesalers",
+    label: "Bulk buyer",
+    title: "Buy wholesale and resell across routes",
     description:
-      "Browse approved suppliers, draft orders, track balances, and save work for weak-network days.",
+      "For customers who buy stock in bulk from wholesalers, then resell door-to-door, in estates, towns, and country routes.",
     icon: ShoppingBag,
-    cta: "Continue as Buyer",
+    cta: "Continue as bulk buyer",
   },
   seller: {
     label: "Wholesaler",
-    title: "Sell and manage orders",
+    title: "Own a store and sell at wholesale price",
     description:
-      "List products, manage buyer relationships, record M-Pesa payments, and control stock visibility.",
+      "For store owners who manage customers, bulk orders, product catalogs, M-Pesa records, and buyer debt.",
     icon: Store,
-    cta: "Continue as Seller",
+    cta: "Continue as wholesaler",
   },
 } satisfies Record<Role, {
   label: string;
@@ -124,7 +129,7 @@ function StepIndicator({ step, role }: { step: Step; role: Role | null }) {
   const steps = [
     { id: "role", label: "Role" },
     { id: "account", label: "Account" },
-    { id: "details", label: role === "seller" ? "Shop" : "Buyer" },
+    { id: "details", label: role === "seller" ? "Store" : "Route" },
   ] as const;
   const currentIndex = Math.max(
     0,
@@ -174,11 +179,12 @@ function RoleChoice({
           Create account
         </p>
         <h1 className="mt-3 text-3xl font-black leading-tight tracking-tight text-slate-950 sm:text-4xl">
-          Start as a buyer or a wholesaler
+          Choose your trade workspace
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-slate-500">
-          Nyakizu opens the right tools based on your role. You can add the
-          other role later after verification.
+          Buyers are bulk customers who resell across routes. Wholesalers are
+          store owners who sell at wholesale price and manage customers, orders,
+          payments, and debt.
         </p>
       </div>
 
@@ -382,8 +388,8 @@ function BuyerDetailsForm({
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (!buyer.location.trim()) return setError("Enter where you sell from.");
-    if (!buyer.businessType) return setError("Choose how you trade.");
+    if (!buyer.location.trim()) return setError("Enter your home base or main selling area.");
+    if (!buyer.businessType) return setError("Choose how you resell.");
     setError("");
     onDone();
   }
@@ -394,10 +400,10 @@ function BuyerDetailsForm({
     <form onSubmit={submit} className="space-y-4">
       <div>
         <p className="text-xs font-bold uppercase tracking-widest text-blue-600">
-          Buyer profile
+          Bulk buyer profile
         </p>
         <h2 className="mt-3 text-2xl font-black text-slate-950">
-          Tell suppliers how you buy
+          How do you buy and resell?
         </h2>
       </div>
 
@@ -410,7 +416,7 @@ function BuyerDetailsForm({
 
       <label className="block">
         <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
-          Selling area
+          Home base / main selling area
         </span>
         <input
           className={`${baseInput} mt-1.5`}
@@ -423,20 +429,20 @@ function BuyerDetailsForm({
 
       <label className="block">
         <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
-          Usual supplier
+          Usual wholesaler
         </span>
         <input
           className={`${baseInput} mt-1.5`}
           value={buyer.mainSupplier}
           onChange={(event) => setBuyer({ mainSupplier: event.target.value })}
-          placeholder="Optional: supplier name or shop"
+          placeholder="Optional: wholesale store or supplier name"
           type="text"
         />
       </label>
 
       <div>
         <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
-          How do you trade?
+          How do you resell?
         </p>
         <div className="mt-2 grid grid-cols-2 gap-2">
           {businessTypes.map((type) => {
@@ -481,7 +487,7 @@ function BuyerDetailsForm({
             </>
           ) : (
             <>
-              Create buyer account
+              Create bulk buyer account
               <ArrowRight size={16} />
             </>
           )}
@@ -518,8 +524,8 @@ function SellerDetailsForm({
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (!seller.shopName.trim()) return setError("Enter your shop name.");
-    if (!seller.location.trim()) return setError("Enter your shop location.");
+    if (!seller.shopName.trim()) return setError("Enter your store name.");
+    if (!seller.location.trim()) return setError("Enter your store location.");
     if (!seller.categories.length) return setError("Choose what you sell.");
     setError("");
     onDone();
@@ -644,11 +650,11 @@ function DoneState({
   reset: () => void;
 }) {
   const headline =
-    role === "seller" ? "Shop verification requested" : "Buyer account created";
+    role === "seller" ? "Wholesale store verification requested" : "Bulk buyer account created";
   const body =
     role === "seller"
       ? `${seller.shopName} is queued for review. We will call ${account.fullName.split(" ")[0] || "you"} on ${account.phone}.`
-      : `Your buyer workspace is ready for ${buyer.location}. Start with your trusted suppliers.`;
+      : `Your buyer workspace is ready for ${buyer.location}. Start with your trusted wholesalers and route orders.`;
 
   return (
     <div className="space-y-5 text-center">
@@ -673,8 +679,8 @@ function DoneState({
         </p>
         <div className="mt-3 space-y-3">
           {(role === "seller"
-            ? ["Admin verification", "Product catalog setup", "Buyer approval list"]
-            : ["Find trusted supplier", "Draft first order", "Track credit balance"]
+            ? ["Admin verification", "Wholesale catalog setup", "Customer approval list"]
+            : ["Find trusted wholesaler", "Draft first bulk order", "Track credit balance"]
           ).map((item) => (
             <div key={item} className="flex items-center gap-2 text-sm font-semibold text-slate-700">
               <CheckCircle2 size={15} className="text-emerald-600" />
@@ -787,9 +793,9 @@ function BuyerPreview() {
       <div className="flex items-center justify-between border-b border-white/10 pb-4">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-blue-300">
-            Buyer workspace
+            Bulk buyer workspace
           </p>
-          <p className="mt-1 text-lg font-black">My Suppliers</p>
+          <p className="mt-1 text-lg font-black">Trusted wholesalers</p>
         </div>
         <StatusPill>Offline ready</StatusPill>
       </div>
@@ -812,7 +818,7 @@ function BuyerPreview() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-blue-600">
-              Draft order
+              Bulk order draft
             </p>
             <p className="mt-1 text-sm font-black">RNG Plaza Accessories</p>
           </div>
@@ -844,7 +850,7 @@ function SellerPreview() {
           <p className="text-[10px] font-bold uppercase tracking-widest text-blue-600">
             Wholesaler workspace
           </p>
-          <p className="mt-1 text-lg font-black text-slate-950">Today</p>
+          <p className="mt-1 text-lg font-black text-slate-950">Store command center</p>
         </div>
         <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
           <Store size={20} />
@@ -853,7 +859,7 @@ function SellerPreview() {
 
       <div className="mt-4 grid grid-cols-3 gap-2">
         {[
-          { label: "Orders", value: "12" },
+          { label: "Bulk orders", value: "12" },
           { label: "Debt", value: "9.4k" },
           { label: "Paid", value: "6.2k" },
         ].map((metric) => (
@@ -895,17 +901,17 @@ function AppPreviewGrid() {
           {
             icon: BadgeCheck,
             title: "Verified roles",
-            body: "Buyer and wholesaler access stay separate for safer workflows.",
+            body: "Bulk buyers and wholesale store owners get separate workflows.",
           },
           {
             icon: ClipboardList,
-            title: "Structured orders",
-            body: "Shopping lists become clear order records with statuses.",
+            title: "Bulk order records",
+            body: "Door-to-door stock lists become clear wholesale order records.",
           },
           {
             icon: BookOpen,
             title: "Credit ledger",
-            body: "Pay-later balances and partial payments remain visible.",
+            body: "Pay-later balances between wholesalers and bulk buyers stay visible.",
           },
           {
             icon: Cloud,
@@ -1057,17 +1063,17 @@ export default function Home() {
               </span>
             </div>
             <h1 className="mt-8 max-w-2xl text-4xl font-black leading-[1.03] tracking-tight sm:text-6xl">
-              Your community trade app starts with the right role.
+              A trade app for bulk buyers and wholesalers.
             </h1>
             <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-300">
-              Nyakizu is a mobile-first workspace for phone accessories trade:
-              trusted suppliers, buyer orders, seller fulfillment, M-Pesa
-              records, and credit tracking in one app.
+              Buyers purchase wholesale stock and resell door-to-door or across
+              country routes. Wholesalers run stores, customers, orders, M-Pesa
+              records, and credit balances from one workspace.
             </p>
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
               {[
-                ["Buyer", "Find trusted suppliers"],
-                ["Seller", "Manage orders"],
+                ["Bulk buyer", "Buy wholesale stock"],
+                ["Wholesaler", "Run a digital store"],
                 ["Admin", "Verify shops later"],
               ].map(([title, body]) => (
                 <div key={title} className="rounded-2xl border border-white/10 bg-white/4 p-4">
@@ -1109,7 +1115,7 @@ export default function Home() {
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 text-white sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <AppLogo inverted />
           <p className="text-xs font-semibold text-white/40">
-            Digitizing trusted community trade.
+            Digitizing trusted community wholesale trade.
           </p>
         </div>
       </footer>

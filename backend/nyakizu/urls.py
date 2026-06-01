@@ -12,7 +12,10 @@ urlpatterns = [
     # Django admin panel — useful for managing data during development
     path('admin/', admin.site.urls),
 
-    # App-level routes — each app manages its own URL patterns
+    # django-allauth — handles Google OAuth2 at /accounts/google/login/
+    path('accounts/', include('allauth.urls')),
+
+    # App-level REST API routes
     path('api/accounts/', include('accounts.urls')),
     path('api/products/', include('products.urls')),
     path('api/orders/', include('orders.urls')),

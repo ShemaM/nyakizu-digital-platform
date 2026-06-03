@@ -57,5 +57,5 @@ Build a mobile-first, offline-first web application that gives hawkers a frictio
 
 - Requirements are maintained in `docs/requirements-baseline.md`.
 - SSDLC, SCM, and QA controls are maintained in `docs/ssdlc-scm-qa-plan.md`.
-- Major scope changes should update requirements, traceability, and test plans.
+- Major scope changes should update requirements, traceability, and test plans
 - Real user feedback should be recorded and converted into validated requirements.

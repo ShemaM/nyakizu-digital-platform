@@ -1,28 +1,35 @@
 {
   "name": "Nyakizu Digital Market",
   "short_name": "Nyakizu",
-  "description": "A trusted PWA for phone accessories wholesalers, hawkers, and buyers.",
+  "description": "Digitizing trusted community trade for phone accessories wholesalers and buyers.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f1f5f9",
+  "background_color": "#0a0f1c",
   "theme_color": "#2563eb",
   "categories": ["business", "shopping", "productivity"],
   "icons": [
     {
       "src": "/icon.svg",
-      "sizes": "any",
+      "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ],
   "shortcuts": [
     {
-      "name": "Sign up",
-      "short_name": "Sign up",
-      "description": "Create a buyer or wholesaler account",
-      "url": "/#signup"
+      "name": "Seller sign up",
+      "short_name": "Seller",
+      "description": "Create a wholesaler account",
+      "url": "/#start"
+    },
+    {
+      "name": "Buyer sign up",
+      "short_name": "Buyer",
+      "description": "Create a reseller account",
+      "url": "/#start"
     }
   ]
 }
+

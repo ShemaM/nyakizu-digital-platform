@@ -1,28 +1,19 @@
 """
-Django settings for nyakizu project.
-Nyakizu Digital Market — B2B phone accessories platform (Rwanda).
+Django settings for the Nyakizu Digital Market platform.
 """
 
 from pathlib import Path
 from decouple import config
 
-# ---------------------------------------------------------------------------
-# Paths
-# ---------------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# ---------------------------------------------------------------------------
-# Security — load sensitive values from .env (never hardcode secrets!)
-# ---------------------------------------------------------------------------
+# ── Security ──────────────────────────────────────────────────────────────────
 SECRET_KEY = config('SECRET_KEY', default='dev-insecure-key-change-in-production')
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG      = config('DEBUG', default=True, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
-# ---------------------------------------------------------------------------
-# Applications
-# ---------------------------------------------------------------------------
+# ── Applications ──────────────────────────────────────────────────────────────
 INSTALLED_APPS = [
-    # Django built-ins
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -31,10 +22,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # Third-party
-    'rest_framework',       # Django REST Framework — builds our API
-    'corsheaders',          # Allows the Next.js frontend to call our API
-
-    # django-allauth — handles Google (and other) OAuth2 logins
+    'rest_framework',
+    'corsheaders',
     'django.contrib.sites',
     'allauth',
     'allauth.account',
@@ -48,13 +37,13 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',   # Must be as high as possible
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'allauth.account.middleware.AccountMiddleware',   # required by django-allauth
+    'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -78,9 +67,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'nyakizu.wsgi.application'
 
-# ---------------------------------------------------------------------------
-# Database — SQLite is fine for development and learning
-# ---------------------------------------------------------------------------
+# ── Database ──────────────────────────────────────────────────────────────────
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -88,99 +75,89 @@ DATABASES = {
     }
 }
 
-# ---------------------------------------------------------------------------
-# Custom user model — we extend Django's default user
-# ---------------------------------------------------------------------------
+# ── Auth ──────────────────────────────────────────────────────────────────────
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
-# ---------------------------------------------------------------------------
-# Password validation
-# ---------------------------------------------------------------------------
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 6}},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+     'OPTIONS': {'min_length': 6}},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# ---------------------------------------------------------------------------
-# Internationalisation
-# ---------------------------------------------------------------------------
+# ── Internationalisation ──────────────────────────────────────────────────────
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'Africa/Kigali'
-USE_I18N = True
-USE_TZ = True
+TIME_ZONE     = 'Africa/Nairobi'
+USE_I18N      = True
+USE_TZ        = True
 
-# ---------------------------------------------------------------------------
-# Static files
-# ---------------------------------------------------------------------------
+# ── Static files ──────────────────────────────────────────────────────────────
 STATIC_URL = 'static/'
 
-# ---------------------------------------------------------------------------
-# Default primary key field
-# ---------------------------------------------------------------------------
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# ---------------------------------------------------------------------------
-# Django REST Framework configuration
-# ---------------------------------------------------------------------------
+# ── Django REST Framework ─────────────────────────────────────────────────────
 REST_FRAMEWORK = {
-    # Require authentication by default; individual views can override this
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
+    # CsrfExemptSessionAuthentication skips CSRF enforcement so Next.js
+    # can call the API during development without needing a CSRF token.
+    # Switch back to standard SessionAuthentication in production with HTTPS.
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
+        'nyakizu.auth.CsrfExemptSessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
     ],
-    # Return JSON for browsable API pagination
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
 }
 
-# ---------------------------------------------------------------------------
-# CORS — allow the Next.js dev server (port 3000) to call our API
-# ---------------------------------------------------------------------------
+# ── CORS ──────────────────────────────────────────────────────────────────────
+# Allow both the default Next.js port (3000) and our custom port (3003)
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
+    'http://localhost:3003',
     'http://127.0.0.1:3000',
+    'http://127.0.0.1:3003',
 ]
-CORS_ALLOW_CREDENTIALS = True   # needed so the session cookie is sent back
+CORS_ALLOW_CREDENTIALS = True   # send session cookie back
 
-# ---------------------------------------------------------------------------
-# django-allauth configuration
-# ---------------------------------------------------------------------------
-SITE_ID = 1   # required by django.contrib.sites
+# ── CSRF ──────────────────────────────────────────────────────────────────────
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+    'http://localhost:3003',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3003',
+]
+
+# ── Session cookies ───────────────────────────────────────────────────────────
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SECURE   = False   # set True in production (HTTPS only)
+
+# ── django-allauth ────────────────────────────────────────────────────────────
+SITE_ID = 1
 
 AUTHENTICATION_BACKENDS = [
-    # Default — lets users log in with username/password through the admin
     'django.contrib.auth.backends.ModelBackend',
-    # Allauth — handles Google OAuth2
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
-# After a successful Google login, redirect back to the Next.js app
-LOGIN_REDIRECT_URL = 'http://localhost:3000/'
+LOGIN_REDIRECT_URL         = 'http://localhost:3000/'
 ACCOUNT_LOGOUT_REDIRECT_URL = 'http://localhost:3000/'
 
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
-        # Scopes we request from Google — just email and profile for now
         'SCOPE': ['profile', 'email'],
         'AUTH_PARAMS': {'access_type': 'online'},
-        # Store tokens so we can call Google APIs later if needed
         'FETCH_USERINFO': True,
     }
 }
 
-# Signup fields for allauth (allauth >= 65.4 syntax)
-SOCIALACCOUNT_AUTO_SIGNUP = True
-ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
-ACCOUNT_LOGIN_METHODS = ['email']
+SOCIALACCOUNT_AUTO_SIGNUP    = True
+ACCOUNT_SIGNUP_FIELDS        = ['email*', 'password1*', 'password2*']
+ACCOUNT_LOGIN_METHODS        = ['email']
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'http'
 
-# Needed when AUTH_USER_MODEL is a custom model
-ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'http'   # use 'https' in production
-
-# Point allauth to our custom adapters
-ACCOUNT_ADAPTER = 'accounts.adapters.AccountAdapter'
-SOCIALACCOUNT_ADAPTER = 'accounts.adapters.SocialAccountAdapter'
+ACCOUNT_ADAPTER           = 'accounts.adapters.AccountAdapter'
+SOCIALACCOUNT_ADAPTER     = 'accounts.adapters.SocialAccountAdapter'

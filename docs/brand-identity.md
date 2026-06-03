@@ -290,4 +290,3 @@ Before the first demo, confirm:
 - Exact stock is not visually exposed to buyers.
 - Buyer and seller dashboards have different emphasis.
 - UI text is simple enough for non-technical traders.
-

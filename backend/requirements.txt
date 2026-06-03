@@ -3,3 +3,8 @@ djangorestframework==3.16.0
 django-cors-headers==4.7.0
 python-decouple==3.8
 django-allauth==65.9.0
+
+# Required by django-allauth Google OAuth provider
+requests>=2.34
+PyJWT>=2.8
+cryptography>=41.0

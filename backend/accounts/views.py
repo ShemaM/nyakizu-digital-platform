@@ -69,7 +69,7 @@ class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        identifier = request.data.get("phone") or request.data.get("username", "")
+        identifier = request.data.get("identifier") or request.data.get("phone") or request.data.get("username", "")
         password   = request.data.get("password", "")
 
         user_obj = (

@@ -1,7 +1,5 @@
 """
 products/serializers.py
-
-Serializers for categories and products.
 """
 
 from rest_framework import serializers
@@ -11,41 +9,72 @@ from accounts.serializers import UserSerializer
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
-        model = Category
-        fields = ('id', 'name', 'slug', 'description')
-        read_only_fields = ('id',)
+        model  = Category
+        fields = ("id", "name", "slug", "description")
+        read_only_fields = ("id",)
 
 
 class ProductSerializer(serializers.ModelSerializer):
-    """Full product representation — used when returning product details."""
-
-    # Show category name instead of just the ID
-    category_name = serializers.CharField(source='category.name', read_only=True)
-
-    # Show seller username instead of just the ID
-    seller_username = serializers.CharField(source='seller.username', read_only=True)
+    """
+    Full product view — used for a seller viewing their own products.
+    Includes stock_quantity.
+    """
+    category_name   = serializers.CharField(source="category.name", read_only=True)
+    seller_username = serializers.CharField(source="seller.username", read_only=True)
+    availability_label = serializers.SerializerMethodField()
 
     class Meta:
-        model = Product
+        model  = Product
         fields = (
-            'id', 'seller', 'seller_username',
-            'category', 'category_name',
-            'name', 'description', 'price',
-            'stock_quantity', 'status', 'image_url',
-            'created_at', 'updated_at',
+            "id", "seller", "seller_username",
+            "category", "category_name",
+            "name", "description", "price",
+            "stock_quantity",          # visible to owner only
+            "availability_label",
+            "status", "image_url",
+            "created_at", "updated_at",
         )
-        read_only_fields = ('id', 'seller', 'created_at', 'updated_at')
+        read_only_fields = ("id", "seller", "created_at", "updated_at")
+
+    def get_availability_label(self, obj):
+        if obj.stock_quantity > 0:
+            return "available"
+        return "can_be_sourced"
+
+
+class BuyerProductSerializer(serializers.ModelSerializer):
+    """
+    Buyer-facing product view — stock_quantity is intentionally omitted.
+    Buyers only see the availability label derived from stock.
+    """
+    category_name      = serializers.CharField(source="category.name", read_only=True)
+    seller_username    = serializers.CharField(source="seller.username", read_only=True)
+    availability_label = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = Product
+        fields = (
+            "id", "seller", "seller_username",
+            "category", "category_name",
+            "name", "description", "price",
+            "availability_label",      # stock_quantity deliberately excluded
+            "status", "image_url",
+            "created_at", "updated_at",
+        )
+        read_only_fields = ("id", "seller", "created_at", "updated_at")
+
+    def get_availability_label(self, obj):
+        if obj.stock_quantity > 0:
+            return "available"
+        return "can_be_sourced"
 
 
 class ProductCreateSerializer(serializers.ModelSerializer):
-    """Used when a seller creates or updates a product."""
-
     class Meta:
-        model = Product
-        fields = ('category', 'name', 'description', 'price', 'stock_quantity', 'status', 'image_url')
+        model  = Product
+        fields = ("category", "name", "description", "price", "stock_quantity", "status", "image_url")
 
     def validate_price(self, value):
-        """Price must be greater than zero."""
         if value <= 0:
             raise serializers.ValidationError("Price must be greater than 0.")
         return value

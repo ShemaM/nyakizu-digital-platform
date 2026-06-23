@@ -9,9 +9,9 @@ from .models import CustomUser, BuyerProfile, SellerProfile, BuyerSellerRelation
 
 # ── Admin site branding ───────────────────────────────────────────────────────
 
-admin.site.site_header = "Nyakizu Admin"
-admin.site.site_title  = "Nyakizu Digital Market"
-admin.site.index_title = "Platform management"
+admin.site.site_header = "Nyakizu Digital Marketplace"
+admin.site.site_title  = "Nyakizu Digital"
+admin.site.index_title = "Platform Management"
 
 
 # ── CustomUser ────────────────────────────────────────────────────────────────

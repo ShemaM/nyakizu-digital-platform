@@ -1,82 +1,79 @@
 """
 products/views.py
-
-API views for browsing categories and products.
 """
 
 from rest_framework import generics, permissions, filters
 from .models import Category, Product
-from .serializers import CategorySerializer, ProductSerializer, ProductCreateSerializer
+from .serializers import (
+    CategorySerializer, ProductSerializer,
+    BuyerProductSerializer, ProductCreateSerializer,
+)
 
 
 class CategoryListView(generics.ListCreateAPIView):
-    """
-    GET  /api/products/categories/  — list all categories (public)
-    POST /api/products/categories/  — create a category (admin only in real app)
-    """
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
+    queryset           = Category.objects.all()
+    serializer_class   = CategorySerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 
 class ProductListView(generics.ListCreateAPIView):
     """
-    GET  /api/products/            — list all available products (public)
-    POST /api/products/            — create a product (sellers only)
+    GET  /api/products/  — public product list (uses BuyerProductSerializer)
+    POST /api/products/  — seller creates product
 
-    Supports ?search=keyword and ?category=<id> query params.
+    Query params:
+      ?search=<keyword>
+      ?category=<id>
+      ?seller=<user_id>
     """
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['name', 'description', 'seller__username']
+    filter_backends    = [filters.SearchFilter]
+    search_fields      = ["name", "description", "seller__username"]
 
     def get_queryset(self):
-        queryset = Product.objects.filter(status='available')
+        qs = Product.objects.filter(status="available")
 
-        # Allow filtering by category: /api/products/?category=1
-        category_id = self.request.query_params.get('category')
+        category_id = self.request.query_params.get("category")
         if category_id:
-            queryset = queryset.filter(category__id=category_id)
+            qs = qs.filter(category__id=category_id)
 
-        return queryset
+        seller_id = self.request.query_params.get("seller")
+        if seller_id:
+            qs = qs.filter(seller__id=seller_id)
+
+        return qs
 
     def get_serializer_class(self):
-        # Use the create serializer for POST, read serializer for GET
-        if self.request.method == 'POST':
+        if self.request.method == "POST":
             return ProductCreateSerializer
-        return ProductSerializer
+        # Public listing always uses buyer view (no stock_quantity)
+        return BuyerProductSerializer
 
     def perform_create(self, serializer):
-        # Automatically set the seller to the currently logged-in user
         serializer.save(seller=self.request.user)
 
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """
-    GET    /api/products/<id>/  — view product details (public)
-    PUT    /api/products/<id>/  — update product (owner only)
-    PATCH  /api/products/<id>/  — partial update (owner only)
-    DELETE /api/products/<id>/  — delete product (owner only)
-    """
     queryset = Product.objects.all()
 
     def get_serializer_class(self):
-        if self.request.method in ('PUT', 'PATCH'):
+        if self.request.method in ("PUT", "PATCH"):
             return ProductCreateSerializer
-        return ProductSerializer
+        # Owner sees full serializer; everyone else sees buyer serializer
+        obj = self.get_object()
+        if self.request.user == obj.seller:
+            return ProductSerializer
+        return BuyerProductSerializer
 
     def get_permissions(self):
-        if self.request.method == 'GET':
+        if self.request.method == "GET":
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
 
 
 class MyProductsView(generics.ListAPIView):
-    """
-    GET /api/products/mine/
-    Returns all products listed by the currently logged-in seller.
-    """
-    serializer_class = ProductSerializer
+    """GET /api/products/mine/ — seller sees their own products (with stock_quantity)."""
+    serializer_class   = ProductSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):

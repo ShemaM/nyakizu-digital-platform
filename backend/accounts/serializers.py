@@ -21,7 +21,7 @@ class RegisterSerializer(serializers.Serializer):
     # Seller-specific
     shop_name     = serializers.CharField(max_length=150, required=False, allow_blank=True)
     shop_location = serializers.CharField(max_length=150, required=False, allow_blank=True)
-    categories    = serializers.ListField(child=serializers.CharField(), required=False, allow_empty=True)
+    categories    = serializers.ListField(child=serializers.CharField(), required=False, default=list)
 
     # Buyer-specific
     location      = serializers.CharField(max_length=150, required=False, allow_blank=True)
@@ -45,8 +45,6 @@ class RegisterSerializer(serializers.Serializer):
                 raise serializers.ValidationError({"shop_name": "Enter your shop name."})
             if not data.get("shop_location", "").strip():
                 raise serializers.ValidationError({"shop_location": "Enter your shop location."})
-            if not data.get("categories"):
-                raise serializers.ValidationError({"categories": "Choose at least one category."})
         elif role == "buyer":
             if not data.get("location", "").strip():
                 raise serializers.ValidationError({"location": "Enter where you trade from."})

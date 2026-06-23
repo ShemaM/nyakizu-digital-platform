@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Nyakizu</title>
+  <rect width="512" height="512" rx="112" fill="#2563eb"/>
+  <path d="M136 354V158h58l124 116V158h58v196h-54L194 235v119h-58z" fill="#fff"/>
+  <path d="M136 386h240" stroke="#bfdbfe" stroke-width="26" stroke-linecap="round"/>
+</svg>

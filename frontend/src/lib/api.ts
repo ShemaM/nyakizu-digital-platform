@@ -1,28 +1,36 @@
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-function extractMessage(body: unknown): string {
-  if (!body || typeof body !== "object") return "Something went wrong.";
-  const values = Object.values(body as Record<string, unknown>).flat();
-  return String(values[0] ?? "Something went wrong.");
+// ── Error type ─────────────────────────────────────────────────────────────────
+export class ApiError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+    this.name = "ApiError";
+  }
 }
 
-export async function apiFetch<T = unknown>(
-  path: string,
-  init: RequestInit = {},
-): Promise<T> {
+// ── Core fetch wrapper ────────────────────────────────────────────────────────
+async function request<T = unknown>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
-    ...init,
     credentials: "include",
-    headers: { "Content-Type": "application/json", ...(init.headers ?? {}) },
+    headers: { "Content-Type": "application/json", ...init?.headers },
+    ...init,
   });
 
-  let data: unknown;
-  try { data = await res.json(); } catch { data = {}; }
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const msg =
+      body.detail ??
+      body.non_field_errors?.[0] ??
+      Object.values(body).flat().join(" ") ??
+      `HTTP ${res.status}`;
+    throw new ApiError(res.status, String(msg));
+  }
 
-  if (!res.ok) throw new Error(extractMessage(data));
-  return data as T;
+  if (res.status === 204) return {} as T;
+  return res.json() as Promise<T>;
 }
 
+// ── Types ─────────────────────────────────────────────────────────────────────
 export interface User {
   id: number;
   username: string;
@@ -31,82 +39,251 @@ export interface User {
   role: "buyer" | "seller" | "admin";
   phone_number: string;
   is_email_verified: boolean;
-  verification_token?: string;
+  date_joined: string;
+  shop_slug?: string;
 }
 
-export interface Store {
+export interface SellerProfile {
   id: number;
+  user: User;
   store_name: string;
   store_description: string;
   location: string;
   categories: string[];
   approval_status: "pending" | "approved" | "rejected";
   is_live: boolean;
-  user: User;
+  created_at: string;
 }
 
-export interface Product {
+export interface BuyerProfile {
   id: number;
+  user: User;
+  location: string;
+  main_supplier: string;
+  business_type: string;
+  created_at: string;
+}
+
+export interface ApiCategory {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+}
+
+export interface ApiProduct {
+  id: number;
+  seller: number;
+  seller_username: string;
+  category: number;
+  category_name: string;
   name: string;
   description: string;
   price: string;
-  stock_quantity: number;
+  stock_quantity?: number;       // seller-only
+  availability_label: "available" | "can_be_sourced" | "not_available";
   status: "available" | "out_of_stock" | "draft";
-  category: number | null;
-  category_name: string | null;
-  seller_username: string;
+  is_active?: boolean;
+  image_url: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
-export interface Category {
+export interface OrderItem {
   id: number;
-  name: string;
+  product: number | null;
+  product_name: string;
+  quantity: number;
+  unit_price: string;
+  subtotal: number;
+  is_sourcing?: boolean;
 }
 
-export interface Order {
+export interface ApiOrder {
   id: number;
+  buyer: number;
+  buyer_username: string;
+  seller?: number;
   status: string;
-  total_amount?: string;
-  created_at?: string;
-  buyer?: number | User;
-  seller?: number | Store;
-  items?: unknown[];
+  total_price: string;
+  delivery_address: string;
+  buyer_notes: string;
+  sourcing_notes?: string;
+  notes?: string;
+  locked_at?: string;
+  items: OrderItem[];
+  created_at: string;
+  updated_at: string;
 }
 
+export interface LedgerEntry {
+  id: number;
+  entry_type: "charge" | "payment_credit" | "correction";
+  amount: string;
+  order_id?: number;
+  note?: string;
+  reference_code?: string;
+  created_at: string;
+}
+
+export interface BuyerLedger {
+  buyer_id: number;
+  buyer_name: string;
+  total_charged: string;
+  total_paid: string;
+  balance: string;
+  entries: LedgerEntry[];
+}
+
+export interface RegisterPayload {
+  full_name: string;
+  email: string;
+  phone: string;
+  password: string;
+  role: "buyer" | "seller";
+  // buyer
+  location?: string;
+  main_supplier?: string;
+  business_type?: string;
+  // seller
+  shop_name?: string;
+  shop_location?: string;
+  categories?: string[];
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
 export const auth = {
-  register: (body: Record<string, unknown>) =>
-    apiFetch<User & { verification_token: string }>("/api/accounts/register/", {
-      method: "POST", body: JSON.stringify(body),
+  login: (identifier: string, password: string) =>
+    request<{ user: User }>("/api/accounts/login/", {
+      method: "POST",
+      body: JSON.stringify({ identifier, password }),
     }),
-  login: (phone: string, password: string) =>
-    apiFetch<User>("/api/accounts/login/", {
-      method: "POST", body: JSON.stringify({ phone, password }),
+
+  register: (data: RegisterPayload) =>
+    request<{ user: User; message: string }>("/api/accounts/register/", {
+      method: "POST",
+      body: JSON.stringify(data),
     }),
-  logout: () => apiFetch("/api/accounts/logout/", { method: "POST" }),
-  me: ()    => apiFetch<User>("/api/accounts/me/"),
+
+  logout: () =>
+    request("/api/accounts/logout/", { method: "POST" }),
+
+  me: () =>
+    request<User>("/api/accounts/me/"),
 };
 
-export const stores = {
-  list: () => apiFetch<{ results: Store[] }>("/api/accounts/sellers/"),
-  get:  (id: number) => apiFetch<Store>(`/api/accounts/sellers/${id}/`),
-  requestAccess: (id: number) =>
-    apiFetch(`/api/accounts/sellers/${id}/request-access/`, { method: "POST" }),
+// ── Sellers (buyer-facing: browse & connect) ──────────────────────────────────
+export const sellers = {
+  list: () =>
+    request<SellerProfile[]>("/api/accounts/sellers/"),
+
+  get: (id: number) =>
+    request<SellerProfile>(`/api/accounts/sellers/${id}/`),
+
+  requestAccess: (sellerId: number) =>
+    request(`/api/accounts/sellers/${sellerId}/request-access/`, { method: "POST" }),
+
+  approveRelationship: (relId: number) =>
+    request(`/api/accounts/relationships/${relId}/approve/`, { method: "POST" }),
+
+  denyRelationship: (relId: number) =>
+    request(`/api/accounts/relationships/${relId}/deny/`, { method: "POST" }),
 };
 
+// ── Products ──────────────────────────────────────────────────────────────────
 export const products = {
-  list: (params?: { category?: number; search?: string }) => {
+  // Buyer: browse a seller's storefront
+  list: (params?: { seller?: number; category?: string | number; search?: string }) => {
     const q = new URLSearchParams();
+    if (params?.seller)   q.set("seller",   String(params.seller));
     if (params?.category) q.set("category", String(params.category));
-    if (params?.search)   q.set("search", params.search);
-    return apiFetch<{ results: Product[] }>(`/api/products/${q.toString() ? `?${q}` : ""}`);
+    if (params?.search)   q.set("search",   params.search);
+    const qs = q.toString();
+    return request<ApiProduct[]>(`/api/products/${qs ? `?${qs}` : ""}`);
   },
-  mine: () => apiFetch<{ results: Product[] } | Product[]>("/api/products/mine/"),
-  categories: () => apiFetch<{ results: Category[] } | Category[]>("/api/products/categories/"),
+
+  // Seller: own product list (includes stock_quantity)
+  mine: () =>
+    request<ApiProduct[]>("/api/products/mine/"),
+
+  categories: () =>
+    request<ApiCategory[]>("/api/products/categories/"),
+
+  create: (data: Partial<ApiProduct> & { category_id?: number }) =>
+    request<ApiProduct>("/api/products/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  update: (id: number, data: Partial<ApiProduct>) =>
+    request<ApiProduct>(`/api/products/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
 };
 
+// ── Orders ────────────────────────────────────────────────────────────────────
 export const orders = {
-  list: () => apiFetch<{ results: Order[] } | Order[]>("/api/orders/"),
+  // Buyer
+  list: () =>
+    request<ApiOrder[]>("/api/orders/"),
+
+  get: (id: number) =>
+    request<ApiOrder>(`/api/orders/${id}/`),
+
+  create: (data: {
+    seller_id: number;
+    items: { product_id: number; quantity: number }[];
+    delivery_address?: string;
+    buyer_notes?: string;
+    sourcing_notes?: string;
+  }) =>
+    request<ApiOrder>("/api/orders/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  cancel: (id: number) =>
+    request(`/api/orders/${id}/cancel/`, { method: "POST" }),
+
+  // Seller
+  sellerList: () =>
+    request<ApiOrder[]>("/api/orders/seller/"),
+
+  sellerGet: (id: number) =>
+    request<ApiOrder>(`/api/orders/${id}/`),
+
+  sellerUpdateStatus: (id: number, status: string, finalTotal?: number) =>
+    request<ApiOrder>(`/api/orders/${id}/status/`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        status,
+        ...(finalTotal !== undefined ? { total_price: finalTotal } : {}),
+      }),
+    }),
+
+  // Seller: record M-Pesa payment against an order
+  recordPayment: (orderId: number, data: {
+    amount: number;
+    reference_code: string;
+    note?: string;
+  }) =>
+    request(`/api/orders/${orderId}/payments/`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  // Seller: full ledger grouped by buyer
+  ledger: () =>
+    request<BuyerLedger[]>("/api/orders/ledger/"),
 };
 
-export function normalizeList<T>(value: { results: T[] } | T[]): T[] {
-  return Array.isArray(value) ? value : value.results;
+// ── Helpers ───────────────────────────────────────────────────────────────────
+export function parsePrice(p: string | number): number {
+  return typeof p === "number" ? p : parseFloat(p);
+}
+
+export function fmtKES(amount: string | number): string {
+  const n = parsePrice(amount);
+  return `KES ${n.toLocaleString("en-KE")}`;
 }

@@ -1,114 +1,137 @@
-const CACHE_VERSION = "v2";
-const CACHE_NAME = `nyakizu-shell-${CACHE_VERSION}`;
+/**
+ * Nyakizu Digital Market — Service Worker
+ *
+ * Strategy:
+ *  - App shell + static assets  → Cache-first (served instantly offline)
+ *  - API calls (/api/**)        → Network-first, no cache (fresh data always)
+ *  - Navigation (HTML pages)    → Network-first, fall back to /offline on failure
+ *  - Images                     → Cache-first with expiry via cache name versioning
+ *
+ * Offline draft orders are handled separately via IndexedDB (Dexie.js) in the
+ * app layer — this SW does not touch that queue.
+ */
 
-// App shell URLs (Next build will also be cached by the runtime rules below)
-const APP_SHELL = [
+const CACHE_VERSION = "v1";
+const SHELL_CACHE = `nyakizu-shell-${CACHE_VERSION}`;
+const IMAGE_CACHE = `nyakizu-images-${CACHE_VERSION}`;
+
+/** App shell assets to pre-cache on install */
+const SHELL_ASSETS = [
   "/",
-  "/manifest.webmanifest",
-  "/icon.svg",
-  "/favicon.ico",
+  "/offline",
+  "/login",
+  "/register",
 ];
 
+// ─── Install: pre-cache shell ─────────────────────────────────────────────────
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    (async () => {
-      const cache = await caches.open(CACHE_NAME);
-      await cache.addAll(APP_SHELL);
-    })(),
+    caches
+      .open(SHELL_CACHE)
+      .then((cache) => cache.addAll(SHELL_ASSETS))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
+// ─── Activate: delete old caches ──────────────────────────────────────────────
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    (async () => {
-      const keys = await caches.keys();
-      await Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) return caches.delete(key);
-        }),
-      );
-      await self.clients.claim();
-    })(),
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((k) => k !== SHELL_CACHE && k !== IMAGE_CACHE)
+            .map((k) => caches.delete(k))
+        )
+      )
+      .then(() => self.clients.claim())
   );
 });
 
-function isNavigationRequest(request) {
-  return request.mode === "navigate" || request.headers.get("accept")?.includes("text/html");
-}
-
-function isStaticAsset(requestUrl) {
-  return (
-    requestUrl.pathname.startsWith("/_next/") ||
-    requestUrl.pathname.startsWith("/static/") ||
-    requestUrl.pathname.endsWith(".css") ||
-    requestUrl.pathname.endsWith(".js") ||
-    requestUrl.pathname.endsWith(".svg") ||
-    requestUrl.pathname.endsWith(".png") ||
-    requestUrl.pathname.endsWith(".jpg") ||
-    requestUrl.pathname.endsWith(".ico")
-  );
-}
-
-// Runtime caching strategy:
-// - Navigations: cache-first with offline fallback to /
-// - Static assets: stale-while-revalidate-ish (serve cached if present; fetch+cache if possible)
-// - Everything else: network-first
+// ─── Fetch: route-based strategy ─────────────────────────────────────────────
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
+  const { request } = event;
+  const url = new URL(request.url);
 
-  event.respondWith(
-    (async () => {
-      const request = event.request;
-      const url = new URL(request.url);
+  // 1. Skip non-GET and cross-origin requests
+  if (request.method !== "GET" || url.origin !== self.location.origin) return;
 
-      if (isNavigationRequest(request)) {
-        const cached = await caches.match(request);
-        if (cached) return cached;
-        try {
-          const fresh = await fetch(request);
-          const cache = await caches.open(CACHE_NAME);
-          cache.put(request, fresh.clone());
-          return fresh;
-        } catch {
-          const fallback = await caches.match("/");
-          if (fallback) return fallback;
-          throw new Error("Network unavailable");
-        }
-      }
+  // 2. API calls → network-only (never cache sensitive trade/ledger data)
+  if (url.pathname.startsWith("/api/")) {
+    event.respondWith(fetch(request));
+    return;
+  }
 
-      if (isStaticAsset(url)) {
-        const cached = await caches.match(request);
-        if (cached) {
-          // Update cache in background
-          fetch(request)
-            .then((res) => {
-              caches.open(CACHE_NAME).then((cache) => cache.put(request, res.clone()));
-            })
-            .catch(() => {});
-          return cached;
-        }
+  // 3. Images → cache-first
+  if (request.destination === "image") {
+    event.respondWith(cacheFirst(request, IMAGE_CACHE));
+    return;
+  }
 
-        try {
-          const fresh = await fetch(request);
-          const cache = await caches.open(CACHE_NAME);
-          cache.put(request, fresh.clone());
-          return fresh;
-        } catch {
-          // If asset missing in cache and offline, fail to cached fallback when possible
-          throw new Error("Network unavailable");
-        }
-      }
+  // 4. Navigation (page loads) → network-first, offline fallback
+  if (request.mode === "navigate") {
+    event.respondWith(networkFirstWithOfflineFallback(request));
+    return;
+  }
 
-      // Default: network-first
-      try {
-        return await fetch(request);
-      } catch {
-        const cached = await caches.match(request);
-        if (cached) return cached;
-        throw new Error("Network unavailable");
-      }
-    })(),
-  );
+  // 5. JS/CSS/fonts → cache-first (versioned by Next.js build hash)
+  event.respondWith(cacheFirst(request, SHELL_CACHE));
 });
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Serve from cache; fetch and cache if missing */
+async function cacheFirst(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+
+  try {
+    const response = await fetch(request);
+    if (response.ok) cache.put(request, response.clone());
+    return response;
+  } catch {
+    return new Response("Offline", { status: 503 });
+  }
+}
+
+/**
+ * Try network first.
+ * On failure serve cached version.
+ * On total failure serve /offline page.
+ */
+async function networkFirstWithOfflineFallback(request) {
+  try {
+    const response = await fetch(request);
+    // Cache successful navigations for later offline use
+    if (response.ok) {
+      const cache = await caches.open(SHELL_CACHE);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    const cache = await caches.open(SHELL_CACHE);
+    const cached = await cache.match(request);
+    if (cached) return cached;
+
+    // Last resort: the offline page (pre-cached on install)
+    const offline = await cache.match("/offline");
+    return offline ?? new Response("You are offline", { status: 503 });
+  }
+}
+
+// ─── Background sync hook (future: draft order queue) ────────────────────────
+self.addEventListener("sync", (event) => {
+  if (event.tag === "sync-draft-orders") {
+    // The app layer (Dexie.js queue) handles the actual sync logic.
+    // This event simply wakes the SW so the app can process the queue.
+    event.waitUntil(
+      self.clients
+        .matchAll({ type: "window" })
+        .then((clients) =>
+          clients.forEach((c) => c.postMessage({ type: "SYNC_DRAFTS" }))
+        )
+    );
+  }
+});

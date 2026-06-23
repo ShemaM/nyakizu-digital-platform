@@ -1,35 +1,72 @@
 {
   "name": "Nyakizu Digital Market",
   "short_name": "Nyakizu",
-  "description": "Digitizing trusted community trade for phone accessories wholesalers and buyers.",
+  "description": "Digitising trusted phone accessories trade for the Banyamulenge community in Kenya.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#0a0f1c",
-  "theme_color": "#2563eb",
-  "categories": ["business", "shopping", "productivity"],
+  "orientation": "portrait-primary",
+  "background_color": "#0a1f10",
+  "theme_color": "#0a1f10",
+  "lang": "sw",
+  "dir": "ltr",
+  "categories": ["business", "shopping"],
   "icons": [
     {
-      "src": "/icon.svg",
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
     {
-      "name": "Seller sign up",
-      "short_name": "Seller",
-      "description": "Create a wholesaler account",
-      "url": "/#start"
+      "name": "My Suppliers",
+      "short_name": "Suppliers",
+      "url": "/buyer/suppliers",
+      "description": "View your trusted suppliers",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Buyer sign up",
-      "short_name": "Buyer",
-      "description": "Create a reseller account",
-      "url": "/#start"
+      "name": "New Order",
+      "short_name": "Order",
+      "url": "/buyer/lists/new",
+      "description": "Start a new order",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Store",
+      "short_name": "Store",
+      "url": "/seller/dashboard",
+      "description": "Manage your seller dashboard",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/mobile-suppliers.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "My Suppliers screen"
     }
   ]
 }
-

@@ -1,15 +1,7 @@
-# Refactor Nyakizu Digital Market Homepage
+# TODO
 
-- [x] Gather UI structure and existing components (Hero/Features/HowItWorks/Testimonials/HomeCTA)
-- [ ] Define new component structure (Hero, Features, HowItWorks, Testimonials, CTA) and ensure required sections exist
-- [ ] Update Tailwind styling:
-  - [ ] Remove dark/black backgrounds
-  - [ ] Standardize typography hierarchy (H1/H2/body)
-  - [ ] Redesign layout per requested modular sections
-- [ ] Standardize CTA buttons (accent color, hover, placement)
-- [ ] Add UI states for feedback (loading/success/error) + confirmation modal component
-- [ ] Remove redundant explanations / duplicated “How it works” content
-- [ ] Ensure accessibility (semantic HTML, contrast, spacing)
-- [ ] Verify responsiveness (mobile-first grids/flex)
-- [ ] Run Next.js build/lint to ensure everything compiles
+- [ ] Fix React hydration mismatch on `frontend/src/app/page.tsx`.
+  - [ ] Make hero background/glow deterministic between SSR and first client render (remove `mounted ? ... : ...` inline background branch).
+  - [ ] Prevent footer year from differing between server/client (move year computation to client or hardcode).
+  - [ ] Re-run Next dev / verify no hydration mismatch warnings.
 

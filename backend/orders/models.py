@@ -9,6 +9,7 @@ at the time of purchase (price can change later so we snapshot it here).
 """
 
 from django.db import models
+from django.utils import timezone
 from accounts.models import CustomUser
 from products.models import Product
 

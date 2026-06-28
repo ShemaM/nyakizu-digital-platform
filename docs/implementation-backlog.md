@@ -4,7 +4,7 @@
 
 This backlog converts the SRS into buildable student-level tasks. Each item is linked to requirement IDs so development, testing, and academic reporting can be traced.
 
-## Priority Labels
+## Priority Labels 
 
 - P0: Required for MVP demonstration.
 - P1: Important but can be simplified if time is limited.
@@ -49,7 +49,7 @@ Acceptance notes:
 - Unverified sellers may prepare data but should not appear as trusted storefronts.
 - Admin approval should create an audit record.
 
-## Epic 3: Storefront And Catalog
+## Epic 3: Storefront And Catalog 
 
 Goal: Let wholesalers create digital storefronts and manage product data without exposing sensitive stock information.
 
@@ -66,7 +66,8 @@ Acceptance notes:
 
 - Exact stock must not appear in buyer API responses.
 - Availability labels should use simple wording: Available, Can Be Sourced, Limited, Confirm with Seller, Unavailable.
-- Storefront sharing can start as a copyable link before deeper WhatsApp integration.
+- Storefront sharing can start as a copyable link before deeper WhatsApp integration. 
+
 
 ## Epic 4: Trusted Buyer Relationships
 

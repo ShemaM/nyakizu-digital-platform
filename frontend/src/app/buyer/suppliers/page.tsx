@@ -21,7 +21,7 @@ interface SellerWithRelationship extends SellerProfile {
 
 export default function MySuppliersPage() {
   const { user } = useAuth();
-  const [sellers, setSellers] = useState<SellerWithRelationship[]>([]);
+  const [sellerList, setSellerList] = useState<SellerWithRelationship[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,7 +43,7 @@ export default function MySuppliersPage() {
         relationshipStatus: "none" as RelationshipStatus, // Default status
       }));
       
-      setSellers(sellersWithRelationship);
+      setSellerList(sellersWithRelationship);
     } catch (err) {
       console.error("Failed to load sellers:", err);
       if (err instanceof ApiError) {
@@ -59,13 +59,11 @@ export default function MySuppliersPage() {
   const handleJoinSeller = async (sellerId: number) => {
     try {
       await sellers.requestAccess(sellerId);
-      
+
       // Update local state to reflect pending status
-      setSellers(prev => 
-        prev.map(seller => 
-          seller.id === sellerId 
-            ? { ...seller, relationshipStatus: "pending" }
-            : seller
+      setSellerList((prev) =>
+        prev.map((seller) =>
+          seller.id === sellerId ? { ...seller, relationshipStatus: "pending" } : seller
         )
       );
     } catch (err) {
@@ -79,8 +77,8 @@ export default function MySuppliersPage() {
   };
 
   // Filter sellers by relationship status
-  const mySuppliers = sellers.filter(s => s.relationshipStatus === "approved" || s.relationshipStatus === "pending" || s.relationshipStatus === "denied");
-  const otherSellers = sellers.filter(s => s.relationshipStatus === "none" && s.approval_status === "approved");
+  const mySuppliers = sellerList.filter(s => s.relationshipStatus === "approved" || s.relationshipStatus === "pending" || s.relationshipStatus === "denied");
+  const otherSellers = sellerList.filter(s => s.relationshipStatus === "none" && s.approval_status === "approved");
 
   if (isLoading) {
     return (
@@ -129,7 +127,7 @@ export default function MySuppliersPage() {
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-bold text-gray-900 text-sm">{seller.store_name}</span>
-                    <Badge status={seller.relationshipStatus} />
+                    <Badge status={seller.relationshipStatus as any} />
                   </div>
                   <div className="flex items-center gap-1 text-xs text-gray-400">
                     <MapPin size={11} />

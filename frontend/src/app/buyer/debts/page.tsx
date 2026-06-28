@@ -8,9 +8,10 @@ import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { ListSkeleton } from "@/components/ui/LoadingState";
 import { NoPaymentsEmptyState } from "@/components/ui/EmptyState";
-import { orders, type ApiOrder, ApiError, fmtKES, parsePrice } from "@/lib/api";
+import { orders as ordersApi, type ApiOrder, ApiError, fmtKES, parsePrice } from "@/lib/api";
 import { cn } from "@/lib/cn";
 
+type OrderStatusBadge = "submitted" | "sourcing" | "locked" | "debt_active" | "cleared" | "cancelled" | "pending";
 export default function DebtsPage() {
   const [orders, setOrders] = useState<ApiOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -25,7 +26,7 @@ export default function DebtsPage() {
       setIsLoading(true);
       setError(null);
       
-      const allOrders = await orders.list();
+      const allOrders = await ordersApi.list();
       // Filter for orders with relevant payment statuses
       const relevantOrders = allOrders.filter(order => 
         ["debt_active", "cleared", "locked", "submitted", "sourcing"].includes(order.status)
@@ -44,12 +45,21 @@ export default function DebtsPage() {
   };
 
   // Calculate total outstanding (in a real app, this would come from payment records)
+  // Compute outstanding using whatever the API provides.
+  // If the backend doesn't yet supply per-order paid amounts, we fall back to showing only invoice totals.
   const totalOwed = orders
-    .filter(o => o.status === "debt_active")
-    .reduce((sum, o) => sum + parsePrice(o.total_price), 0);
+    .filter((o) => o.status === "debt_active")
+    .reduce((sum, o) => {
+      const total = parsePrice(o.total_price);
+      const paidRaw = (o as any).amount_paid;
+      const paid = paidRaw === undefined || paidRaw === null ? 0 : parsePrice(String(paidRaw));
+      const balance = total - paid;
+      return sum + (Number.isFinite(balance) ? balance : total);
+    }, 0);
+
 
   // Map API status to badge status
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string): OrderStatusBadge => {
     const statusMap: Record<string, string> = {
       "submitted": "submitted",
       "sourcing": "sourcing",
@@ -58,7 +68,7 @@ export default function DebtsPage() {
       "cleared": "cleared",
       "cancelled": "cancelled",
     };
-    return statusMap[status] || "pending";
+    return (statusMap[status] || "pending") as OrderStatusBadge;
   };
 
   if (isLoading) {

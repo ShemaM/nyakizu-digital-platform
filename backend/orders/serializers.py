@@ -4,7 +4,10 @@ orders/serializers.py
 Serializers for orders and order items.
 """
 
+from django.db import transaction
 from rest_framework import serializers
+from accounts.models import BuyerSellerRelationship
+from accounts.permissions import is_verified_buyer
 from .models import Order, OrderItem
 from products.models import Product
 
@@ -58,52 +61,116 @@ class OrderCreateSerializer(serializers.Serializer):
     delivery_address = serializers.CharField(required=False, allow_blank=True)
     buyer_notes = serializers.CharField(required=False, allow_blank=True)
 
-    def validate_items(self, items):
-        """Make sure every requested product exists and has enough stock."""
+    def validate(self, data):
+        """Validate the order against buyer trust, seller approval, and stock rules."""
+        user = self.context['request'].user
+        items = data.get('items', [])
+
+        if not is_verified_buyer(user):
+            raise serializers.ValidationError(
+                "Only verified buyers can place orders."
+            )
+
         if not items:
             raise serializers.ValidationError("Order must contain at least one item.")
 
+        totals_by_product = {}
         for item_data in items:
-            try:
-                product = Product.objects.get(id=item_data['product_id'])
-            except Product.DoesNotExist:
+            product_id = item_data['product_id']
+            totals_by_product[product_id] = (
+                totals_by_product.get(product_id, 0) + item_data['quantity']
+            )
+
+        products = Product.objects.select_related("seller__seller_profile").filter(
+            id__in=totals_by_product.keys()
+        )
+        products_by_id = {product.id: product for product in products}
+
+        missing_ids = set(totals_by_product) - set(products_by_id)
+        if missing_ids:
+            missing = ", ".join(str(product_id) for product_id in sorted(missing_ids))
+            raise serializers.ValidationError(f"Product id(s) not found: {missing}.")
+
+        sellers = {product.seller_id for product in products_by_id.values()}
+        if len(sellers) != 1:
+            raise serializers.ValidationError(
+                "Create one order per seller. Multi-seller orders are not enabled yet."
+            )
+
+        for product_id, quantity in totals_by_product.items():
+            product = products_by_id[product_id]
+
+            if product.status != "available":
                 raise serializers.ValidationError(
-                    f"Product with id={item_data['product_id']} does not exist."
+                    f"'{product.name}' is not currently available for ordering."
                 )
-            if product.stock_quantity < item_data['quantity']:
+
+            try:
+                store = product.seller.seller_profile
+            except Exception:
+                raise serializers.ValidationError(
+                    f"'{product.name}' does not belong to an approved seller store."
+                )
+
+            if store.approval_status != "approved":
+                raise serializers.ValidationError(
+                    f"'{product.name}' belongs to a seller that is not approved."
+                )
+
+            if not BuyerSellerRelationship.objects.filter(
+                buyer=user,
+                seller=store,
+                status="approved",
+            ).exists():
+                raise serializers.ValidationError(
+                    f"You must be approved by {store.store_name} before ordering."
+                )
+
+            if product.stock_quantity < quantity:
                 raise serializers.ValidationError(
                     f"Not enough stock for '{product.name}'. "
-                    f"Available: {product.stock_quantity}, requested: {item_data['quantity']}."
+                    f"Available: {product.stock_quantity}, requested: {quantity}."
                 )
-        return items
+
+        data['items'] = [
+            {'product_id': product_id, 'quantity': quantity}
+            for product_id, quantity in totals_by_product.items()
+        ]
+        return data
 
     def create(self, validated_data):
-        """Create the Order and all its OrderItems in one transaction."""
+        """Create the order and stock snapshots atomically."""
         buyer = self.context['request'].user
         items_data = validated_data.pop('items')
 
-        order = Order.objects.create(
-            buyer=buyer,
-            delivery_address=validated_data.get('delivery_address', ''),
-            buyer_notes=validated_data.get('buyer_notes', ''),
-        )
-
-        for item_data in items_data:
-            product = Product.objects.get(id=item_data['product_id'])
-
-            OrderItem.objects.create(
-                order=order,
-                product=product,
-                quantity=item_data['quantity'],
-                unit_price=product.price,   # snapshot the price right now
+        with transaction.atomic():
+            order = Order.objects.create(
+                buyer=buyer,
+                delivery_address=validated_data.get('delivery_address', ''),
+                buyer_notes=validated_data.get('buyer_notes', ''),
             )
 
-            # Reduce the product's stock
-            product.stock_quantity -= item_data['quantity']
-            if product.stock_quantity == 0:
-                product.status = 'out_of_stock'
-            product.save()
+            for item_data in items_data:
+                product = Product.objects.select_for_update().get(id=item_data['product_id'])
 
-        # Calculate and save the total
-        order.calculate_total()
+                # Re-check stock inside the transaction so concurrent orders cannot oversell.
+                if product.stock_quantity < item_data['quantity']:
+                    raise serializers.ValidationError(
+                        f"Not enough stock for '{product.name}'. "
+                        f"Available: {product.stock_quantity}, requested: {item_data['quantity']}."
+                    )
+
+                OrderItem.objects.create(
+                    order=order,
+                    product=product,
+                    quantity=item_data['quantity'],
+                    unit_price=product.price,
+                )
+
+                product.stock_quantity -= item_data['quantity']
+                if product.stock_quantity == 0:
+                    product.status = 'out_of_stock'
+                product.save(update_fields=['stock_quantity', 'status', 'updated_at'])
+
+            order.calculate_total()
         return order

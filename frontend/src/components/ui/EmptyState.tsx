@@ -1,10 +1,11 @@
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Button } from "./Button";
+import { ReactNode } from "react";
 
 interface EmptyStateProps {
-  icon?: LucideIcon;
-  iconClassName?: string;
+  icon?: LucideIcon | ReactNode;
+  iconClassName?: string; // Only applies when `icon` is a LucideIcon
   title: string;
   description?: string;
   action?: {
@@ -43,7 +44,11 @@ export function EmptyState({
             iconClassName
           )}
         >
-          <Icon size={DEFAULT_ICON_SIZE} className={DEFAULT_ICON_COLOR} />
+          {typeof Icon === "function" ? (
+            <Icon size={DEFAULT_ICON_SIZE} className={DEFAULT_ICON_COLOR} />
+          ) : (
+            Icon
+          )}
         </div>
       )}
 
@@ -79,11 +84,11 @@ interface PreConfiguredEmptyStateProps {
 export function NoDataEmptyState({ className, onActionClick }: PreConfiguredEmptyStateProps) {
   return (
     <EmptyState
-      icon={() => (
+      icon={
         <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <span className="text-3xl">📭</span>
         </div>
-      )}
+      }
       title="No data found"
       description="There's no data to display at the moment."
       action={onActionClick ? {
@@ -99,11 +104,11 @@ export function NoDataEmptyState({ className, onActionClick }: PreConfiguredEmpt
 export function NoSuppliersEmptyState({ className, onActionClick }: PreConfiguredEmptyStateProps) {
   return (
     <EmptyState
-      icon={() => (
+      icon={
         <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <span className="text-3xl">🏪</span>
         </div>
-      )}
+      }
       title="No suppliers yet"
       description="Approved wholesalers will appear here once they join the platform."
       action={onActionClick ? {
@@ -119,11 +124,11 @@ export function NoSuppliersEmptyState({ className, onActionClick }: PreConfigure
 export function NoOrdersEmptyState({ className, onActionClick }: PreConfiguredEmptyStateProps) {
   return (
     <EmptyState
-      icon={() => (
+      icon={
         <div className="w-14 h-14 bg-violet-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <span className="text-3xl">📦</span>
         </div>
-      )}
+      }
       title="No orders yet"
       description="Your order history will appear here once you start placing orders."
       action={onActionClick ? {
@@ -139,11 +144,11 @@ export function NoOrdersEmptyState({ className, onActionClick }: PreConfiguredEm
 export function NoProductsEmptyState({ className, onActionClick }: PreConfiguredEmptyStateProps) {
   return (
     <EmptyState
-      icon={() => (
+      icon={
         <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <span className="text-3xl">🏷️</span>
         </div>
-      )}
+      }
       title="No products listed"
       description="Start adding products to your catalog to begin selling."
       action={onActionClick ? {
@@ -159,11 +164,11 @@ export function NoProductsEmptyState({ className, onActionClick }: PreConfigured
 export function NoPaymentsEmptyState({ className, onActionClick }: PreConfiguredEmptyStateProps) {
   return (
     <EmptyState
-      icon={() => (
+      icon={
         <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <span className="text-3xl">💳</span>
         </div>
-      )}
+      }
       title="No payment history"
       description="Your payment records will appear here once transactions are made."
       action={onActionClick ? {
@@ -179,11 +184,11 @@ export function NoPaymentsEmptyState({ className, onActionClick }: PreConfigured
 export function SearchResultsEmptyState({ className, onActionClick }: PreConfiguredEmptyStateProps) {
   return (
     <EmptyState
-      icon={() => (
+      icon={
         <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <span className="text-3xl">🔍</span>
         </div>
-      )}
+      }
       title="No results found"
       description="Try adjusting your search terms or filters to find what you're looking for."
       action={onActionClick ? {

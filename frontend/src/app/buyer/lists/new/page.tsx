@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Plus, Minus, CloudOff, Lock } from "lucide-react";
+import { Plus, Minus, CloudOff } from "lucide-react";
+
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
@@ -10,6 +11,7 @@ import { Badge } from "@/components/ui/Badge";
 import { ListSkeleton } from "@/components/ui/LoadingState";
 import { NoDataEmptyState } from "@/components/ui/EmptyState";
 import { products, orders, type ApiProduct, ApiError, fmtKES, parsePrice } from "@/lib/api";
+
 
 interface LineItem {
   productId: number;
@@ -23,7 +25,8 @@ export default function NewListPage() {
   const params = useParams();
   const sellerId = params.id ? parseInt(params.id as string) : undefined;
   
-  const [products, setProducts] = useState<ApiProduct[]>([]);
+  const [productList, setProductList] = useState<ApiProduct[]>([]);
+
   const [items, setItems] = useState<LineItem[]>([]);
   const [sourcingNotes, setSourcingNotes] = useState("");
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== "undefined" ? navigator.onLine : true);
@@ -59,8 +62,13 @@ export default function NewListPage() {
       setError(null);
       
       const allProducts = await products.list({ seller: sellerId });
-      const availableProducts = allProducts.filter(p => p.status !== "out_of_stock" && p.status !== "draft");
-      setProducts(availableProducts);
+
+      const availableProducts = allProducts.filter(
+        (p) => p.status !== "out_of_stock" && p.status !== "draft"
+      );
+
+      setProductList(availableProducts);
+
       // Load draft after products are available
       try {
         const key = `order_draft_${sellerId}`;
@@ -109,12 +117,14 @@ export default function NewListPage() {
       setSubmitting(true);
       
       const orderData = {
-        items: items.map(item => ({
+        seller_id: sellerId as number,
+        items: items.map((item) => ({
           product_id: item.productId,
           quantity: item.qty,
         })),
         buyer_notes: sourcingNotes,
       };
+
       
       const order = await orders.create(orderData);
       setConfirmOpen(false);
@@ -166,7 +176,8 @@ export default function NewListPage() {
     );
   }
 
-  if (products.length === 0) {
+  if (productList.length === 0) {
+
     return (
       <AppShell title="New Order">
         <NoDataEmptyState />
@@ -191,7 +202,8 @@ export default function NewListPage() {
         <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wide px-1">
           Products
         </h2>
-        {products.map((product) => {
+        {productList.map((product) => {
+
           const qty = getQty(product.id);
           const isOos = product.status === "out_of_stock";
           const availability = getAvailabilityBadge(product);
@@ -280,10 +292,11 @@ export default function NewListPage() {
         open={confirmOpen}
         title="Send this order?"
         message="Once you send it, you cannot change the list. The wholesaler will review it and confirm the final price."
-        confirmLabel="Yes, send it"
-        onConfirm={handleConfirmSubmit}
+        confirmLabel={submitting ? "Sending…" : "Yes, send it"}
+        onConfirm={() => {
+          if (!submitting) void handleConfirmSubmit();
+        }}
         onCancel={() => setConfirmOpen(false)}
-        confirmDisabled={submitting}
       />
     </AppShell>
   );

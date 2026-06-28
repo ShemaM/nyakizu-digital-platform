@@ -9,7 +9,7 @@ In production (HTTPS), replace this with standard SessionAuthentication
 and enforce CSRF via the SameSite=Strict cookie policy instead.
 """
 
-from rest_framework.authentication import SessionAuthentication
+from rest_framework.authentication import SessionAuthentication 
 
 
 class CsrfExemptSessionAuthentication(SessionAuthentication):

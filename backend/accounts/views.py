@@ -1,16 +1,18 @@
+from django.conf import settings
+from django.db.models import Q
+from django.core.mail import send_mail
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.contrib.auth import authenticate, login, logout
-from django.utils import timezone
+from django.contrib.auth import login, logout
 
 from .models import CustomUser, BuyerProfile, SellerProfile, BuyerSellerRelationship
+from .permissions import is_admin_user, is_verified_buyer
 from .serializers import (
     RegisterSerializer,
     UserSerializer,
     BuyerProfileSerializer,
     SellerProfileSerializer,
-    BuyerSellerRelationshipSerializer,
 )
 
 
@@ -21,20 +23,54 @@ class RegisterView(APIView):
     Buyer:  { full_name, email, phone, password, role, location, main_supplier, business_type }
     Seller: { full_name, email, phone, password, role, shop_name, shop_location, categories[] }
 
-    Returns the new user plus a verification_token so the frontend can
-    trigger the email via its own Nodemailer API route.
+    Creates the user and sends a verification email.
+
+    In DEBUG we return verification_token to keep local demos easy to test.
+    In normal environments the token should live only in the email link.
     """
+
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
-            user  = serializer.save()
+            user = serializer.save()
             token = user.generate_verify_token()
-            data  = UserSerializer(user).data
-            data["verification_token"] = token
+
+            try:
+                verify_url = (
+                    f"{getattr(settings, 'FRONTEND_VERIFY_BASE_URL', 'http://localhost:3000')}/"
+                    f"api/accounts/verify-email/?token={token}"
+                )
+
+                subject = "Verify your email for Nyakizu Digital Market"
+                message = (
+                    "Welcome to Nyakizu!\n\n"
+                    "Please verify your email by opening the link below:\n"
+                    f"{verify_url}\n\n"
+                    "If you did not create an account, you can ignore this message."
+                )
+
+                send_mail(
+                    subject=subject,
+                    message=message,
+                    from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+                    recipient_list=[user.email],
+                    fail_silently=False,
+                )
+            except Exception:
+                # Keep registration functional; login will still be blocked until email is verified.
+                # We want the traceback in server logs.
+                import traceback
+                traceback.print_exc()
+
+            data = UserSerializer(user).data
+            if settings.DEBUG:
+                data["verification_token"] = token
             return Response(data, status=status.HTTP_201_CREATED)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 class VerifyEmailView(APIView):
@@ -125,13 +161,27 @@ class SellerProfileListView(generics.ListAPIView):
 
 class SellerProfileDetailView(generics.RetrieveUpdateAPIView):
     """GET/PATCH /api/accounts/sellers/<id>/"""
-    queryset         = SellerProfile.objects.all()
     serializer_class = SellerProfileSerializer
 
     def get_permissions(self):
         if self.request.method == "GET":
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if is_admin_user(user):
+            return SellerProfile.objects.all()
+
+        if self.request.method == "GET":
+            visible = Q(approval_status="approved")
+            if user.is_authenticated:
+                visible |= Q(user=user)
+            return SellerProfile.objects.filter(visible)
+
+        # Store edits are private to the store owner. Admins are handled above.
+        return SellerProfile.objects.filter(user=user)
 
 
 class ApproveSellerView(APIView):
@@ -171,13 +221,13 @@ class RejectSellerView(APIView):
 # ── Buyer profile views ───────────────────────────────────────────────────────
 
 class BuyerProfileDetailView(generics.RetrieveUpdateAPIView):
-    queryset         = BuyerProfile.objects.all()
     serializer_class = BuyerProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
-    def get_permissions(self):
-        if self.request.method == "GET":
-            return [permissions.AllowAny()]
-        return [permissions.IsAuthenticated()]
+    def get_queryset(self):
+        if is_admin_user(self.request.user):
+            return BuyerProfile.objects.all()
+        return BuyerProfile.objects.filter(user=self.request.user)
 
 
 # ── Buyer ↔ Seller relationship ───────────────────────────────────────────────
@@ -190,12 +240,24 @@ class RequestStoreAccessView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
+        if not is_verified_buyer(request.user):
+            return Response(
+                {"error": "Only verified buyers can request store access."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         try:
             seller = SellerProfile.objects.get(pk=pk, approval_status="approved")
         except SellerProfile.DoesNotExist:
             return Response({"error": "Store not found."}, status=404)
 
-        rel, created = BuyerSellerRelationship.objects.get_or_create(
+        if seller.user == request.user:
+            return Response(
+                {"error": "You cannot request access to your own store."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        created = BuyerSellerRelationship.objects.get_or_create(
             buyer=request.user,
             seller=seller,
         )
@@ -220,6 +282,9 @@ class ResolveBuyerAccessView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk, action):
+        if action not in {"approve", "deny"}:
+            return Response({"error": "Unknown action."}, status=400)
+
         try:
             rel = BuyerSellerRelationship.objects.get(
                 pk=pk,
@@ -231,8 +296,6 @@ class ResolveBuyerAccessView(APIView):
         if action == "approve":
             rel.approve()
             return Response({"message": "Buyer approved."})
-        elif action == "deny":
-            rel.deny(note=request.data.get("note", ""))
-            return Response({"message": "Buyer denied."})
 
-        return Response({"error": "Unknown action."}, status=400)
+        rel.deny(note=request.data.get("note", ""))
+        return Response({"message": "Buyer denied."})

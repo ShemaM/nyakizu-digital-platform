@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { auth as authApi, type User, ApiError } from "./api";
+import { auth as authApi, type User } from "./api";
+
 
 type Role = "buyer" | "seller" | "admin";
 
@@ -30,18 +31,27 @@ const AuthContext = createContext<AuthContextValue>({
   logout: async () => {},
 });
 
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser]       = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setLoading] = useState(true);
+  const [isInitializing, setIsInitializing] = useState(true);
   const router = useRouter();
 
-  // Check active session on mount
+  // Check active session on mount.
+  // isInitializing prevents UI from using a fallback role during the first render.
   useEffect(() => {
-    authApi.me()
+    setIsInitializing(true);
+    authApi
+      .me()
       .then(setUser)
       .catch(() => setUser(null))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        setIsInitializing(false);
+      });
   }, []);
+
 
   async function login(identifier: string, password: string) {
     const { user } = await authApi.login(identifier, password);
@@ -56,18 +66,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      isLoading,
-      isAuthenticated: !!user,
-      role: user?.role as Role | null ?? null,
-      login,
-      logout,
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading: isLoading || isInitializing,
+        isAuthenticated: !!user,
+        role: user?.role as Role | null ?? null,
+        login,
+        logout,
+        // isInitializing intentionally not exposed yet; consumers should rely on isLoading
+      } as AuthContextValue}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
+
 
 export function useAuth() {
   return useContext(AuthContext);

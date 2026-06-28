@@ -75,18 +75,21 @@ export default function SubmittedOrderPage() {
     );
   }
 
-  // Map API status to badge status
-  const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, string> = {
-      "submitted": "submitted",
-      "sourcing": "sourcing",
-      "locked": "locked",
-      "debt_active": "debt_active",
-      "cleared": "cleared",
-      "cancelled": "cancelled",
-      "draft": "draft",
+  // Map API status to badge status (must match Badge's AnyStatus union)
+  const getStatusBadge = (status: string): Parameters<typeof Badge>[0]["status"] => {
+    const statusMap: Partial<Record<string, Parameters<typeof Badge>[0]["status"]>> = {
+      submitted: "submitted",
+      sourcing: "sourcing",
+      locked: "locked",
+      debt_active: "debt_active",
+      cleared: "cleared",
+      cancelled: "cancelled",
+      draft: "draft",
+      // Note: "pending" is also in AnyStatus, so it is safe default
+      pending: "pending",
     };
-    return statusMap[status] || "pending";
+
+    return statusMap[status] ?? "pending";
   };
 
   return (
@@ -111,7 +114,7 @@ export default function SubmittedOrderPage() {
       {/* Order summary */}
       <Card>
         <div className="flex items-start justify-between">
-          <Badge status={getStatusBadge(order.status)} />
+          <Badge status={getStatusBadge(order.status) as Parameters<typeof Badge>[0]["status"]} />
           <Link href={`/receipt/${order.id}`} target="_blank"
             className="text-xs text-blue-500 hover:underline flex items-center gap-1">
             <Printer size={11} /> Print receipt

@@ -1,145 +1,159 @@
 @import "tailwindcss";
 
-@theme {
-  --color-brand: #2563eb;
-  --color-brand-dark: #1e40af;
-  --color-brand-ink: #0f172a;
-  --color-success: #16a34a;
-  --color-warning: #d97706;
-  --color-danger: #dc2626;
-  --color-ink: #0f172a;
-  --color-muted: #64748b;
-  --color-line: #dbe3ef;
-  --color-surface: #f6f8fb;
-  --color-panel: #ffffff;
-
-  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
-
-  --radius-card: 8px;
-
-  --animate-fade-in-up: fade-in-up 0.28s ease-out both;
-  --animate-scale-in: scale-in 0.2s ease-out both;
-  --animate-slide-up: slide-up 0.32s ease-out both;
-}
-
-:root {
-  color-scheme: light;
-  background: #f6f8fb;
-}
-
-* {
-  box-sizing: border-box;
-}
-
+/* Dark mode application root */
 html {
-  min-height: 100%;
+  color-scheme: dark;
   scroll-behavior: smooth;
 }
 
 body {
-  min-height: 100%;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.78) 0%, rgba(246,248,251,0.9) 28%, #f6f8fb 100%),
-    radial-gradient(circle at top left, rgba(37,99,235,0.08), transparent 32rem),
-    #f6f8fb;
-  color: #0f172a;
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
-  text-rendering: geometricPrecision;
+  @apply min-h-screen bg-dark-primary text-slate-200 antialiased;
 }
 
+/* Remove default focus outline; use custom ring-based focus */
 button,
+a,
 input,
 textarea,
 select {
-  font: inherit;
-}
-
-button,
-a {
   -webkit-tap-highlight-color: transparent;
 }
 
 ::selection {
-  background: rgba(37,99,235,0.18);
+  @apply bg-brand-gold/20 text-slate-50;
 }
 
-@keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+/* Focus-visible ring (keyboard navigation) */
+*:focus-visible {
+  @apply outline-none ring-2 ring-brand-gold ring-offset-2 ring-offset-dark-primary;
 }
 
-@keyframes scale-in {
-  from { opacity: 0; transform: scale(0.97); }
-  to { opacity: 1; transform: scale(1); }
+/* Smooth transitions for interactive elements */
+@layer components {
+  /* Button base styles */
+  .btn-base {
+    @apply relative inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply btn-base bg-brand-gold text-dark-primary hover:bg-brand-gold-light active:scale-95 shadow-md hover:shadow-lg;
+  }
+
+  .btn-secondary {
+    @apply btn-base bg-slate-800 text-slate-200 hover:bg-slate-700 active:scale-95 shadow-sm hover:shadow-md;
+  }
+
+  .btn-outline {
+    @apply btn-base border border-slate-500 text-slate-200 hover:bg-slate-900 hover:border-slate-400 active:scale-95;
+  }
+
+  .btn-ghost {
+    @apply btn-base text-slate-200 hover:bg-slate-800/50 active:scale-95;
+  }
+
+  /* Card component */
+  .card {
+    @apply rounded-xl bg-slate-900/50 border border-slate-800/50 shadow-sm backdrop-blur-sm;
+  }
+
+  .card-lg {
+    @apply card p-6;
+  }
+
+  .card-md {
+    @apply card p-4;
+  }
+
+  .card-sm {
+    @apply card p-3;
+  }
+
+  /* Input styles */
+  .input-base {
+    @apply w-full rounded-lg border border-slate-700 bg-slate-900/50 px-4 py-2 text-slate-100 placeholder-slate-500 transition-all duration-200;
+  }
+
+  .input-base:focus {
+    @apply border-brand-gold bg-slate-900 ring-1 ring-brand-gold/50;
+  }
+
+  .input-base:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+
+  /* Text utilities */
+  .text-label {
+    @apply text-xs font-bold uppercase tracking-wider text-slate-400;
+  }
+
+  .text-subtitle {
+    @apply text-sm font-semibold text-slate-300;
+  }
+
+  /* Section container */
+  .container-section {
+    @apply mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12;
+  }
+
+  /* Grid layouts */
+  .grid-auto {
+    @apply grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3;
+  }
+
+  .grid-auto-lg {
+    @apply grid gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4;
+  }
+
+  /* Badges */
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold;
+  }
+
+  .badge-primary {
+    @apply badge bg-brand-gold/18 text-brand-gold;
+  }
+
+  .badge-success {
+    @apply badge bg-success/18 text-success;
+  }
+
+  .badge-warning {
+    @apply badge bg-warning/18 text-warning;
+  }
+
+  .badge-error {
+    @apply badge bg-error/18 text-error;
+  }
+
+  /* Loading skeleton */
+  .skeleton {
+    @apply animate-pulse rounded bg-slate-800/50;
+  }
+
+  /* Dividers */
+  .divider {
+    @apply h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent;
+  }
 }
 
-@keyframes slide-up {
-  from { opacity: 0; transform: translateY(18px); }
-  to { opacity: 1; transform: translateY(0); }
+/* Accessibility: Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
-@keyframes status-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.42; transform: scale(0.82); }
-}
+/* Print styles */
+@media print {
+  body {
+    @apply bg-white text-black;
+  }
 
-.animate-status-pulse { animation: status-pulse 1.8s ease-in-out infinite; }
-
-.delay-75 { animation-delay: 75ms; }
-.delay-100 { animation-delay: 100ms; }
-.delay-150 { animation-delay: 150ms; }
-.delay-200 { animation-delay: 200ms; }
-.delay-250 { animation-delay: 250ms; }
-.delay-300 { animation-delay: 300ms; }
-
-.app-panel {
-  background: rgba(255,255,255,0.86);
-  border: 1px solid rgba(219,227,239,0.92);
-  box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 16px 36px rgba(15,23,42,0.05);
-  backdrop-filter: blur(18px);
-}
-
-.app-section-title {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #64748b;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.app-section-title::before {
-  content: "";
-  width: 0.25rem;
-  height: 1rem;
-  border-radius: 999px;
-  background: #2563eb;
-}
-
-.input-surface {
-  width: 100%;
-  border-radius: 0.5rem;
-  border: 1px solid #dbe3ef;
-  background: rgba(255,255,255,0.82);
-  padding: 0.75rem 0.875rem;
-  color: #0f172a;
-  outline: none;
-  transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
-}
-
-.input-surface:focus {
-  border-color: #2563eb;
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.13);
-}
-
-.scrollbar-none {
-  scrollbar-width: none;
-}
-
-.scrollbar-none::-webkit-scrollbar {
-  display: none;
+  .no-print {
+    @apply hidden;
+  }
 }

@@ -1,216 +1,108 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { MapPin, ArrowRight, Clock, Plus } from "lucide-react";
-import { AppShell } from "@/components/AppShell";
-import { Badge } from "@/components/ui/Badge";
+import { Container, Section } from "@/components/layouts";
 import { Button } from "@/components/ui/Button";
-import { Avatar } from "@/components/ui/Avatar";
-import { ListSkeleton } from "@/components/ui/LoadingState";
-import { NoSuppliersEmptyState } from "@/components/ui/EmptyState";
-import { sellers, type SellerProfile, ApiError } from "@/lib/api";
-import { useAuth } from "@/lib/auth-context";
+import { Input } from "@/components/ui/Input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { DashboardLayout } from "@/components/layouts";
+import { Search, MapPin, Star } from "lucide-react";
 
-// Type for relationship status (this would come from API in production)
-type RelationshipStatus = "pending" | "approved" | "denied" | "none";
-
-interface SellerWithRelationship extends SellerProfile {
-  relationshipStatus: RelationshipStatus;
-}
-
-export default function MySuppliersPage() {
-  const { user } = useAuth();
-  const [sellerList, setSellerList] = useState<SellerWithRelationship[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    loadSellers();
-  }, []);
-
-  const loadSellers = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      const allSellers = await sellers.list();
-      
-      // Transform sellers to include relationship status
-      // In production, this would come from a dedicated relationships endpoint
-      const sellersWithRelationship: SellerWithRelationship[] = allSellers.map(seller => ({
-        ...seller,
-        relationshipStatus: "none" as RelationshipStatus, // Default status
-      }));
-      
-      setSellerList(sellersWithRelationship);
-    } catch (err) {
-      console.error("Failed to load sellers:", err);
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError("Failed to load suppliers. Please try again.");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleJoinSeller = async (sellerId: number) => {
-    try {
-      await sellers.requestAccess(sellerId);
-
-      // Update local state to reflect pending status
-      setSellerList((prev) =>
-        prev.map((seller) =>
-          seller.id === sellerId ? { ...seller, relationshipStatus: "pending" } : seller
-        )
-      );
-    } catch (err) {
-      console.error("Failed to request seller access:", err);
-      if (err instanceof ApiError) {
-        alert(err.message);
-      } else {
-        alert("Failed to request access. Please try again.");
-      }
-    }
-  };
-
-  // Filter sellers by relationship status
-  const mySuppliers = sellerList.filter(s => s.relationshipStatus === "approved" || s.relationshipStatus === "pending" || s.relationshipStatus === "denied");
-  const otherSellers = sellerList.filter(s => s.relationshipStatus === "none" && s.approval_status === "approved");
-
-  if (isLoading) {
-    return (
-      <AppShell title="Suppliers" showLogo>
-        <ListSkeleton count={5} showAvatar={true} lines={2} />
-      </AppShell>
-    );
-  }
-
-  if (error) {
-    return (
-      <AppShell title="Suppliers" showLogo>
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
-          <p className="text-red-700 font-medium mb-3">{error}</p>
-          <Button onClick={loadSellers} size="sm" className="gap-1.5">
-            <ArrowRight size={14} /> Try Again
-          </Button>
-        </div>
-      </AppShell>
-    );
-  }
+export default function BuyerSuppliersPage() {
+  const suppliers = [
+    {
+      name: "Kamau Electronics",
+      location: "RNG Plaza - Stall 42",
+      categories: ["Screens", "Cases", "Batteries"],
+      rating: 4.8,
+      trusted: true,
+    },
+    {
+      name: "Tech Hub",
+      location: "RNG Plaza - Stall 58",
+      categories: ["Chargers", "Cables", "Adapters"],
+      rating: 4.6,
+      trusted: true,
+    },
+    {
+      name: "Mwangi Store",
+      location: "RNG Plaza - Stall 15",
+      categories: ["Wholesale", "Bulk Orders"],
+      rating: 4.9,
+      trusted: true,
+    },
+  ];
 
   return (
-    <AppShell title="Suppliers" showLogo>
-
-      {/* ── My suppliers ─────────────────────────────────────────────────── */}
-      {mySuppliers.length > 0 && (
-        <section className="space-y-2 animate-fade-in-up">
-          <div className="flex items-center gap-2 px-0.5">
-            <div className="w-1 h-4 bg-blue-600 rounded-full" />
-            <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-              Wholesalers you work with
-            </h2>
+    <DashboardLayout title="Suppliers">
+      <Section spacing="md">
+        <Container size="xl" className="space-y-6">
+          {/* Search */}
+          <div className="space-y-2">
+            <Input
+              placeholder="Search suppliers or products..."
+              icon={<Search className="w-4 h-4" />}
+            />
           </div>
 
-          {mySuppliers.map((seller) => (
-            <div
-              key={seller.id}
-              className="bg-white rounded-2xl border border-gray-100 p-4 shadow-[0_1px_3px_rgba(0,0,0,0.07)] transition-all duration-200 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:-translate-y-0.5"
-            >
-              <div className="flex items-start gap-3">
-                {/* Avatar */}
-                <Avatar name={seller.store_name} size="md" />
-
-                {/* Info */}
-                <div className="flex-1 min-w-0 space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-gray-900 text-sm">{seller.store_name}</span>
-                    <Badge status={seller.relationshipStatus as any} />
+          {/* Suppliers Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {suppliers.map((supplier) => (
+              <Card key={supplier.name} className="hover:border-slate-700 transition-colors">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1 flex-1">
+                      <CardTitle className="text-lg">{supplier.name}</CardTitle>
+                      <CardDescription className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {supplier.location}
+                      </CardDescription>
+                    </div>
+                    {supplier.trusted && (
+                      <Badge variant="success" className="text-xs">Verified</Badge>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-gray-400">
-                    <MapPin size={11} />
-                    <span>{seller.location}</span>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Categories */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                      Categories
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {supplier.categories.map((cat) => (
+                        <Badge key={cat} variant="outline" className="text-xs">
+                          {cat}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
-                  {seller.relationshipStatus === "pending" && (
-                    <p className="text-xs text-amber-600 flex items-center gap-1 mt-1">
-                      <Clock size={10} />
-                      Waiting for approval
-                    </p>
-                  )}
-                  {seller.relationshipStatus === "denied" && (
-                    <p className="text-xs text-red-500 mt-1">
-                      This wholesaler did not approve your request.
-                    </p>
-                  )}
-                </div>
 
-                {/* Action */}
-                {seller.relationshipStatus === "approved" && (
-                  <Link href={`/buyer/suppliers/${seller.id}/storefront`} className="shrink-0 mt-0.5">
-                    <Button size="sm" className="gap-1.5">
-                      Open shop
-                      <ArrowRight size={12} />
-                    </Button>
-                  </Link>
-                )}
-              </div>
-            </div>
-          ))}
-        </section>
-      )}
+                  {/* Rating */}
+                  <div className="flex items-center gap-2 py-2 border-t border-slate-800/50">
+                    <div className="flex items-center gap-1">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`w-4 h-4 ${
+                            i < Math.floor(supplier.rating)
+                              ? "fill-brand-gold text-brand-gold"
+                              : "text-slate-600"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-sm text-slate-400">{supplier.rating}</span>
+                  </div>
 
-      {/* ── Other sellers ────────────────────────────────────────────────── */}
-      {otherSellers.length > 0 && (
-        <section className="space-y-2 animate-fade-in-up delay-100">
-          <div className="flex items-center gap-2 px-0.5 mt-1">
-            <div className="w-1 h-4 bg-gray-300 rounded-full" />
-            <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-              Other wholesalers you can join
-            </h2>
+                  {/* Action */}
+                  <Button size="sm" className="w-full" variant="ghost">
+                    View Products
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-
-          {otherSellers.map((seller) => (
-            <div
-              key={seller.id}
-              className="bg-white rounded-2xl border border-gray-100 p-4 shadow-[0_1px_3px_rgba(0,0,0,0.07)]"
-            >
-              <div className="flex items-start gap-3">
-                {/* Avatar */}
-                <Avatar name={seller.store_name} size="md" className="opacity-70" />
-
-                {/* Info */}
-                <div className="flex-1 min-w-0 space-y-1">
-                  <p className="font-bold text-gray-900 text-sm">{seller.store_name}</p>
-                  <div className="flex items-center gap-1 text-xs text-gray-400">
-                    <MapPin size={11} />
-                    <span>{seller.location}</span>
-                  </div>
-                  {seller.store_description && (
-                    <p className="text-xs text-gray-500 line-clamp-1">{seller.store_description}</p>
-                  )}
-                </div>
-
-                <Button 
-                  variant="secondary" 
-                  size="sm" 
-                  className="shrink-0 mt-0.5 gap-1"
-                  onClick={() => handleJoinSeller(seller.id)}
-                >
-                  <Plus size={12} />
-                  Join
-                </Button>
-              </div>
-            </div>
-          ))}
-        </section>
-      )}
-
-      {/* Empty state */}
-      {mySuppliers.length === 0 && otherSellers.length === 0 && (
-        <NoSuppliersEmptyState onActionClick={loadSellers} />
-      )}
-    </AppShell>
+        </Container>
+      </Section>
+    </DashboardLayout>
   );
 }

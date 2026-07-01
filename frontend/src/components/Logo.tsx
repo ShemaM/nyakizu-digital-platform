@@ -1,41 +1,46 @@
-import { Package } from "lucide-react";
-import { clsx } from "clsx";
+import { SVGProps } from "react";
 
-interface LogoProps {
+interface LogoProps extends SVGProps<SVGSVGElement> {
   size?: "sm" | "md" | "lg";
   inverted?: boolean;
-  className?: string;
 }
 
-export function Logo({ size = "md", inverted = false, className }: LogoProps) {
-  const dims = { sm: 30, md: 38, lg: 48 }[size];
-  const textName = { sm: "text-sm", md: "text-base", lg: "text-xl" }[size];
-  const textSub = { sm: "text-[9px]", md: "text-[10px]", lg: "text-xs" }[size];
+const sizeMap = {
+  sm: 32,
+  md: 40,
+  lg: 64,
+};
+
+export function Logo({ size = "md", inverted = false, ...props }: LogoProps) {
+  const dimension = sizeMap[size];
+  const textColor = inverted ? "#ffffff" : "#0a1f10";
+  const accentColor = "#C8860A";
 
   return (
-    <div className={clsx("flex items-center gap-2.5 select-none", className)}>
-      {/* Icon mark */}
-      <div
-        style={{ width: dims, height: dims }}
-        className={clsx(
-          "flex shrink-0 items-center justify-center rounded-lg shadow-sm ring-1",
-          inverted
-            ? "bg-[#C8860A] text-[#0a1f10] ring-[#C8860A]/30"
-            : "bg-[#0a1f10] text-[#C8860A] ring-[#C8860A]/20"
-        )}
-      >
-        <Package size={Math.round(dims * 0.54)} strokeWidth={2.4} />
-      </div>
-
-      {/* Word mark */}
-      <div className="leading-none">
-        <p className={clsx(textName, "font-extrabold leading-none", inverted ? "text-[#0a1f10]" : "text-[#C8860A]")}>
-          Nyakizu
-        </p>
-        <p className={clsx(textSub, "font-bold tracking-wide uppercase mt-0.5", inverted ? "text-[#0a1f10]/60" : "text-[#C8860A]/70")}>
-          Digital
-        </p>
-      </div>
-    </div>
+    <svg
+      width={dimension}
+      height={dimension}
+      viewBox="0 0 64 64"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      {/* Icon: Stylized "N" with ledger lines */}
+      <rect width="64" height="64" rx="12" fill={accentColor} fillOpacity="0.1" />
+      
+      {/* Vertical line - left */}
+      <rect x="16" y="14" width="3" height="36" fill={accentColor} />
+      
+      {/* Diagonal line */}
+      <line x1="22" y1="14" x2="42" y2="50" stroke={accentColor} strokeWidth="3" strokeLinecap="round" />
+      
+      {/* Vertical line - right */}
+      <rect x="45" y="14" width="3" height="36" fill={accentColor} />
+      
+      {/* Horizontal ledger lines */}
+      <line x1="14" y1="24" x2="50" y2="24" stroke={accentColor} strokeWidth="1.5" opacity="0.5" />
+      <line x1="14" y1="32" x2="50" y2="32" stroke={accentColor} strokeWidth="1.5" opacity="0.5" />
+      <line x1="14" y1="40" x2="50" y2="40" stroke={accentColor} strokeWidth="1.5" opacity="0.5" />
+    </svg>
   );
 }

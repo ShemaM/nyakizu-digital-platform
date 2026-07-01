@@ -1,94 +1,69 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { auth as authApi, type User } from "./api";
+import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { auth } from "@/lib/api";
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: "buyer" | "seller" | "admin";
+}
 
-type Role = "buyer" | "seller" | "admin";
-
-const ROLE_HOME: Record<Role, string> = {
-  buyer:  "/buyer/suppliers",
-  seller: "/seller/dashboard",
-  admin:  "/admin/verify",
-};
-
-interface AuthContextValue {
+interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  role: Role | null;
-  login: (identifier: string, password: string) => Promise<void>;
+  refetch: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextValue>({
-  user: null,
-  isLoading: true,
-  isAuthenticated: false,
-  role: null,
-  login: async () => {},
-  logout: async () => {},
-});
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setLoading] = useState(true);
-  const [isInitializing, setIsInitializing] = useState(true);
-  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Check active session on mount.
-  // isInitializing prevents UI from using a fallback role during the first render.
-  useEffect(() => {
-    setIsInitializing(true);
-    authApi
-      .me()
-      .then(setUser)
-      .catch(() => setUser(null))
-      .finally(() => {
-        setLoading(false);
-        setIsInitializing(false);
-      });
+  const refetch = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const token = auth.getToken();
+      if (!token) {
+        setUser(null);
+        return;
+      }
+
+      // In a real app, you'd fetch user data from an API
+      // For now, we'll simulate with localStorage
+      const userData = localStorage.getItem("user_data");
+      if (userData) {
+        setUser(JSON.parse(userData));
+      }
+    } catch (error) {
+      console.error("Failed to refetch user:", error);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-
-  async function login(identifier: string, password: string) {
-    const { user } = await authApi.login(identifier, password);
-    setUser(user);
-    router.push(ROLE_HOME[user.role as Role] ?? "/");
-  }
-
-  async function logout() {
-    await authApi.logout().catch(() => {});
+  const logout = useCallback(async () => {
+    await auth.logout();
     setUser(null);
-    router.push("/login");
-  }
+    localStorage.removeItem("user_data");
+  }, []);
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading: isLoading || isInitializing,
-        isAuthenticated: !!user,
-        role: user?.role as Role | null ?? null,
-        login,
-        logout,
-        // isInitializing intentionally not exposed yet; consumers should rely on isLoading
-      } as AuthContextValue}
-    >
+    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, refetch, logout }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-
 export function useAuth() {
-  return useContext(AuthContext);
-}
-
-/** Backwards-compat alias used by BottomNav and other components. */
-export function useRole() {
-  const { role } = useAuth();
-  return { role: role ?? "buyer" };
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within AuthProvider");
+  }
+  return context;
 }

@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { Logo } from "@/components/Logo";
+import type { Metadata } from "next";
 
-// ─── Counter ───────────────────────────────────────────────────────────────────
+// ─── Counter ──────────────────────────────────────────────────────────
 function useCounter(target: number, duration = 1400) {
   const [val, setVal] = useState(0);
   const started = useRef(false);
@@ -30,7 +31,7 @@ function useCounter(target: number, duration = 1400) {
   return { val, ref };
 }
 
-// ─── Header ────────────────────────────────────────────────────────────────────
+// ─── Header ──────────────────────────────────────────────────────────
 function Header() {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
@@ -62,7 +63,7 @@ function Header() {
   );
 }
 
-// ─── Bento hero visual ────────────────────────────────────────────────────────
+// ─── Bento hero visual ───────────────────────────────────────────────────────
 function BentoPreview() {
   return (
     <div style={{ width: "100%", maxWidth: 420, margin: "0 auto" }}>
@@ -163,7 +164,7 @@ function BentoPreview() {
   );
 }
 
-// ─── Page ──────────────────────────────────────────────────────────────────────
+// ─── Page ───────────────────────────────────────────────────────────
 export default function HomePage() {
   const c1 = useCounter(9360);
   const c2 = useCounter(1000);
@@ -174,7 +175,7 @@ export default function HomePage() {
 
       {/* ══ SECTION 1 — HERO ════════════════════════════════════════════════════
           Background: deep forest green with dot grid
-      ═══════════════════════════════════════════════════════════════════════════*/}
+       ═══════════════════════════════════════════════════════════════ */}
       <div style={{
         background: "#0a1f10",
         backgroundImage: "radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px)",
@@ -191,7 +192,7 @@ export default function HomePage() {
                 padding: "6px 14px", borderRadius: 100, marginBottom: 28,
                 background: "rgba(200,134,10,0.08)", border: "1px solid rgba(200,134,10,0.22)",
               }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#C8860A", display: "inline-block", animation: "pulse 2s infinite" }} />
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#C8860A", display: "inline-block", animation: "pulse 2s infinite" }} aria-hidden="true" />
                 <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#C8860A" }}>
                   Banyamulenge · RNG Plaza · Nairobi
                 </span>
@@ -202,7 +203,7 @@ export default function HomePage() {
                 tayari{" "}
                 <span style={{ position: "relative", display: "inline-block" }}>
                   inafanya kazi
-                  <span style={{ position: "absolute", bottom: 2, left: 0, right: 0, height: 3, background: "#C8860A", borderRadius: 3 }} />
+                  <span style={{ position: "absolute", bottom: 2, left: 0, right: 0, height: 3, background: "#C8860A", borderRadius: 3 }} aria-hidden="true" />
                 </span>.<br />
                 <span style={{ fontSize: "52%", fontWeight: 400, color: "#4a6356" }}>
                   Nyakizu inaisaidia ifanye kazi vizuri.
@@ -222,7 +223,7 @@ export default function HomePage() {
                   background: "rgba(200,134,10,0.1)", border: "1px solid rgba(200,134,10,0.38)", color: "#C8860A",
                 }}>
                   <span style={{ fontSize: 9, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em", opacity: 0.6 }}>Mnunuzi</span>
-                  Find my suppliers →
+                  Find my suppliers <span aria-hidden="true">→</span>
                 </Link>
                 <Link href="/seller/dashboard" style={{
                   display: "flex", alignItems: "center", gap: 10,
@@ -230,7 +231,7 @@ export default function HomePage() {
                   background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", color: "#cbd5e1",
                 }}>
                   <span style={{ fontSize: 9, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em", opacity: 0.4 }}>Muuzaji</span>
-                  Manage my store →
+                  Manage my store <span aria-hidden="true">→</span>
                 </Link>
               </div>
 
@@ -248,7 +249,7 @@ export default function HomePage() {
 
       {/* ══ SECTION 2 — STATS ═══════════════════════════════════════════════════
           Background: near-black — creates strong depth break from hero
-      ═══════════════════════════════════════════════════════════════════════════*/}
+       ═══════════════════════════════════════════════════════════════ */}
       <div style={{
         background: "#060f07",
         borderTop: "1px solid rgba(200,134,10,0.15)",
@@ -272,7 +273,7 @@ export default function HomePage() {
 
       {/* ══ SECTION 3 — PROBLEM ═════════════════════════════════════════════════
           Background: dark green, slightly lighter — warm texture feel
-      ═══════════════════════════════════════════════════════════════════════════*/}
+       ═══════════════════════════════════════════════════════════════ */}
       <div style={{
         background: "#0c1f0e",
         backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 20px)",
@@ -284,9 +285,9 @@ export default function HomePage() {
           </h2>
           <p style={{ fontSize: 16, lineHeight: 1.75, color: "#4a6356", margin: "0 0 48px", maxWidth: 640 }}>
             Banyamulenge traders have built an extraordinary network at RNG Plaza.
-            The problem has never been trust — it&apos;s been the tools.
+            The problem has never been trust — it's been the tools.
             WhatsApp threads scroll away. Notebooks get rained on.
-            M-Pesa codes live in someone&apos;s head.
+            M-Pesa codes live in someone's head.
           </p>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
@@ -304,7 +305,7 @@ export default function HomePage() {
                 "No signal in the market? No order possible.",
               ].map((t) => (
                 <div key={t} style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 16 }}>
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, marginTop: 3 }}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, marginTop: 3 }} aria-hidden="true">
                     <path d="M3 3l8 8M11 3L3 11" stroke="#f87171" strokeWidth="2" strokeLinecap="round"/>
                   </svg>
                   <span style={{ fontSize: 14, color: "#64748b", lineHeight: 1.55 }}>{t}</span>
@@ -327,7 +328,7 @@ export default function HomePage() {
                 "Offline drafts save locally, sync when connected",
               ].map((t) => (
                 <div key={t} style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 16, position: "relative" }}>
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, marginTop: 3 }}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, marginTop: 3 }} aria-hidden="true">
                     <path d="M2 7.5l3.5 3.5 6.5-7" stroke="#4ade80" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                   <span style={{ fontSize: 14, color: "#cbd5e1", lineHeight: 1.55, fontWeight: 500 }}>{t}</span>
@@ -340,7 +341,7 @@ export default function HomePage() {
 
       {/* ══ SECTION 4 — HOW IT WORKS ════════════════════════════════════════════
           Background: near-black, darkest section — drama
-      ═══════════════════════════════════════════════════════════════════════════*/}
+       ═══════════════════════════════════════════════════════════════ */}
       <div style={{
         background: "#050e06",
         borderTop: "1px solid rgba(255,255,255,0.05)",
@@ -382,7 +383,7 @@ export default function HomePage() {
 
       {/* ══ SECTION 5 — TRUST PILLARS ═══════════════════════════════════════════
           Background: amber-tinted dark — warmth, safety
-      ═══════════════════════════════════════════════════════════════════════════*/}
+       ═══════════════════════════════════════════════════════════════ */}
       <div style={{
         background: "linear-gradient(180deg, #0d1c09 0%, #0a1810 100%)",
         borderBottom: "1px solid rgba(200,134,10,0.12)",
@@ -406,7 +407,7 @@ export default function HomePage() {
 
       {/* ══ SECTION 6 — FOR WHO ═════════════════════════════════════════════════
           Background: slightly lighter green — back to warmth
-      ═══════════════════════════════════════════════════════════════════════════*/}
+       ═══════════════════════════════════════════════════════════════ */}
       <div style={{ background: "#0a1f10" }}>
         <div style={{ maxWidth: 1120, margin: "0 auto", padding: "80px 24px" }}>
           <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", color: "#C8860A", margin: "0 0 12px" }}>Who is it for</p>
@@ -415,8 +416,8 @@ export default function HomePage() {
           </h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
             {[
-              { sw: "Mnunuzi", role: "Hawker / Reseller",  desc: "Order from your trusted suppliers without the phone tag. Track what you owe, download receipts, work offline.", href: "/register?role=buyer",  cta: "Register as buyer",  accent: "#C8860A" },
-              { sw: "Muuzaji", role: "Wholesaler",          desc: "Manage your catalogue, approve trusted buyers, lock orders, record payments, and keep an immutable ledger.",  href: "/register?role=seller", cta: "Register as seller", accent: "#4ade80" },
+              { sw: "Mnunuzi", role: "Hawker / Reseller",  desc: "Order from your trusted suppliers without the phone tag. Track what you owe, download receipts, work offline.", href: "/register?r=buyer", accent: "#4ade80", cta: "Start buying" },
+              { sw: "Muuzaji", role: "Wholesaler",          desc: "Manage your catalogue, approve trusted buyers, lock orders, record payments, and keep an immutable ledger.",  href: "/register?r=seller", accent: "#fbbf24", cta: "Start selling" },
             ].map((r) => (
               <div key={r.role} style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "28px 28px", display: "flex", flexDirection: "column" }}>
                 <div style={{
@@ -440,7 +441,7 @@ export default function HomePage() {
 
       {/* ══ SECTION 7 — CTA ═════════════════════════════════════════════════════
           Background: rich gradient — the emotional peak, most alive section
-      ═══════════════════════════════════════════════════════════════════════════*/}
+       ═══════════════════════════════════════════════════════════════ */}
       <div style={{
         background: "linear-gradient(160deg, #0f3318 0%, #061508 60%, #0a1f10 100%)",
         borderTop: "1px solid rgba(200,134,10,0.18)",
@@ -471,21 +472,6 @@ export default function HomePage() {
                 color: "#64748b", textDecoration: "none",
               }}>Sign in</Link>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ══ FOOTER ══════════════════════════════════════════════════════════════*/}
-      <div style={{ background: "#060f07", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-        <div style={{ maxWidth: 1120, margin: "0 auto", padding: "28px 24px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-          <div>
-            <Logo inverted />
-            <p style={{ fontSize: 12, color: "#1e3a2a", margin: "6px 0 0" }}>Digitising trusted community trade · Nairobi, Kenya</p>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 20, fontSize: 13 }}>
-            <Link href="/register" style={{ color: "#334155", textDecoration: "none" }}>Register</Link>
-            <Link href="/login" style={{ color: "#334155", textDecoration: "none" }}>Sign in</Link>
-            <span style={{ color: "#1e3a2a" }}>© 2026 Nyakizu</span>
           </div>
         </div>
       </div>

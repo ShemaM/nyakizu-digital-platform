@@ -20,19 +20,19 @@ export function Logo({ size = "md", inverted = false, className }: LogoProps) {
         className={clsx(
           "flex shrink-0 items-center justify-center rounded-lg shadow-sm ring-1",
           inverted
-            ? "bg-white text-blue-700 ring-white/20"
-            : "bg-slate-950 text-white ring-slate-900/10"
+            ? "bg-[#C8860A] text-[#0a1f10] ring-[#C8860A]/30"
+            : "bg-[#0a1f10] text-[#C8860A] ring-[#C8860A]/20"
         )}
       >
-        <Package size={dims * 0.54} strokeWidth={2.4} />
+        <Package size={Math.round(dims * 0.54)} strokeWidth={2.4} />
       </div>
 
       {/* Word mark */}
       <div className="leading-none">
-        <p className={clsx(textName, "font-extrabold leading-none", inverted ? "text-white" : "text-gray-900")}>
+        <p className={clsx(textName, "font-extrabold leading-none", inverted ? "text-[#0a1f10]" : "text-[#C8860A]")}>
           Nyakizu
         </p>
-        <p className={clsx(textSub, "font-bold tracking-wide uppercase mt-0.5", inverted ? "text-slate-400" : "text-blue-600")}>
+        <p className={clsx(textSub, "font-bold tracking-wide uppercase mt-0.5", inverted ? "text-[#0a1f10]/60" : "text-[#C8860A]/70")}>
           Digital
         </p>
       </div>

@@ -1,18 +1,21 @@
 import type { NextConfig } from "next";
-
 const nextConfig: NextConfig = {
-  reactCompiler: true,
-
-  // Allow the service worker to control the full origin
+  reactStrictMode: true,
+  reactCompiler: false, // temporarily disabled — Turbopack dev mode + React Compiler
+  // is a known trigger for "module factory is not available" errors (vercel/next.js
+  // issues #74167, #84264, #90153). Re-enable once upstream fixes this, or scope it
+  // to production only if you still want the compiler's optimizations there.
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
+  },
   async headers() {
     return [
       {
         source: "/sw.js",
         headers: [
           {
-            // SW must not be cached aggressively — always revalidate
             key: "Cache-Control",
-            value: "public, max-age=0, must-revalidate",
+            value: "public, max-age=0,must-revalidate",
           },
           {
             key: "Service-Worker-Allowed",
@@ -33,12 +36,11 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Cache-Control",
-            value: "public, max-age=0, must-revalidate",
+            value: "public, max-age=0,must-revalidate",
           },
         ],
       },
     ];
   },
 };
-
 export default nextConfig;

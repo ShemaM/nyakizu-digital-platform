@@ -132,6 +132,31 @@ class SellerProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "approval_status", "is_live", "created_at")
 
 
+class BuyerRelationshipViewSerializer(serializers.ModelSerializer):
+    """Serializer for a buyer viewing their relationships with sellers."""
+    seller_id = serializers.IntegerField(source='seller.id', read_only=True)
+    store_name = serializers.CharField(source='seller.store_name', read_only=True)
+    store_location = serializers.CharField(source='seller.location', read_only=True)
+
+    class Meta:
+        model = BuyerSellerRelationship
+        fields = ('id', 'status', 'requested_at', 'seller_id', 'store_name', 'store_location')
+
+
+class SellerRelationshipViewSerializer(serializers.ModelSerializer):
+    """Serializer for a seller viewing their relationships with buyers."""
+    buyer_id = serializers.IntegerField(source='buyer.id', read_only=True)
+    buyer_name = serializers.SerializerMethodField()
+    buyer_phone = serializers.CharField(source='buyer.phone_number', read_only=True)
+
+    class Meta:
+        model = BuyerSellerRelationship
+        fields = ('id', 'status', 'requested_at', 'buyer_id', 'buyer_name', 'buyer_phone')
+
+    def get_buyer_name(self, obj):
+        return obj.buyer.get_full_name() or obj.buyer.username
+
+
 class BuyerSellerRelationshipSerializer(serializers.ModelSerializer):
     buyer_name  = serializers.SerializerMethodField()
     store_name  = serializers.SerializerMethodField()

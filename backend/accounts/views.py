@@ -13,6 +13,8 @@ from .serializers import (
     UserSerializer,
     BuyerProfileSerializer,
     SellerProfileSerializer,
+    BuyerRelationshipViewSerializer,
+    SellerRelationshipViewSerializer,
 )
 
 
@@ -40,7 +42,7 @@ class RegisterView(APIView):
             try:
                 verify_url = (
                     f"{getattr(settings, 'FRONTEND_VERIFY_BASE_URL', 'http://localhost:3000')}/"
-                    f"api/accounts/verify-email/?token={token}"
+                    f"verify-email/?token={token}"
                 )
 
                 subject = "Verify your email for Nyakizu Digital Market"
@@ -126,7 +128,13 @@ class LoginView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        login(request, user_obj)
+        # Multiple AUTHENTICATION_BACKENDS are configured (ModelBackend + allauth's
+        # AuthenticationBackend), so Django can't infer which one authenticated this
+        # user when we log them in manually via check_password() rather than
+        # django.contrib.auth.authenticate(). Pin it explicitly to ModelBackend,
+        # which is the backend whose logic (check_password against CustomUser) we
+        # just replicated above.
+        login(request, user_obj, backend='django.contrib.auth.backends.ModelBackend')
         return Response(UserSerializer(user_obj).data)
 
 
@@ -143,6 +151,23 @@ class CurrentUserView(APIView):
 
     def get(self, request):
         return Response(UserSerializer(request.user).data)
+
+
+class UserListView(APIView):
+    """
+    GET /api/accounts/users/
+    Admin only. Lists all users with optional role filter.
+    Query params: ?role=buyer|seller|admin
+    """
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        users = CustomUser.objects.all().order_by("-date_joined")
+        role = request.query_params.get("role")
+        if role:
+            users = users.filter(role=role)
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data)
 
 
 # ── Seller store views ────────────────────────────────────────────────────────
@@ -182,6 +207,20 @@ class SellerProfileDetailView(generics.RetrieveUpdateAPIView):
 
         # Store edits are private to the store owner. Admins are handled above.
         return SellerProfile.objects.filter(user=user)
+
+
+class PendingSellerListView(generics.ListAPIView):
+    """
+    GET /api/accounts/sellers/pending/
+    Admin only. Lists sellers awaiting or that have been reviewed.
+    """
+    serializer_class = SellerProfileSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    def get_queryset(self):
+        return SellerProfile.objects.filter(
+            approval_status__in=["pending", "rejected"]
+        ).order_by("-created_at")
 
 
 class ApproveSellerView(APIView):
@@ -232,6 +271,37 @@ class BuyerProfileDetailView(generics.RetrieveUpdateAPIView):
 
 # ── Buyer ↔ Seller relationship ───────────────────────────────────────────────
 
+class BuyerSellerRelationshipListView(APIView):
+    """
+    GET /api/accounts/relationships/
+    Buyers: see their seller relationships.
+    Sellers: see buyer relationships to their store.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        if user.role == "buyer":
+            rels = BuyerSellerRelationship.objects.filter(
+                buyer=user
+            ).select_related("seller", "seller__user").order_by("-requested_at")
+            serializer = BuyerRelationshipViewSerializer(rels, many=True)
+        elif user.role == "seller":
+            try:
+                store = user.seller_profile
+            except SellerProfile.DoesNotExist:
+                return Response({"relationships": []})
+            rels = BuyerSellerRelationship.objects.filter(
+                seller=store
+            ).select_related("buyer").order_by("-requested_at")
+            serializer = SellerRelationshipViewSerializer(rels, many=True)
+        else:
+            return Response({"relationships": []})
+
+        return Response({"relationships": serializer.data})
+
+
 class RequestStoreAccessView(APIView):
     """
     POST /api/accounts/sellers/<id>/request-access/
@@ -257,7 +327,7 @@ class RequestStoreAccessView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        created = BuyerSellerRelationship.objects.get_or_create(
+        rel, created = BuyerSellerRelationship.objects.get_or_create(
             buyer=request.user,
             seller=seller,
         )
@@ -299,3 +369,4 @@ class ResolveBuyerAccessView(APIView):
 
         rel.deny(note=request.data.get("note", ""))
         return Response({"message": "Buyer denied."})
+    

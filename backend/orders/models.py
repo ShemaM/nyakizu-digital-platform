@@ -18,15 +18,18 @@ class Order(models.Model):
     """
     A purchase order placed by a buyer.
 
-    One order can contain items from multiple sellers.
+    One order contains items from a single seller (per-merchant orders).
+    The seller can adjust the final price after reviewing, then lock it.
+    Payments are tracked incrementally until the order is cleared.
     """
 
     STATUS_CHOICES = [
-        ('pending', 'Pending'),         # order created, payment not confirmed
-        ('confirmed', 'Confirmed'),     # payment confirmed
-        ('shipped', 'Shipped'),         # seller has dispatched the order
-        ('delivered', 'Delivered'),     # buyer received the order
-        ('cancelled', 'Cancelled'),     # order was cancelled
+        ('submitted',   'Submitted'),      # buyer placed order, awaiting seller review
+        ('sourcing',    'Sourcing'),        # seller is gathering/packing items
+        ('locked',      'Locked'),          # price is final, awaiting payment
+        ('debt_active', 'Debt Active'),     # partial payment, balance owed
+        ('cleared',     'Cleared'),         # fully paid
+        ('cancelled',   'Cancelled'),       # order cancelled
     ]
 
     buyer = models.ForeignKey(
@@ -35,16 +38,45 @@ class Order(models.Model):
         related_name='orders',
     )
 
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    # Seller inferred from products, stored for quick filtering
+    seller = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='seller_orders',
+        null=True, blank=True,
+    )
 
-    # Total price is stored so it doesn't change if product prices change later
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='submitted')
+
+    # Initial estimate at time of order
     total_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    # Final locked price (seller may adjust after sourcing)
+    final_total = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+
+    # Payment tracking
+    amount_paid = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    payment_reference = models.CharField(max_length=100, blank=True, help_text="M-Pesa txn code or other ref")
+    payment_method = models.CharField(
+        max_length=20,
+        choices=[
+            ('', '—'),
+            ('mpesa', 'M-Pesa'),
+            ('cash', 'Cash'),
+            ('bank_transfer', 'Bank Transfer'),
+        ],
+        default='',
+        blank=True,
+    )
 
     # Delivery address — stored as a simple string for this version
     delivery_address = models.TextField(blank=True)
 
     # Notes from the buyer (e.g. "call me before delivery")
     buyer_notes = models.TextField(blank=True)
+
+    # Notes from seller (e.g. "had to source from another supplier")
+    sourcing_notes = models.TextField(blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -57,6 +89,16 @@ class Order(models.Model):
         total = sum(item.subtotal() for item in self.items.all())
         self.total_price = total
         self.save()
+
+    @property
+    def balance(self):
+        """Amount still owed."""
+        total = self.final_total if self.final_total is not None else self.total_price
+        return max(total - self.amount_paid, 0)
+
+    @property
+    def is_fully_paid(self):
+        return self.balance <= 0
 
     class Meta:
         ordering = ['-created_at']   # newest orders first

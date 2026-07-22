@@ -39,15 +39,18 @@ class OrderSerializer(serializers.ModelSerializer):
 
     items = OrderItemSerializer(many=True, read_only=True)
     buyer_username = serializers.CharField(source='buyer.username', read_only=True)
+    balance = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
 
     class Meta:
         model = Order
         fields = (
-            'id', 'buyer', 'buyer_username', 'status',
-            'total_price', 'delivery_address', 'buyer_notes',
+            'id', 'buyer', 'buyer_username', 'seller', 'status',
+            'total_price', 'final_total', 'amount_paid', 'balance',
+            'payment_reference', 'payment_method',
+            'delivery_address', 'buyer_notes', 'sourcing_notes',
             'items', 'created_at', 'updated_at',
         )
-        read_only_fields = ('id', 'buyer', 'total_price', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'buyer', 'seller', 'total_price', 'created_at', 'updated_at', 'balance')
 
 
 class OrderCreateSerializer(serializers.Serializer):
@@ -171,6 +174,12 @@ class OrderCreateSerializer(serializers.Serializer):
                 if product.stock_quantity == 0:
                     product.status = 'out_of_stock'
                 product.save(update_fields=['stock_quantity', 'status', 'updated_at'])
+
+            # Set seller from first item's product
+            first_item = OrderItem.objects.filter(order=order).first()
+            if first_item and first_item.product:
+                order.seller = first_item.product.seller
+                order.save(update_fields=['seller'])
 
             order.calculate_total()
         return order

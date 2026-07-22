@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { Plus, Minus, CloudOff } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Plus, Minus, CloudOff, RefreshCw, CheckCircle } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/Button";
@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/Badge";
 import { ListSkeleton } from "@/components/ui/LoadingState";
 import { NoDataEmptyState } from "@/components/ui/EmptyState";
 import { products, orders, type ApiProduct, ApiError, fmtKES, parsePrice } from "@/lib/api";
-
+import { offlineDB } from "@/lib/offline-db";
 
 interface LineItem {
   productId: number;
@@ -22,14 +22,17 @@ interface LineItem {
 
 export default function NewListPage() {
   const router = useRouter();
-  const params = useParams();
-  const sellerId = params.id ? parseInt(params.id as string) : undefined;
-  
-  const [productList, setProductList] = useState<ApiProduct[]>([]);
+  const searchParams = useSearchParams();
+  const sellerId = searchParams.get("id")
+    ? parseInt(searchParams.get("id")!)
+    : undefined;
 
+  const [productList, setProductList] = useState<ApiProduct[]>([]);
   const [items, setItems] = useState<LineItem[]>([]);
   const [sourcingNotes, setSourcingNotes] = useState("");
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== "undefined" ? navigator.onLine : true);
+  const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "done" | "failed">("idle");
+  const [pendingCount, setPendingCount] = useState(0);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,30 +59,66 @@ export default function NewListPage() {
     };
   }, []);
 
+  // Auto-sync when coming back online
+  const syncQueued = useCallback(async () => {
+    if (!isOnline) return;
+    const queued = await offlineDB.getQueuedOrders();
+    const pending = queued.filter((q) => q.status === "pending");
+    if (pending.length === 0) return;
+
+    setSyncStatus("syncing");
+    for (const order of pending) {
+      try {
+        await offlineDB.updateQueuedStatus(order.id, "syncing");
+        await orders.create({
+          items: order.items,
+          buyer_notes: order.buyer_notes,
+        });
+        await offlineDB.updateQueuedStatus(order.id, "synced");
+        await offlineDB.removeQueued(order.id);
+      } catch (err) {
+        console.error("Sync failed for order:", order.id, err);
+        await offlineDB.updateQueuedStatus(order.id, "failed", err instanceof ApiError ? err.message : "Sync failed");
+      }
+    }
+    setSyncStatus("done");
+    setTimeout(() => setSyncStatus("idle"), 3000);
+    updatePendingCount();
+  }, [isOnline]);
+
+  useEffect(() => {
+    if (isOnline) {
+      syncQueued();
+    }
+  }, [isOnline, syncQueued]);
+
+  const updatePendingCount = async () => {
+    const queued = await offlineDB.getQueuedOrders();
+    setPendingCount(queued.filter((q) => q.status === "pending" || q.status === "failed").length);
+  };
+
+  useEffect(() => {
+    updatePendingCount();
+  }, []);
+
   const loadProducts = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      
-      const allProducts = await products.list({ seller: sellerId });
 
+      const allProducts = await products.list({ seller: sellerId });
       const availableProducts = allProducts.filter(
         (p) => p.status !== "out_of_stock" && p.status !== "draft"
       );
-
       setProductList(availableProducts);
 
-      // Load draft after products are available
-      try {
-        const key = `order_draft_${sellerId}`;
-        const raw = localStorage.getItem(key);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed.items)) setItems(parsed.items as LineItem[]);
-          if (typeof parsed.sourcingNotes === "string") setSourcingNotes(parsed.sourcingNotes);
+      // Load draft from IndexedDB
+      if (sellerId) {
+        const draft = await offlineDB.getDraft(sellerId);
+        if (draft) {
+          if (Array.isArray(draft.items)) setItems(draft.items as LineItem[]);
+          if (typeof draft.buyer_notes === "string") setSourcingNotes(draft.buyer_notes);
         }
-      } catch (e) {
-        // ignore storage errors
       }
     } catch (err) {
       console.error("Failed to load products:", err);
@@ -115,9 +154,8 @@ export default function NewListPage() {
   async function handleConfirmSubmit() {
     try {
       setSubmitting(true);
-      
+
       const orderData = {
-        seller_id: sellerId as number,
         items: items.map((item) => ({
           product_id: item.productId,
           quantity: item.qty,
@@ -125,11 +163,25 @@ export default function NewListPage() {
         buyer_notes: sourcingNotes,
       };
 
-      
+      if (!isOnline) {
+        // Queue for sync when back online
+        await offlineDB.queueOrder({
+          sellerId: sellerId!,
+          items: orderData.items,
+          buyer_notes: orderData.buyer_notes,
+        });
+        await offlineDB.deleteDraft(sellerId!);
+        setConfirmOpen(false);
+        setItems([]);
+        setSourcingNotes("");
+        await updatePendingCount();
+        alert("You are offline. Your order has been saved and will be sent automatically when you reconnect.");
+        return;
+      }
+
       const order = await orders.create(orderData);
       setConfirmOpen(false);
-      // clear local draft on success
-      try { localStorage.removeItem(`order_draft_${sellerId}`); } catch (e) {}
+      await offlineDB.deleteDraft(sellerId!);
       router.push(`/buyer/orders/${order.id}`);
     } catch (err) {
       console.error("Failed to create order:", err);
@@ -148,16 +200,15 @@ export default function NewListPage() {
     return "not_available";
   }
 
-  // Persist drafts to localStorage
+  // Persist drafts to IndexedDB
   useEffect(() => {
-    try {
-      if (!sellerId) return;
-      const key = `order_draft_${sellerId}`;
-      const payload = JSON.stringify({ items, sourcingNotes, updatedAt: Date.now() });
-      localStorage.setItem(key, payload);
-    } catch (e) {
-      // ignore quota errors
-    }
+    if (!sellerId) return;
+    offlineDB.saveDraft(sellerId, {
+      sellerId,
+      items: items as any,
+      buyer_notes: sourcingNotes,
+      updatedAt: Date.now(),
+    }).catch(() => {});
   }, [items, sourcingNotes, sellerId]);
 
   if (isLoading) {
@@ -177,7 +228,6 @@ export default function NewListPage() {
   }
 
   if (productList.length === 0) {
-
     return (
       <AppShell title="New Order">
         <NoDataEmptyState />
@@ -197,17 +247,43 @@ export default function NewListPage() {
         </div>
       )}
 
+      {/* Sync status */}
+      {syncStatus === "syncing" && (
+        <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5">
+          <RefreshCw size={14} className="text-blue-500 shrink-0 animate-spin" />
+          <p className="text-xs text-blue-700">Syncing queued orders...</p>
+        </div>
+      )}
+      {syncStatus === "done" && (
+        <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2.5">
+          <CheckCircle size={14} className="text-green-500 shrink-0" />
+          <p className="text-xs text-green-700">Orders synced successfully!</p>
+        </div>
+      )}
+
+      {/* Pending orders count */}
+      {pendingCount > 0 && (
+        <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5">
+          <CloudOff size={14} className="text-slate-400 shrink-0" />
+          <p className="text-xs text-slate-300">
+            {pendingCount} order{pendingCount !== 1 ? "s" : ""} waiting to sync.
+          </p>
+          <Button variant="ghost" size="sm" className="ml-auto text-xs h-6 px-2" onClick={syncQueued} disabled={!isOnline}>
+            <RefreshCw size={12} className="mr-1" /> Sync now
+          </Button>
+        </div>
+      )}
+
       {/* Product list */}
       <section className="space-y-2">
         <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wide px-1">
           Products
         </h2>
         {productList.map((product) => {
-
           const qty = getQty(product.id);
           const isOos = product.status === "out_of_stock";
           const availability = getAvailabilityBadge(product);
-          
+
           return (
             <div
               key={product.id}
@@ -217,7 +293,7 @@ export default function NewListPage() {
                 <p className="text-sm font-semibold text-gray-900 leading-snug">{product.name}</p>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-sm font-bold text-gray-900">{fmtKES(product.price)}</span>
-                  <Badge status={availability} />
+                  <Badge variant={availability} />
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
@@ -277,22 +353,26 @@ export default function NewListPage() {
           <p className="text-xs text-blue-600">
             Note: the final price may change after the wholesaler checks everything.
           </p>
-          <Button 
-            className="w-full rounded-xl" 
-            size="lg" 
+          <Button
+            className="w-full rounded-xl"
+            size="lg"
             onClick={() => setConfirmOpen(true)}
             disabled={submitting}
           >
-            {submitting ? "Sending..." : "Send this order"}
+            {submitting ? "Sending..." : isOnline ? "Send this order" : "Queue order (offline)"}
           </Button>
         </div>
       )}
 
       <Dialog
         open={confirmOpen}
-        title="Send this order?"
-        message="Once you send it, you cannot change the list. The wholesaler will review it and confirm the final price."
-        confirmLabel={submitting ? "Sending…" : "Yes, send it"}
+        title={isOnline ? "Send this order?" : "Queue this order?"}
+        message={
+          isOnline
+            ? "Once you send it, you cannot change the list. The wholesaler will review it and confirm the final price."
+            : "You are offline. This order will be saved to your device and sent automatically when you reconnect."
+        }
+        confirmLabel={submitting ? "Sending…" : isOnline ? "Yes, send it" : "Yes, save it"}
         onConfirm={() => {
           if (!submitting) void handleConfirmSubmit();
         }}

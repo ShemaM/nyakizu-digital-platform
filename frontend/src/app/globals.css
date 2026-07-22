@@ -1,3 +1,4 @@
+@config "../../tailwind.config.ts";
 @import "tailwindcss";
 
 /* Dark mode application root */
@@ -28,13 +29,20 @@ select {
   @apply outline-none ring-2 ring-brand-gold ring-offset-2 ring-offset-dark-primary;
 }
 
-/* Smooth transitions for interactive elements */
-@layer components {
-  /* Button base styles */
-  .btn-base {
-    @apply relative inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
-  }
+/* Base composable classes must be registered as @utility so @apply can reference them */
+@utility btn-base {
+  @apply relative inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+}
 
+@utility card {
+  @apply rounded-xl bg-slate-900/50 border border-slate-800/50 shadow-sm backdrop-blur-sm;
+}
+
+@utility badge {
+  @apply inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold;
+}
+
+@layer components {
   .btn-primary {
     @apply btn-base bg-brand-gold text-dark-primary hover:bg-brand-gold-light active:scale-95 shadow-md hover:shadow-lg;
   }
@@ -49,11 +57,6 @@ select {
 
   .btn-ghost {
     @apply btn-base text-slate-200 hover:bg-slate-800/50 active:scale-95;
-  }
-
-  /* Card component */
-  .card {
-    @apply rounded-xl bg-slate-900/50 border border-slate-800/50 shadow-sm backdrop-blur-sm;
   }
 
   .card-lg {
@@ -105,10 +108,6 @@ select {
   }
 
   /* Badges */
-  .badge {
-    @apply inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold;
-  }
-
   .badge-primary {
     @apply badge bg-brand-gold/18 text-brand-gold;
   }

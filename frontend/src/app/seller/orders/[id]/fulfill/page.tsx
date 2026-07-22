@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { 
-  MapPin, Lock, MessageSquare, CheckCircle2, 
-  Clock, Package, ShieldCheck, AlertCircle 
+import {
+  MapPin, Lock, MessageSquare,
+  Clock, Package, ShieldCheck, AlertCircle
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardSection } from "@/components/ui/Card";
@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { PageSkeleton } from "@/components/ui/LoadingState";
-import { type ApiOrder, fmtKES, parsePrice } from "@/lib/api";
+import { orders, type ApiOrder, fmtKES, ApiError } from "@/lib/api";
 import { cn } from "@/lib/cn";
 
 // Timeline definition matching the concept note's immutable flow
@@ -23,9 +23,36 @@ const ORDER_STATES = [
   { id: "cleared", label: "Cleared", icon: ShieldCheck },
 ];
 
+function getStatusVariant(status: string): "default" | "success" | "warning" | "error" | "info" | "outline" {
+  const map: Record<string, "default" | "success" | "warning" | "error" | "info" | "outline"> = {
+    submitted:   "warning",
+    sourcing:    "info",
+    locked:      "default",
+    debt_active: "error",
+    cleared:     "success",
+    cancelled:   "error",
+    pending:     "warning",
+  };
+  return map[status] || "default";
+}
+
+function getStatusLabel(status: string): string {
+  const map: Record<string, string> = {
+    submitted:   "New",
+    sourcing:    "Sourcing",
+    locked:      "Locked",
+    debt_active: "Debt",
+    cleared:     "Cleared",
+    cancelled:   "Cancelled",
+    pending:     "Pending",
+  };
+  return map[status] || status;
+}
+
 export default function FulfillOrderPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const orderId = parseInt(id);
 
   const [order, setOrder] = useState<ApiOrder | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,47 +66,45 @@ export default function FulfillOrderPage() {
 
   // ── Data Fetching ────────────────────────────────────────────────────────
   useEffect(() => {
-    async function loadOrder() {
-      try {
-        setIsLoading(true);
-        const res = await fetch(`/api/orders/${id}/`);
-        if (!res.ok) throw new Error("Order not found or access denied.");
-        const data = await res.json();
-        setOrder(data);
-        setFinalTotal(data.total_price?.toString() || "0");
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
-      }
+    if (isNaN(orderId)) {
+      setError("Invalid order ID");
+      setIsLoading(false);
+      return;
     }
     loadOrder();
-  }, [id]);
+  }, [orderId]);
+
+  const loadOrder = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await orders.get(orderId);
+      setOrder(data);
+      setFinalTotal(data.total_price?.toString() || "0");
+    } catch (err) {
+      console.error("Failed to load order:", err);
+      setError(err instanceof ApiError ? err.message : "Order not found or access denied.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // ── State Transitions ────────────────────────────────────────────────────
   const updateOrderStatus = async (newStatus: string, updatedTotal?: string) => {
     setIsSaving(true);
     try {
-      const payload: any = { status: newStatus };
+      const payload: { status: string; total_price?: string } = { status: newStatus };
       if (updatedTotal) payload.total_price = updatedTotal;
 
-      const res = await fetch(`/api/orders/${id}/`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) throw new Error("Failed to update order");
-      
-      const updatedOrder = await res.json();
+      const updatedOrder = await orders.update(orderId, payload);
       setOrder(updatedOrder);
-      
+
       if (newStatus === "cancelled") {
         router.push("/seller/orders");
       }
     } catch (err) {
       console.error("Update error:", err);
-      alert("Failed to update the order. Please try again.");
+      alert(err instanceof ApiError ? err.message : "Failed to update the order. Please try again.");
     } finally {
       setIsSaving(false);
       setConfirmLock(false);
@@ -115,24 +140,24 @@ export default function FulfillOrderPage() {
   }
 
   const isLocked = ["locked", "debt_active", "cleared"].includes(order.status);
-  const currentStepIndex = ORDER_STATES.findIndex(s => 
+  const currentStepIndex = ORDER_STATES.findIndex(s =>
     s.id === order.status || (order.status === "debt_active" && s.id === "locked")
   );
 
   return (
     <AppShell title={`Order #${order.id.toString().slice(0, 6)}`}>
-      
-      {/* ── State Machine Timeline (Creative Layout) ────────────────────── */}
+
+      {/* ── State Machine Timeline ──────────────────────────────────────── */}
       <div className="bg-[#0a1f10] rounded-2xl p-5 mb-4 shadow-lg animate-fade-in-up relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay"></div>
         <div className="relative z-10">
           <p className="text-amber-500 text-[10px] font-black uppercase tracking-widest mb-4">Fulfillment Status</p>
-          
+
           <div className="flex items-center justify-between relative">
             {/* Timeline Background Line */}
             <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-800 -translate-y-1/2 z-0" />
             {/* Active Timeline Line */}
-            <div 
+            <div
               className="absolute top-1/2 left-0 h-0.5 bg-amber-500 -translate-y-1/2 z-0 transition-all duration-500"
               style={{ width: currentStepIndex >= 0 ? `${(currentStepIndex / (ORDER_STATES.length - 1)) * 100}%` : "0%" }}
             />
@@ -178,7 +203,10 @@ export default function FulfillOrderPage() {
             Ordered {new Date(order.created_at).toLocaleDateString()}
           </p>
         </div>
-        <div className="flex flex-col items-end gap-1.5">          <Badge status={order.status as any} />
+        <div className="flex flex-col items-end gap-1.5">
+          <Badge variant={getStatusVariant(order.status)}>
+            {getStatusLabel(order.status)}
+          </Badge>
           {!isLocked && order.status !== "cancelled" && (
             <button
               onClick={() => setConfirmCancel(true)}
@@ -196,11 +224,10 @@ export default function FulfillOrderPage() {
           <Package size={12} /> Items Ordered
         </p>
         <div className="space-y-4">
-          {order.items?.map((item: any, i: number) => (
+          {order.items?.map((item, i) => (
             <div key={i} className="flex justify-between items-start gap-3">
               <div className="flex-1 min-w-0">
                 <span className="text-sm font-bold text-[#0a1f10] leading-snug">{item.product_name || `Product #${item.product_id}`}</span>
-                {/* Simulated sourcing flag if applicable to your API */}
                 {item.is_sourcing && (
                   <span className="ml-2 text-[9px] font-black bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md uppercase tracking-wider">
                     Sourcing Req
@@ -278,18 +305,18 @@ export default function FulfillOrderPage() {
       {/* ── Action Buttons ────────────────────────────────────────────────── */}
       <div className="space-y-2 py-4">
         {order.status === "submitted" && (
-          <Button 
-            className="w-full rounded-xl bg-amber-500 hover:bg-amber-400 text-[#0a1f10] font-black text-sm py-4 border-none shadow-lg shadow-amber-500/20" 
-            loading={isSaving} 
+          <Button
+            className="w-full rounded-xl bg-amber-500 hover:bg-amber-400 text-[#0a1f10] font-black text-sm py-4 border-none shadow-lg shadow-amber-500/20"
+            loading={isSaving}
             onClick={handleStartSourcing}
           >
             Start Packing & Sourcing
           </Button>
         )}
-        
+
         {order.status === "sourcing" && (
-          <Button 
-            className="w-full rounded-xl bg-[#0a1f10] hover:bg-gray-900 text-white font-black text-sm py-4 border-none shadow-lg" 
+          <Button
+            className="w-full rounded-xl bg-[#0a1f10] hover:bg-gray-900 text-white font-black text-sm py-4 border-none shadow-lg"
             onClick={() => setConfirmLock(true)}
           >
             Lock Price & Alert Buyer

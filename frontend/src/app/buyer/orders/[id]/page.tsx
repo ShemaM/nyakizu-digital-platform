@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Lock, MessageSquare, Printer, Clock, RefreshCw } from "lucide-react";
+import { Lock, MessageSquare, Printer, Clock } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardSection } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -11,32 +11,56 @@ import { CardSkeleton } from "@/components/ui/LoadingState";
 import { NoDataEmptyState } from "@/components/ui/EmptyState";
 import { orders, type ApiOrder, ApiError, fmtKES, parsePrice } from "@/lib/api";
 
+function getStatusVariant(status: string): "default" | "success" | "warning" | "error" | "info" | "outline" {
+  const map: Record<string, "default" | "success" | "warning" | "error" | "info" | "outline"> = {
+    submitted:   "warning",
+    sourcing:    "info",
+    locked:      "default",
+    debt_active: "error",
+    cleared:     "success",
+    cancelled:   "error",
+    pending:     "warning",
+    draft:       "outline",
+  };
+  return map[status] || "default";
+}
+
+function getStatusLabel(status: string): string {
+  const map: Record<string, string> = {
+    submitted:   "New",
+    sourcing:    "Sourcing",
+    locked:      "Locked",
+    debt_active: "Debt",
+    cleared:     "Cleared",
+    cancelled:   "Cancelled",
+    pending:     "Pending",
+    draft:       "Draft",
+  };
+  return map[status] || status;
+}
+
 export default function SubmittedOrderPage() {
   const { id } = useParams<{ id: string }>();
+  const orderId = parseInt(id);
   const [order, setOrder] = useState<ApiOrder | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (id) {
+    if (!isNaN(orderId)) {
       loadOrder();
     }
-  }, [id]);
+  }, [orderId]);
 
   const loadOrder = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      
-      const orderData = await orders.get(parseInt(id));
+      const orderData = await orders.get(orderId);
       setOrder(orderData);
     } catch (err) {
       console.error("Failed to load order:", err);
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError("Failed to load order. Please try again.");
-      }
+      setError(err instanceof ApiError ? err.message : "Failed to load order. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -51,10 +75,7 @@ export default function SubmittedOrderPage() {
 
   const calculateBalance = () => {
     if (!order) return 0;
-    const total = parsePrice(order.total_price);
-    // In a real implementation, you'd sum up the payment records
-    // For now, return the total as the balance
-    return total;
+    return parsePrice(order.total_price);
   };
 
   const balance = calculateBalance();
@@ -75,26 +96,9 @@ export default function SubmittedOrderPage() {
     );
   }
 
-  // Map API status to badge status (must match Badge's AnyStatus union)
-  const getStatusBadge = (status: string): Parameters<typeof Badge>[0]["status"] => {
-    const statusMap: Partial<Record<string, Parameters<typeof Badge>[0]["status"]>> = {
-      submitted: "submitted",
-      sourcing: "sourcing",
-      locked: "locked",
-      debt_active: "debt_active",
-      cleared: "cleared",
-      cancelled: "cancelled",
-      draft: "draft",
-      // Note: "pending" is also in AnyStatus, so it is safe default
-      pending: "pending",
-    };
-
-    return statusMap[status] ?? "pending";
-  };
-
   return (
     <AppShell
-      title={`Order — ${order.buyer_username}`}
+      title={`Order — ${order.buyer_username || "#" + order.id}`}
       headerRight={
         <Link href={`/receipt/${order.id}`} target="_blank">
           <button className="flex items-center gap-1.5 text-xs font-semibold text-white/90 hover:text-white cursor-pointer">
@@ -114,7 +118,9 @@ export default function SubmittedOrderPage() {
       {/* Order summary */}
       <Card>
         <div className="flex items-start justify-between">
-          <Badge status={getStatusBadge(order.status) as Parameters<typeof Badge>[0]["status"]} />
+          <Badge variant={getStatusVariant(order.status)}>
+            {getStatusLabel(order.status)}
+          </Badge>
           <Link href={`/receipt/${order.id}`} target="_blank"
             className="text-xs text-blue-500 hover:underline flex items-center gap-1">
             <Printer size={11} /> Print receipt
@@ -147,7 +153,7 @@ export default function SubmittedOrderPage() {
             {order.items.map((item, i) => (
               <div key={i} className="flex justify-between items-start gap-3 text-sm">
                 <div className="min-w-0 flex-1">
-                  <span className="text-gray-800 leading-snug">{item.product_name}</span>
+                  <span className="text-gray-800 leading-snug">{item.product_name || `Product #${item.product_id}`}</span>
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="text-xs text-gray-400">{fmtKES(item.unit_price)} × {item.quantity}</p>

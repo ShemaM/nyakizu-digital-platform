@@ -1,9 +1,8 @@
 import { Container, Section } from "@/components/layouts";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { DashboardLayout } from "@/components/layouts";
-import { Mail, Phone, MapPin, LogOut } from "lucide-react";
+import { Mail, Phone, LogOut } from "lucide-react";
 
 export default function BuyerAccount() {
   const user = {

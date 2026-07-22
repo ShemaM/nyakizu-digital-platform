@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Alert, AlertDescription } from "@/components/ui/Alert";
 import { auth } from "@/lib/api";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 
 export default function LoginPage() {
@@ -16,7 +16,10 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { refetch } = useAuth();
+
+  const nextUrl = searchParams.get("next") || "";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,8 +28,23 @@ export default function LoginPage() {
 
     try {
       await auth.login(identifier, password);
-      await refetch();
-      router.push("/buyer/suppliers");
+      const user = await refetch();
+
+      if (!user) {
+        throw new Error("Unable to retrieve user session.");
+      }
+
+      const roleHome =
+        user.role === "seller"
+          ? "/seller/dashboard"
+          : user.role === "admin"
+          ? "/admin/verify"
+          : "/buyer/suppliers";
+
+      const redirectTo =
+        nextUrl && nextUrl.startsWith("/") ? nextUrl : roleHome;
+
+      router.push(redirectTo);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed. Please try again.");
     } finally {

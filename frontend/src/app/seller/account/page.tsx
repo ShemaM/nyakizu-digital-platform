@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { DashboardLayout } from "@/components/layouts";
 import { Badge } from "@/components/ui/Badge";
-import { Mail, Phone, MapPin, LogOut, Store } from "lucide-react";
+import { Mail, Phone, MapPin, LogOut } from "lucide-react";
 
 export default function SellerAccount() {
   const user = {

@@ -2,18 +2,44 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { 
-  ShoppingBag, Package, BookOpen, Users, 
-  ArrowRight, MapPin, RefreshCw, ChevronRight, TrendingUp 
+import {
+  ShoppingBag, Package, TrendingUp, Users,
+  ArrowRight, MapPin, RefreshCw, ChevronRight
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { PageSkeleton } from "@/components/ui/LoadingState";
 import { NoOrdersEmptyState } from "@/components/ui/EmptyState";
-import { type ApiOrder, fmtKES, parsePrice } from "@/lib/api"; // Kept helpers, dropped dummy fetcher
+import { orders, type ApiOrder, fmtKES, parsePrice, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/cn";
+
+function getStatusVariant(status: string): "default" | "success" | "warning" | "error" | "info" | "outline" {
+  const map: Record<string, "default" | "success" | "warning" | "error" | "info" | "outline"> = {
+    submitted:   "warning",
+    sourcing:    "info",
+    locked:      "default",
+    debt_active: "error",
+    cleared:     "success",
+    cancelled:   "error",
+    pending:     "warning",
+  };
+  return map[status] || "default";
+}
+
+function getStatusLabel(status: string): string {
+  const map: Record<string, string> = {
+    submitted:   "New",
+    sourcing:    "Sourcing",
+    locked:      "Locked",
+    debt_active: "Debt",
+    cleared:     "Cleared",
+    cancelled:   "Cancelled",
+    pending:     "Pending",
+  };
+  return map[status] || status;
+}
 
 export default function SellerDashboardPage() {
   const { user } = useAuth();
@@ -30,32 +56,23 @@ export default function SellerDashboardPage() {
     try {
       setIsLoading(true);
       setError(null);
-      
-      // Fetching authenticated seller's orders via the exact Django URL
-      const ordersRes = await fetch("/api/orders/seller/");
-      
-      if (!ordersRes.ok) { 
-        throw new Error("Failed to load orders");
-      }
-      
-      const ordersData = await ordersRes.json();
+
+      const ordersData = await orders.sellerList();
       setOrderList(ordersData);
 
-      // Optional: Fetch relationships/pending buyers if your backend expands to include this
-      // For now, defaulting to 0 unless populated via /api/accounts/me/ or similar or a dedicated endpoint
+      // Optional: pending buyers count from user profile if backend adds it
       if (user && 'pending_requests_count' in user && typeof user.pending_requests_count === 'number') {
-        setPendingBuyersCount(user.pending_requests_count);
+        setPendingBuyersCount(user.pending_requests_count as number);
       }
-      
-    } catch (err: any) {
+    } catch (err) {
       console.error("Dashboard fetch error:", err);
-      setError(err.message || "Failed to load dashboard. Please try again.");
+      setError(err instanceof ApiError ? err.message : "Failed to load dashboard. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ── KPI Calculations (Real Data) ──────────────────────────────────────────
+  // ── KPI Calculations ────────────────────────────────────────────────────────
   const newOrders = orderList.filter(o => o.status === "submitted").length;
   const sourcingOrders = orderList.filter(o => o.status === "sourcing").length;
   const activeDebt = orderList
@@ -66,19 +83,7 @@ export default function SellerDashboardPage() {
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
 
-  const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, string> = {
-      "submitted": "submitted",
-      "sourcing": "sourcing",
-      "locked": "locked",
-      "debt_active": "debt_active",
-      "cleared": "cleared",
-      "cancelled": "cancelled",
-    };
-    return statusMap[status] || "pending";
-  };
-
-  // ── Render States ────────────────────────────────────────────────────────
+  // ── Render States ──────────────────────────────────────────────────────────
   if (isLoading) {
     return (
       <AppShell title="Dashboard" showLogo>
@@ -92,7 +97,7 @@ export default function SellerDashboardPage() {
       <AppShell title="Dashboard" showLogo>
         <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
           <p className="text-red-700 font-medium mb-3">{error}</p>
-          <button 
+          <button
             onClick={loadDashboardData}
             className="flex items-center gap-1.5 text-xs font-semibold text-red-700 hover:text-red-800 cursor-pointer mx-auto bg-red-100 px-4 py-2 rounded-lg"
           >
@@ -181,8 +186,8 @@ export default function SellerDashboardPage() {
         {/* Pending Buyers */}
         <div className={cn(
           "rounded-2xl p-4 transition-colors shadow-sm border",
-          pendingBuyersCount > 0 
-            ? "bg-[#0a1f10] border-[#0a1f10] text-white" 
+          pendingBuyersCount > 0
+            ? "bg-[#0a1f10] border-[#0a1f10] text-white"
             : "bg-gray-50 border-gray-100 text-gray-400"
         )}>
           <Users size={16} className={cn("mb-2", pendingBuyersCount > 0 ? "text-amber-500" : "text-gray-300")} />
@@ -215,11 +220,11 @@ export default function SellerDashboardPage() {
               <Link href={`/seller/orders/${order.id}/fulfill`} key={order.id}>
                 <div className="bg-white rounded-2xl border border-gray-100 p-3.5 flex items-center gap-3 shadow-sm hover:shadow-md hover:border-amber-500/30 hover:-translate-y-0.5 transition-all duration-200 active:scale-[0.99]">
                   {/* Avatar */}
-                  <Avatar name={order.buyer_username} size="md" className="w-11 h-11 shrink-0 bg-[#0a1f10]/5 text-[#0a1f10] font-bold" />
+                  <Avatar name={order.buyer_username || "?"} size="md" className="w-11 h-11 shrink-0 bg-[#0a1f10]/5 text-[#0a1f10] font-bold" />
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-[#0a1f10] truncate">{order.buyer_username}</p>
+                    <p className="text-sm font-bold text-[#0a1f10] truncate">{order.buyer_username || "Unknown buyer"}</p>
                     <div className="flex items-center gap-1.5 mt-1 text-[11px] text-gray-500 font-medium">
                       <MapPin size={11} className="text-amber-500" />
                       <span className="truncate">{order.delivery_address || "Awaiting location"}</span>
@@ -231,7 +236,9 @@ export default function SellerDashboardPage() {
                     <p className="text-sm font-extrabold text-[#0a1f10]">
                       {fmtKES(order.total_price)}
                     </p>
-                    <Badge status={getStatusBadge(order.status) as any} />
+                    <Badge variant={getStatusVariant(order.status)}>
+                      {getStatusLabel(order.status)}
+                    </Badge>
                   </div>
                 </div>
               </Link>

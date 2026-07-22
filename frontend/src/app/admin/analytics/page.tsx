@@ -1,7 +1,6 @@
 import { Container, Section } from "@/components/layouts";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { DashboardLayout } from "@/components/layouts";
-import { Badge } from "@/components/ui/Badge";
 import { TrendingUp, Users, Zap } from "lucide-react";
 
 export default function AdminAnalytics() {

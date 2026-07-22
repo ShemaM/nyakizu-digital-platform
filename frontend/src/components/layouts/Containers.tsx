@@ -30,7 +30,9 @@ export interface SectionProps {
   children: ReactNode;
   className?: string;
   spacing?: "sm" | "md" | "lg" | "xl";
+  id?: string;
 }
+
 
 const spacingMap = {
   sm: "py-8 sm:py-12",
@@ -43,9 +45,10 @@ export function Section({
   children,
   className = "",
   spacing = "lg",
+  id,
 }: SectionProps) {
   return (
-    <section className={`${spacingMap[spacing]} ${className}`}>
+    <section id={id} className={`${spacingMap[spacing]} ${className}`}>
       {children}
     </section>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Component, ErrorInfo, ReactNode } from "react";
+import { Component, ErrorInfo, ReactNode } from "react";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 import { Button } from "./Button";
 
@@ -81,8 +81,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               </div>
 
               {/* Error message */}
-              <div className="text-center mb-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-2">
+              <div className="mb-6">
+                <h2 className="mb-2 text-center text-lg font-bold text-gray-900 sm:text-xl">
                   Something went wrong
                 </h2>
                 <p className="text-sm text-gray-600">

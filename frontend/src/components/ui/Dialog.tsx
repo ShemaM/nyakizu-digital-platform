@@ -1,16 +1,18 @@
 "use client";
 
+import { ReactNode } from "react";
 import { Button } from "./Button";
 
 interface DialogProps {
   open: boolean;
   title: string;
-  message: string;
+  message?: string;
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: "primary" | "danger";
   onConfirm: () => void;
   onCancel: () => void;
+  children?: ReactNode;
 }
 
 export function Dialog({
@@ -22,6 +24,7 @@ export function Dialog({
   variant = "primary",
   onConfirm,
   onCancel,
+  children,
 }: DialogProps) {
   if (!open) return null;
 
@@ -36,8 +39,11 @@ export function Dialog({
         <div className="absolute left-1/2 top-3 h-1 w-8 -translate-x-1/2 rounded-full bg-slate-200 sm:hidden" />
 
         <div className="space-y-2 pt-2 sm:pt-0">
-          <h2 className="text-base font-black text-slate-950">{title}</h2>
-          <p className="text-sm leading-relaxed text-slate-600">{message}</p>
+          <h2 className="text-base font-black text-slate-950 sm:text-lg">
+            {title}
+          </h2>
+          {message && <p className="text-sm leading-relaxed text-slate-600">{message}</p>}
+          {children}
         </div>
 
         <div className="flex gap-2.5 pt-1">

@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 
 export function LoadingScreen({
   title = "Loading…",

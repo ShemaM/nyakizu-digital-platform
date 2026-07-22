@@ -52,10 +52,12 @@ export function EmptyState({
         </div>
       )}
 
-      <p className="text-sm font-bold text-gray-800">{title}</p>
+      <h3 className="text-sm font-bold text-gray-800 sm:text-base">
+        {title}
+      </h3>
 
       {description && (
-        <p className="text-xs text-gray-400 mt-2 leading-relaxed max-w-md mx-auto">
+        <p className="mx-auto mt-2 max-w-md text-left text-xs leading-relaxed text-gray-400">
           {description}
         </p>
       )}

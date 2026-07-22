@@ -41,7 +41,7 @@ const CardTitle = forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTMLHeadin
   ({ className, ...props }, ref) => (
     <h2
       ref={ref}
-      className={cn("text-xl font-bold text-slate-50", className)}
+      className={cn("text-lg font-bold text-slate-50 sm:text-xl", className)}
       {...props}
     />
   )
@@ -85,4 +85,16 @@ const CardFooter = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
 
 CardFooter.displayName = "CardFooter";
 
-export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter };
+const CardSection = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn("px-6 py-4 sm:px-8", className)}
+      {...props}
+    />
+  )
+);
+
+CardSection.displayName = "CardSection";
+
+export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardSection, CardFooter };

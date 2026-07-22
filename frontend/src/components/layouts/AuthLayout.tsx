@@ -1,6 +1,5 @@
 import { ReactNode } from "react";
 import { Logo } from "@/components/Logo";
-import { Button } from "@/components/ui/Button";
 import Link from "next/link";
 
 export interface AuthLayoutProps {
@@ -24,7 +23,7 @@ export function AuthLayout({
           <Logo size="md" inverted />
         </Link>
 
-        <div className="hidden lg:block space-y-4 max-w-md">
+        <div className="hidden lg:block space-y-4 max-w-none">
           <h1 className="text-4xl font-extrabold text-white">
             Structured trade, trusted ledger.
           </h1>
@@ -41,7 +40,7 @@ export function AuthLayout({
 
       {/* Right: Form */}
       <div className={`flex-1 flex items-center justify-center p-6 sm:p-12 ${alternate ? "order-1" : "order-2"} bg-dark-primary`}>
-        <div className="w-full max-w-sm space-y-6">
+        <div className="w-full space-y-6 max-w-none">
           <div className="text-center lg:text-left space-y-2">
             <h2 className="text-2xl font-bold text-white">{title}</h2>
             {subtitle && <p className="text-slate-400">{subtitle}</p>}

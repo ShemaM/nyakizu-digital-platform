@@ -4,10 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Store, ClipboardList, BookOpen, User, LayoutDashboard,
-  Package, ShoppingBag, ShieldCheck, Tag,
+  Package, ShoppingBag, ShieldCheck, Tag, Users,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { useRole } from "@/lib/auth-context";
+import { useAuth } from "@/lib/auth-context";
 
 const BUYER_LINKS = [
   { href: "/buyer/suppliers", label: "Suppliers", Icon: Store,          activeColor: "text-blue-600",   activeBg: "bg-blue-50"   },
@@ -20,12 +20,15 @@ const SELLER_LINKS = [
   { href: "/seller/dashboard", label: "Home",     Icon: LayoutDashboard, activeColor: "text-blue-600",   activeBg: "bg-blue-50"   },
   { href: "/seller/catalog",   label: "Products", Icon: Package,         activeColor: "text-green-600",  activeBg: "bg-green-50"  },
   { href: "/seller/orders",    label: "Orders",   Icon: ShoppingBag,     activeColor: "text-violet-600", activeBg: "bg-violet-50" },
+  { href: "/seller/buyers",    label: "Buyers",   Icon: Users,           activeColor: "text-pink-600",   activeBg: "bg-pink-50"   },
   { href: "/seller/ledger",    label: "Payments", Icon: BookOpen,        activeColor: "text-amber-600",  activeBg: "bg-amber-50"  },
 ];
 
 const ADMIN_LINKS = [
   { href: "/admin/verify",   label: "Verify",     Icon: ShieldCheck, activeColor: "text-blue-600",  activeBg: "bg-blue-50"  },
-  { href: "/admin/taxonomy", label: "Categories", Icon: Tag,         activeColor: "text-green-600", activeBg: "bg-green-50" },
+  { href: "/admin/users",    label: "Users",      Icon: Users,       activeColor: "text-violet-600", activeBg: "bg-violet-50" },
+  { href: "/admin/orders",   label: "Orders",     Icon: ShoppingBag, activeColor: "text-green-600", activeBg: "bg-green-50" },
+  { href: "/admin/taxonomy", label: "Categories", Icon: Tag,         activeColor: "text-amber-600", activeBg: "bg-amber-50"  },
 ];
 
 const NAV_BY_ROLE: Record<string, typeof BUYER_LINKS> = {
@@ -35,7 +38,8 @@ const NAV_BY_ROLE: Record<string, typeof BUYER_LINKS> = {
 };
 
 export function BottomNav() {
-  const { role } = useRole();
+  const { user } = useAuth();
+  const role = user?.role ?? "buyer";
   const pathname  = usePathname();
   const links     = NAV_BY_ROLE[role] ?? BUYER_LINKS;
 

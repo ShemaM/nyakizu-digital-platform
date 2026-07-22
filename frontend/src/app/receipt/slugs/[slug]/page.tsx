@@ -4,8 +4,12 @@ import { useParams } from "next/navigation";
 import { CheckCircle, Clock, Download } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import {
-  getOrderBySlug, formatKES, formatDateTime, formatDate,
-  remainingBalance, SELLERS,
+  getOrderBySlug,
+  formatKES,
+  formatDateTime,
+  formatDate,
+  remainingBalance,
+  SELLERS,
 } from "@/lib/dummy-data";
 import { downloadReceipt } from "@/lib/generate-receipt";
 
@@ -68,9 +72,7 @@ export default function ReceiptPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Order reference</p>
-              <p className="mt-0.5 font-mono text-sm font-bold text-slate-800">
-                {order.slug.toUpperCase()}
-              </p>
+              <p className="mt-0.5 font-mono text-sm font-bold text-slate-800">{order.slug.toUpperCase()}</p>
               <p className="mt-1 text-xs text-slate-500">
                 Status: <span className="font-semibold text-slate-700">{statusLabel[order.status]}</span>
               </p>
@@ -158,7 +160,9 @@ export default function ReceiptPage() {
                   <div>
                     <p className="font-bold text-slate-700">
                       {entry.method === "mpesa" ? "M-Pesa" : entry.method}
-                      {entry.reference && <span className="ml-1 text-xs font-normal text-slate-400">- {entry.reference}</span>}
+                      {entry.reference && (
+                        <span className="ml-1 text-xs font-normal text-slate-400">- {entry.reference}</span>
+                      )}
                     </p>
                     {entry.note && <p className="text-xs text-slate-400">{entry.note}</p>}
                     <p className="text-xs text-slate-400">{formatDateTime(entry.recordedAt)}</p>
@@ -193,3 +197,4 @@ export default function ReceiptPage() {
     </main>
   );
 }
+

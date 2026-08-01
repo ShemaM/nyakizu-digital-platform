@@ -1,0 +1,31 @@
+src/app/login/page.tsx(93,31): error TS2322: Type '"md"' is not assignable to type '"default" | "sm" | "lg" | "icon" | null | undefined'.
+src/app/login/page.tsx(107,33): error TS2322: Type '"md"' is not assignable to type '"default" | "sm" | "lg" | "icon" | null | undefined'.
+src/app/page.tsx(58,10): error TS6133: 'isApiSeller' is declared but its value is never read.
+src/app/page.tsx(62,10): error TS6133: 'isApiProduct' is declared but its value is never read.
+src/app/seller/account/page.tsx(125,25): error TS2322: Type '"danger"' is not assignable to type '"default" | "destructive" | "secondary" | "outline" | "ghost" | "link" | null | undefined'.
+src/app/seller/catalog/page.tsx(9,30): error TS6133: 'ApiProduct' is declared but its value is never read.
+src/app/seller/catalog/page.tsx(24,3): error TS6133: 'CardFooter' is declared but its value is never read.
+src/app/seller/catalog/page.tsx(42,10): error TS6133: 'NewProductPage' is declared but its value is never read.
+src/app/seller/catalog/page.tsx(54,19): error TS6133: 'setBrandId' is declared but its value is never read.
+src/app/seller/catalog/page.tsx(55,10): error TS6133: 'deviceModelId' is declared but its value is never read.
+src/app/seller/catalog/page.tsx(64,10): error TS6133: 'allBrands' is declared but its value is never read.
+src/app/seller/catalog/page.tsx(69,10): error TS6133: 'filteredDeviceModels' is declared but its value is never read.
+src/app/seller/dashboard/page.tsx(185,3): error TS6133: 'fullName' is declared but its value is never read.
+src/app/seller/dashboard/page.tsx(261,26): error TS18049: 'user.seller_profile' is possibly 'null' or 'undefined'.
+src/app/seller/dashboard/page.tsx(264,18): error TS2339: Property 'getForSeller' does not exist on type '{ get(id: number): Promise<ApiOrder>; create(data: { seller_id?: number | undefined; items: { product_id: number; quantity: number; }[]; buyer_notes?: string | undefined; }): Promise<...>; ... 6 more ...; recordPayment(id: number, data: { ...; }): Promise<...>; }'.
+src/app/seller/dashboard/page.tsx(271,50): error TS7006: Parameter 'o' implicitly has an 'any' type.
+src/app/seller/dashboard/page.tsx(272,55): error TS7006: Parameter 'o' implicitly has an 'any' type.
+src/app/seller/dashboard/page.tsx(274,19): error TS7006: Parameter 'o' implicitly has an 'any' type.
+src/app/seller/dashboard/page.tsx(275,20): error TS7006: Parameter 'acc' implicitly has an 'any' type.
+src/app/seller/dashboard/page.tsx(275,25): error TS7006: Parameter 'o' implicitly has an 'any' type.
+src/app/store/[slug]/StoreProducts.tsx(79,32): error TS2322: Type '{ status: Availability; }' is not assignable to type 'IntrinsicAttributes & BadgeProps & RefAttributes<HTMLSpanElement>'.
+  Property 'status' does not exist on type 'IntrinsicAttributes & BadgeProps & RefAttributes<HTMLSpanElement>'.
+src/app/verify-email/page.tsx(109,31): error TS2322: Type '"md"' is not assignable to type '"default" | "sm" | "lg" | "icon" | null | undefined'.
+src/app/verify-email/page.tsx(142,17): error TS2322: Type '"md"' is not assignable to type '"default" | "sm" | "lg" | "icon" | null | undefined'.
+src/app/verify-email/page.tsx(149,31): error TS2322: Type '"md"' is not assignable to type '"default" | "sm" | "lg" | "icon" | null | undefined'.
+src/components/Logo.tsx(16,9): error TS6133: 'textColor' is declared but its value is never read.
+src/components/ui/Dialog.tsx(53,19): error TS2322: Type '"primary" | "danger"' is not assignable to type '"default" | "destructive" | "secondary" | "outline" | "ghost" | "link" | null | undefined'.
+  Type '"primary"' is not assignable to type '"default" | "destructive" | "secondary" | "outline" | "ghost" | "link" | null | undefined'.
+src/components/ui/EmptyState.tsx(68,13): error TS2322: Type '"secondary" | "primary"' is not assignable to type '"default" | "destructive" | "secondary" | "outline" | "ghost" | "link" | null | undefined'.
+  Type '"primary"' is not assignable to type '"default" | "destructive" | "secondary" | "outline" | "ghost" | "link" | null | undefined'.
+src/lib/api.ts(158,23): error TS2345: Argument of type '{}' is not assignable to parameter of type 'string'.

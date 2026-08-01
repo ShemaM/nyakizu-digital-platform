@@ -1,50 +1,26 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import {
-  ShoppingBag, Package, TrendingUp, Users,
-  ArrowRight, MapPin, RefreshCw, ChevronRight
-} from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
-import { Badge } from "@/components/ui/Badge";
-import { Avatar } from "@/components/ui/Avatar";
 import { PageSkeleton } from "@/components/ui/LoadingState";
-import { NoOrdersEmptyState } from "@/components/ui/EmptyState";
-import { orders, type ApiOrder, fmtKES, parsePrice, ApiError } from "@/lib/api";
+import { orders, products, relationships, ApiError, parsePrice } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { cn } from "@/lib/cn";
 
-function getStatusVariant(status: string): "default" | "success" | "warning" | "error" | "info" | "outline" {
-  const map: Record<string, "default" | "success" | "warning" | "error" | "info" | "outline"> = {
-    submitted:   "warning",
-    sourcing:    "info",
-    locked:      "default",
-    debt_active: "error",
-    cleared:     "success",
-    cancelled:   "error",
-    pending:     "warning",
-  };
-  return map[status] || "default";
-}
-
-function getStatusLabel(status: string): string {
-  const map: Record<string, string> = {
-    submitted:   "New",
-    sourcing:    "Sourcing",
-    locked:      "Locked",
-    debt_active: "Debt",
-    cleared:     "Cleared",
-    cancelled:   "Cancelled",
-    pending:     "Pending",
-  };
-  return map[status] || status;
-}
+// Import new simple sub-components
+import { SellerHeader } from "@/components/seller-dashboard/SellerHeader";
+import { ShopStats } from "@/components/seller-dashboard/ShopStats";
+import { QuickActions } from "@/components/seller-dashboard/QuickActions";
+import { RecentOrders } from "@/components/seller-dashboard/RecentOrders";
+import { ProductSummary } from "@/components/seller-dashboard/ProductSummary";
+import { BuyerSummary } from "@/components/seller-dashboard/BuyerSummary";
+import { MoneySummary } from "@/components/seller-dashboard/MoneySummary";
 
 export default function SellerDashboardPage() {
   const { user } = useAuth();
-  const [orderList, setOrderList] = useState<ApiOrder[]>([]);
-  const [pendingBuyersCount, setPendingBuyersCount] = useState(0);
+  const [orderList, setOrderList] = useState<any[]>([]);
+  const [productList, setProductList] = useState<any[]>([]);
+  const [relationshipList, setRelationshipList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,13 +33,16 @@ export default function SellerDashboardPage() {
       setIsLoading(true);
       setError(null);
 
-      const ordersData = await orders.sellerList();
-      setOrderList(ordersData);
+      // Concurrent data fetching from authentic lib modules
+      const [ordersData, productsData, relationsData] = await Promise.all([
+        orders.sellerList(),
+        products.mine(),
+        relationships.mine(),
+      ]);
 
-      // Optional: pending buyers count from user profile if backend adds it
-      if (user && 'pending_requests_count' in user && typeof user.pending_requests_count === 'number') {
-        setPendingBuyersCount(user.pending_requests_count as number);
-      }
+      setOrderList(Array.isArray(ordersData) ? ordersData : (ordersData?.results || ordersData?.orders || []));
+      setProductList(Array.isArray(productsData) ? productsData : (productsData?.results || productsData?.products || []));
+      setRelationshipList(Array.isArray(relationsData) ? relationsData : (relationsData?.results || relationsData?.relationships || []));
     } catch (err) {
       console.error("Dashboard fetch error:", err);
       setError(err instanceof ApiError ? err.message : "Failed to load dashboard. Please try again.");
@@ -72,18 +51,6 @@ export default function SellerDashboardPage() {
     }
   };
 
-  // ── KPI Calculations ────────────────────────────────────────────────────────
-  const newOrders = orderList.filter(o => o.status === "submitted").length;
-  const sourcingOrders = orderList.filter(o => o.status === "sourcing").length;
-  const activeDebt = orderList
-    .filter(o => o.status === "debt_active")
-    .reduce((sum, o) => sum + parsePrice(o.total_price), 0);
-
-  const recentOrders = [...orderList]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 5);
-
-  // ── Render States ──────────────────────────────────────────────────────────
   if (isLoading) {
     return (
       <AppShell title="Dashboard" showLogo>
@@ -108,144 +75,70 @@ export default function SellerDashboardPage() {
     );
   }
 
+  // ── Local Calculations ──────────────────────────────────────────────────
+  const totalProducts = productList.length;
+  const activeProducts = productList.filter((p) => p.status === "available").length;
+  const draftProducts = productList.filter((p) => p.status === "draft").length;
+
+  const newOrders = orderList.filter((o) => o.status === "submitted").length;
+  
+  const moneyOwed = orderList
+    .filter((o) => o.status === "debt_active")
+    .reduce((sum, o) => sum + parsePrice(o.total_price), 0);
+    
+  const paidMoney = orderList
+    .filter((o) => o.status === "cleared")
+    .reduce((sum, o) => sum + parsePrice(o.total_price), 0);
+
+  const totalBuyers = relationshipList.filter((r) => r.status === "approved" || r.status === "active").length;
+  const newBuyerRequests = relationshipList.filter((r) => r.status === "pending").length;
+
+  const recentOrders = [...orderList]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 5);
+
   return (
     <AppShell title="Dashboard" showLogo>
+      <div className="space-y-6">
+        {/* Section 1: Shop Header */}
+        <SellerHeader
+          shopName={user?.seller_profile?.shop_name || user?.seller_profile?.store_name || "Nyakizu Shop"}
+          sellerName={user?.full_name || user?.username || "Seller"}
+          location={user?.seller_profile?.approval_note || "Nairobi"}
+          status={user?.seller_profile?.approval_status || "Approved"}
+        />
 
-      {/* ── Greeting ──────────────────────────────────────────────────────── */}
-      <div className="animate-fade-in-up pb-1">
-        <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Overview</p>
-        <h2 className="text-xl font-extrabold text-[#0a1f10] mt-0.5 tracking-tight">
-          {user?.full_name || user?.username || "Your Shop"}
-        </h2>
-      </div>
+        {/* Section 2: Shop Summary */}
+        <ShopStats
+          totalProducts={totalProducts}
+          newOrders={newOrders}
+          moneyOwed={moneyOwed}
+          totalBuyers={totalBuyers}
+        />
 
-      {/* ── Featured Hero KPI — New Orders ────────────────────────────────── */}
-      <Link href="/seller/orders" className="block animate-fade-in-up delay-75">
-        <div className="relative overflow-hidden bg-[#0a1f10] rounded-2xl p-6 shadow-xl hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-300 active:scale-[0.98] group">
-          <div className="absolute -top-12 -right-12 w-40 h-40 bg-amber-500/20 rounded-full blur-3xl transition-all group-hover:bg-amber-500/30" />
-          <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-green-500/10 rounded-full blur-2xl" />
-          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay"></div>
+        {/* Section 3: Quick Buttons */}
+        <QuickActions />
 
-          <div className="relative z-10 flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                <p className="text-amber-500 text-xs font-bold uppercase tracking-widest">
-                  Action Required
-                </p>
-              </div>
-              <p className="text-6xl font-black text-white mt-2 tabular-nums leading-none tracking-tighter">
-                {newOrders}
-              </p>
-              <p className="text-gray-300 text-sm mt-2 font-medium">
-                New orders awaiting confirmation
-              </p>
-            </div>
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3 backdrop-blur-sm">
-              <ShoppingBag size={28} className="text-amber-500" />
-            </div>
+        {/* Split Details Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          {/* Section 4: Recent Orders (Spans left/center columns) */}
+          <div className="lg:col-span-2">
+            <RecentOrders orders={recentOrders} />
           </div>
 
-          <div className="relative z-10 mt-6 pt-4 border-t border-white/10 flex items-center justify-between group-hover:border-amber-500/30 transition-colors">
-            <p className="text-xs font-bold text-amber-500/80 group-hover:text-amber-400">Review all incoming orders</p>
-            <div className="bg-white/5 rounded-full p-1 group-hover:bg-amber-500 group-hover:text-[#0a1f10] text-amber-500 transition-colors">
-              <ArrowRight size={14} />
-            </div>
+          {/* Sidebar Modules (Right Column) */}
+          <div className="space-y-6">
+            {/* Section 5: Product Summary */}
+            <ProductSummary total={totalProducts} active={activeProducts} draft={draftProducts} />
+
+            {/* Section 6: Buyer Section */}
+            <BuyerSummary newRequests={newBuyerRequests} myBuyers={totalBuyers} />
+
+            {/* Section 7: Money Section */}
+            <MoneySummary moneyOwed={moneyOwed} paidMoney={paidMoney} />
           </div>
-        </div>
-      </Link>
-
-      {/* ── Mini KPIs Grid ────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-3 animate-fade-in-up delay-100">
-
-        {/* Packing / Sourcing */}
-        <Link href="/seller/orders">
-          <div className="bg-amber-500 rounded-2xl p-4 hover:bg-amber-400 transition-colors active:scale-[0.97] shadow-lg shadow-amber-500/20 relative overflow-hidden">
-            <div className="absolute -right-4 -top-4 text-amber-600/30">
-              <Package size={56} strokeWidth={1.5} />
-            </div>
-            <Package size={16} className="text-[#0a1f10] mb-2 relative z-10" />
-            <p className="text-2xl font-black text-[#0a1f10] tabular-nums leading-none relative z-10">{sourcingOrders}</p>
-            <p className="text-[#0a1f10]/80 text-[10px] font-bold mt-1 leading-tight uppercase relative z-10">Packing<br/>Now</p>
-          </div>
-        </Link>
-
-        {/* Ledger / Debt */}
-        <Link href="/seller/ledger">
-          <div className="bg-white border-2 border-[#0a1f10]/5 rounded-2xl p-4 hover:border-amber-500/50 transition-colors active:scale-[0.97] shadow-sm flex flex-col justify-between">
-            <TrendingUp size={16} className="text-amber-600 mb-2" />
-            <div>
-              <p className="text-sm font-black text-[#0a1f10] leading-tight tabular-nums truncate">
-                {fmtKES(activeDebt).replace("KES ", "")}
-              </p>
-              <p className="text-gray-400 text-[9px] font-extrabold uppercase mt-0.5 leading-tight">KES Owed</p>
-            </div>
-          </div>
-        </Link>
-
-        {/* Pending Buyers */}
-        <div className={cn(
-          "rounded-2xl p-4 transition-colors shadow-sm border",
-          pendingBuyersCount > 0
-            ? "bg-[#0a1f10] border-[#0a1f10] text-white"
-            : "bg-gray-50 border-gray-100 text-gray-400"
-        )}>
-          <Users size={16} className={cn("mb-2", pendingBuyersCount > 0 ? "text-amber-500" : "text-gray-300")} />
-          <p className={cn("text-2xl font-black tabular-nums leading-none", pendingBuyersCount > 0 ? "text-white" : "text-gray-400")}>
-            {pendingBuyersCount}
-          </p>
-          <p className={cn("text-[10px] font-bold mt-1 leading-tight uppercase", pendingBuyersCount > 0 ? "text-gray-300" : "text-gray-400")}>
-            Pending<br/>Buyers
-          </p>
         </div>
       </div>
-
-      {/* ── Recent Orders ─────────────────────────────────────────────────── */}
-      <section className="space-y-3 pt-2 animate-fade-in-up delay-150">
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-4 bg-amber-500 rounded-full" />
-            <h3 className="text-xs font-extrabold text-[#0a1f10] uppercase tracking-wider">Recent Activity</h3>
-          </div>
-          <Link href="/seller/orders" className="text-[11px] font-bold text-amber-600 hover:text-amber-700 flex items-center gap-0.5">
-            View Ledger <ChevronRight size={12} />
-          </Link>
-        </div>
-
-        {recentOrders.length === 0 ? (
-          <NoOrdersEmptyState />
-        ) : (
-          <div className="space-y-2.5">
-            {recentOrders.map((order) => (
-              <Link href={`/seller/orders/${order.id}/fulfill`} key={order.id}>
-                <div className="bg-white rounded-2xl border border-gray-100 p-3.5 flex items-center gap-3 shadow-sm hover:shadow-md hover:border-amber-500/30 hover:-translate-y-0.5 transition-all duration-200 active:scale-[0.99]">
-                  {/* Avatar */}
-                  <Avatar name={order.buyer_username || "?"} size="md" className="w-11 h-11 shrink-0 bg-[#0a1f10]/5 text-[#0a1f10] font-bold" />
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-[#0a1f10] truncate">{order.buyer_username || "Unknown buyer"}</p>
-                    <div className="flex items-center gap-1.5 mt-1 text-[11px] text-gray-500 font-medium">
-                      <MapPin size={11} className="text-amber-500" />
-                      <span className="truncate">{order.delivery_address || "Awaiting location"}</span>
-                    </div>
-                  </div>
-
-                  {/* Amount + status */}
-                  <div className="text-right shrink-0 space-y-1.5">
-                    <p className="text-sm font-extrabold text-[#0a1f10]">
-                      {fmtKES(order.total_price)}
-                    </p>
-                    <Badge variant={getStatusVariant(order.status)}>
-                      {getStatusLabel(order.status)}
-                    </Badge>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
     </AppShell>
   );
 }

@@ -7,6 +7,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  setSessionUser: (user: User) => void;
   refetch: () => Promise<User | null>;
   logout: () => Promise<void>;
 }
@@ -17,8 +18,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const setSessionUser = useCallback((userData: User) => {
+    setUser(userData);
+    setIsLoading(false);
+  }, []);
+
   const refetch = useCallback(async () => {
-    setIsLoading(true);
     try {
       const userData = await auth.me();
       setUser(userData);
@@ -32,12 +37,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    setIsLoading(true);
     try {
       await auth.logout();
     } catch {
-      // ignore logout errors
+      // ignore runtime logout errors safely
+    } finally {
+      setUser(null);
+      setIsLoading(false);
     }
-    setUser(null);
   }, []);
 
   useEffect(() => {
@@ -46,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, isAuthenticated: !!user, refetch, logout }}
+      value={{ user, isLoading, isAuthenticated: !!user, setSessionUser, refetch, logout }}
     >
       {children}
     </AuthContext.Provider>

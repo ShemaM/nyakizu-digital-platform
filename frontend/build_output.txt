@@ -1,0 +1,7 @@
+G¿» Another next build process is already running.
+System.Management.Automation.RemoteException
+  This could be:
+  - A next build still in progress
+  - A previous build that didn't exit cleanly
+System.Management.Automation.RemoteException
+  Suggestion: Wait for the build to complete.

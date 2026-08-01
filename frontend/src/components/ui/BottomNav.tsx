@@ -18,7 +18,7 @@ const BUYER_LINKS = [
 
 const SELLER_LINKS = [
   { href: "/seller/dashboard", label: "Home",     Icon: LayoutDashboard, activeColor: "text-blue-600",   activeBg: "bg-blue-50"   },
-  { href: "/seller/catalog",   label: "Products", Icon: Package,         activeColor: "text-green-600",  activeBg: "bg-green-50"  },
+  { href: "/seller/dashboard/catalog",   label: "Products", Icon: Package,         activeColor: "text-green-600",  activeBg: "bg-green-50"  },
   { href: "/seller/orders",    label: "Orders",   Icon: ShoppingBag,     activeColor: "text-violet-600", activeBg: "bg-violet-50" },
   { href: "/seller/buyers",    label: "Buyers",   Icon: Users,           activeColor: "text-pink-600",   activeBg: "bg-pink-50"   },
   { href: "/seller/ledger",    label: "Payments", Icon: BookOpen,        activeColor: "text-amber-600",  activeBg: "bg-amber-50"  },

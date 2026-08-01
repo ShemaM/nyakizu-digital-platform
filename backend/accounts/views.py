@@ -6,15 +6,16 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth import login, logout
 
-from .models import CustomUser, BuyerProfile, SellerProfile, BuyerSellerRelationship
+from .models import CustomUser, BuyerProfile, SellerProfile, BuyerStoreFollow
+from products.models import Product
 from .permissions import is_admin_user, is_verified_buyer
 from .serializers import (
     RegisterSerializer,
     UserSerializer,
     BuyerProfileSerializer,
     SellerProfileSerializer,
-    BuyerRelationshipViewSerializer,
-    SellerRelationshipViewSerializer,
+    BuyerStoreFollowSerializer,
+    CommunityActivitySerializer,
 )
 
 
@@ -226,7 +227,7 @@ class PendingSellerListView(generics.ListAPIView):
 class ApproveSellerView(APIView):
     """
     POST /api/accounts/sellers/<id>/approve/
-    Admin only. Marks the store as approved.
+    Admin only. Marks the store as approved and sends an approval email.
     """
     permission_classes = [permissions.IsAdminUser]
 
@@ -236,7 +237,36 @@ class ApproveSellerView(APIView):
         except SellerProfile.DoesNotExist:
             return Response({"error": "Store not found."}, status=404)
 
-        seller.approve()
+        seller.approve(by_user=request.user)
+
+        # Send approval email
+        try:
+            login_url = f"{getattr(settings, 'FRONTEND_VERIFY_BASE_URL', 'http://localhost:3000')}/login"
+            subject = "Your Nyakizu Shop Has Been Approved"
+            message = (
+                f"Dear {seller.user.get_full_name() or seller.user.username},\n\n"
+                f"Congratulations! Your store \"{seller.store_name}\" has been approved "
+                f"and is now live on the Nyakizu Digital Market.\n\n"
+                f"What's next?\n"
+                f"1. Sign in to your account: {login_url}\n"
+                f"2. Complete your store profile (description, logo, categories)\n"
+                f"3. Upload your first products\n"
+                f"4. Begin trading with the community\n\n"
+                f"We're excited to have you on board!\n\n"
+                f"Best regards,\n"
+                f"The Nyakizu Team"
+            )
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+                recipient_list=[seller.user.email],
+                fail_silently=True,
+            )
+        except Exception:
+            import traceback
+            traceback.print_exc()
+
         return Response({"message": f"{seller.store_name} is now live."})
 
 
@@ -253,7 +283,41 @@ class RejectSellerView(APIView):
         except SellerProfile.DoesNotExist:
             return Response({"error": "Store not found."}, status=404)
 
-        seller.reject(note=request.data.get("note", ""))
+        reason = request.data.get("note", "")
+        seller.reject(note=reason)
+
+        # Send rejection email
+        try:
+            subject = "Update on Your Nyakizu Seller Application"
+            message = (
+                f"Dear {seller.user.get_full_name() or seller.user.username},\n\n"
+                f"Thank you for applying to list your store \"{seller.store_name}\" "
+                f"on the Nyakizu Digital Market.\n\n"
+                f"After careful review, we regret to inform you that your application "
+                f"has not been approved at this time.\n\n"
+            )
+            if reason:
+                message += (
+                    f"Reason:\n{reason}\n\n"
+                )
+            message += (
+                f"You are welcome to update your information and resubmit your "
+                f"application for review.\n\n"
+                f"If you have any questions, please reach out to our support team.\n\n"
+                f"Best regards,\n"
+                f"The Nyakizu Team"
+            )
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+                recipient_list=[seller.user.email],
+                fail_silently=True,
+            )
+        except Exception:
+            import traceback
+            traceback.print_exc()
+
         return Response({"message": f"{seller.store_name} has been rejected."})
 
 
@@ -269,104 +333,122 @@ class BuyerProfileDetailView(generics.RetrieveUpdateAPIView):
         return BuyerProfile.objects.filter(user=self.request.user)
 
 
-# ── Buyer ↔ Seller relationship ───────────────────────────────────────────────
 
-class BuyerSellerRelationshipListView(APIView):
+# ── Buyer store following ─────────────────────────────────────────────────────
+
+class FollowStoreView(APIView):
     """
-    GET /api/accounts/relationships/
-    Buyers: see their seller relationships.
-    Sellers: see buyer relationships to their store.
-    """
-    permission_classes = [permissions.IsAuthenticated]
+    POST /api/accounts/sellers/<id>/follow/
 
-    def get(self, request):
-        user = request.user
-
-        if user.role == "buyer":
-            rels = BuyerSellerRelationship.objects.filter(
-                buyer=user
-            ).select_related("seller", "seller__user").order_by("-requested_at")
-            serializer = BuyerRelationshipViewSerializer(rels, many=True)
-        elif user.role == "seller":
-            try:
-                store = user.seller_profile
-            except SellerProfile.DoesNotExist:
-                return Response({"relationships": []})
-            rels = BuyerSellerRelationship.objects.filter(
-                seller=store
-            ).select_related("buyer").order_by("-requested_at")
-            serializer = SellerRelationshipViewSerializer(rels, many=True)
-        else:
-            return Response({"relationships": []})
-
-        return Response({"relationships": serializer.data})
-
-
-class RequestStoreAccessView(APIView):
-    """
-    POST /api/accounts/sellers/<id>/request-access/
-    A buyer requests access to a specific seller's store.
+    Buyer follows a wholesaler store.
+    No approval required.
     """
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
-        if not is_verified_buyer(request.user):
+        if request.user.role != "buyer":
             return Response(
-                {"error": "Only verified buyers can request store access."},
+                {"error": "Only buyers can follow stores."},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
         try:
-            seller = SellerProfile.objects.get(pk=pk, approval_status="approved")
+            seller = SellerProfile.objects.get(
+                pk=pk,
+                approval_status="approved",
+            )
         except SellerProfile.DoesNotExist:
-            return Response({"error": "Store not found."}, status=404)
-
-        if seller.user == request.user:
             return Response(
-                {"error": "You cannot request access to your own store."},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"error": "Store not found."},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
-        rel, created = BuyerSellerRelationship.objects.get_or_create(
+        follow, created = BuyerStoreFollow.objects.get_or_create(
             buyer=request.user,
             seller=seller,
         )
+
         if not created:
             return Response(
-                {"error": "You have already requested access to this store."},
-                status=status.HTTP_409_CONFLICT,
+                {"message": "You are already following this store."},
+                status=status.HTTP_200_OK,
             )
 
         return Response(
-            {"message": f"Access requested. {seller.store_name} will be notified."},
+            {
+                "message": f"You are now following {seller.store_name}.",
+                "follow": BuyerStoreFollowSerializer(follow).data,
+            },
             status=status.HTTP_201_CREATED,
         )
 
 
-class ResolveBuyerAccessView(APIView):
+class FollowedStoresView(generics.ListAPIView):
     """
-    POST /api/accounts/relationships/<id>/approve/
-    POST /api/accounts/relationships/<id>/deny/
-    Seller approves or denies a buyer.
+    GET /api/accounts/followed-stores/
+
+    Returns stores followed by the logged-in buyer.
     """
+    serializer_class = BuyerStoreFollowSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def post(self, request, pk, action):
-        if action not in {"approve", "deny"}:
-            return Response({"error": "Unknown action."}, status=400)
+    def get_queryset(self):
+        return BuyerStoreFollow.objects.filter(
+            buyer=self.request.user
+        ).select_related("seller")
 
-        try:
-            rel = BuyerSellerRelationship.objects.get(
-                pk=pk,
-                seller__user=request.user,
-            )
-        except BuyerSellerRelationship.DoesNotExist:
-            return Response({"error": "Relationship not found."}, status=404)
 
-        if action == "approve":
-            rel.approve()
-            return Response({"message": "Buyer approved."})
+class CommunityActivityView(APIView):
+    """
+    Public homepage endpoint: aggregate community stats + recently
+    joined members. No auth required — this powers marketing content
+    on the landing page.
+    """
+    permission_classes = [permissions.AllowAny]
 
-        rel.deny(note=request.data.get("note", ""))
-        return Response({"message": "Buyer denied."})
-    
+    def get(self, request):
+        members_qs = CustomUser.objects.filter(role__in=['buyer', 'seller'], is_staff=False, is_superuser=False)
+
+        stats = {
+            'members': members_qs.count(),
+            'stores': SellerProfile.objects.filter(approval_status='approved').count(),
+            'products': Product.objects.filter(status='available').count(),
+            'cities': self._city_count(),
+        }
+
+        recent = (
+            members_qs
+            .select_related('buyer_profile', 'seller_profile')
+            .order_by('-date_joined')[:6]
+        )
+        recent_members = [self._serialize_member(u) for u in recent]
+
+        serializer = CommunityActivitySerializer(
+            {'stats': stats, 'recent_members': recent_members}
+        )
+        return Response(serializer.data)
+
+    def _city_count(self):
+        buyer_locations = BuyerProfile.objects.exclude(location='').values_list('location', flat=True)
+        seller_locations = SellerProfile.objects.exclude(location='').values_list('location', flat=True)
+        return len(set(buyer_locations) | set(seller_locations))
+
+    def _serialize_member(self, user):
+        location = ''
+        verified = False
+
+        if user.role == 'seller' and hasattr(user, 'seller_profile'):
+            location = user.seller_profile.location
+            verified = user.seller_profile.is_live
+        elif user.role == 'buyer' and hasattr(user, 'buyer_profile'):
+            location = user.buyer_profile.location
+
+        return {
+            'id': user.id,
+            'name': user.get_full_name() or user.username,
+            'role': 'Seller' if user.role == 'seller' else 'Buyer',
+            'verified': verified,
+            'location': location or 'Not specified',
+            'joined': user.date_joined.date().isoformat(),
+            'avatar': None,
+        }

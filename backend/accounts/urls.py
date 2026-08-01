@@ -12,9 +12,9 @@ from .views import (
     ApproveSellerView,
     RejectSellerView,
     BuyerProfileDetailView,
-    BuyerSellerRelationshipListView,
-    RequestStoreAccessView,
-    ResolveBuyerAccessView,
+    CommunityActivityView,
+    FollowStoreView,
+    FollowedStoresView,
 )
 
 urlpatterns = [
@@ -32,12 +32,14 @@ urlpatterns = [
     path("sellers/<int:pk>/",                  SellerProfileDetailView.as_view(), name="seller-detail"),
     path("sellers/<int:pk>/approve/",            ApproveSellerView.as_view(),       name="seller-approve"),
     path("sellers/<int:pk>/reject/",            RejectSellerView.as_view(),        name="seller-reject"),
-    path("sellers/<int:pk>/request-access/",   RequestStoreAccessView.as_view(),  name="request-access"),
 
-    # Buyer–seller relationships
-    path("relationships/", BuyerSellerRelationshipListView.as_view(), name="relationship-list"),
-    path("relationships/<int:pk>/<str:action>/", ResolveBuyerAccessView.as_view(), name="resolve-access"),
+    # Buyer store following
+    path("sellers/<int:pk>/follow/", FollowStoreView.as_view(), name="follow-store"),
+    path("followed-stores/", FollowedStoresView.as_view(), name="followed-stores"),
 
     # Buyer profile
     path("buyers/<int:pk>/", BuyerProfileDetailView.as_view(), name="buyer-detail"),
+
+    # Homepage community feed
+    path("community/", CommunityActivityView.as_view(), name="community-activity"),
 ]

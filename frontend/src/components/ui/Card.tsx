@@ -8,9 +8,9 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 const Card = forwardRef<HTMLDivElement, CardProps>(
   ({ className, variant = "default", ...props }, ref) => {
     const variants = {
-      default: "rounded-xl bg-slate-900/50 border border-slate-800/50 shadow-sm backdrop-blur-sm",
-      elevated: "rounded-xl bg-slate-900/80 border border-slate-700/50 shadow-lg backdrop-blur-md",
-      outlined: "rounded-xl bg-transparent border border-slate-700 shadow-none",
+      default: "bg-dark-primary border border-dark-tertiary/50 shadow-lg rounded-2xl",
+      elevated: "bg-dark-tertiary border border-dark-accent/50 shadow-xl rounded-2xl",
+      outlined: "bg-transparent border border-dark-accent/50 rounded-2xl",
     };
 
     return (
@@ -29,7 +29,7 @@ const CardHeader = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("border-b border-slate-700/50 px-6 py-4 sm:px-8", className)}
+      className={cn("border-b border-dark-accent/20 px-6 py-5 sm:px-8", className)}
       {...props}
     />
   )
@@ -77,7 +77,7 @@ const CardFooter = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("border-t border-slate-700/50 flex gap-3 justify-between px-6 py-4 sm:px-8", className)}
+      className={cn("border-t border-dark-accent/20 flex items-center justify-between gap-3 px-6 py-4 sm:px-8", className)}
       {...props}
     />
   )

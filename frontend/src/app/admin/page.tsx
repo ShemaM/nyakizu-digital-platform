@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { DashboardLayout } from "@/components/layouts";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { Users, TrendingUp, AlertCircle, CheckCircle2, RefreshCw, MapPin, Clock } from "lucide-react";
+import { Users, TrendingUp, AlertCircle, CheckCircle2, RefreshCw, Clock } from "lucide-react";
 import { admin, sellers, type ApiSeller, ApiError } from "@/lib/api";
 
 export default function AdminDashboard() {

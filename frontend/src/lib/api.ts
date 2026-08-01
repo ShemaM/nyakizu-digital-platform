@@ -12,16 +12,12 @@ async function fetchWithSession(url: string, options: RequestInit = {}) {
   return response;
 }
 
-// ── Error helper ──────────────────────────────────────────────────────────────
-
 export class ApiError extends Error {
   constructor(message: string, public status?: number) {
     super(message);
     this.name = "ApiError";
   }
 }
-
-// ── Price helpers ─────────────────────────────────────────────────────────────
 
 export function fmtKES(amount: number | string): string {
   const num = typeof amount === "string" ? parseFloat(amount) : amount;
@@ -36,7 +32,47 @@ export function parsePrice(price: number | string): number {
   return isNaN(val) ? 0 : val;
 }
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  role: "buyer" | "seller" | "admin";
+  full_name: string;
+  phone_number: string;
+  is_email_verified: boolean;
+  date_joined: string;
+  seller_profile?: {
+    id: number;
+    shop_name?: string;
+    store_name?: string;
+    is_verified?: boolean;
+    approval_status?: string;
+    approval_note?: string;
+  };
+}
+
+export interface ApiSeller {
+  id: number;
+  username: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  location: string;
+  shop_name?: string;
+  store_name?: string;
+  shop_location?: string;
+  business_type?: string;
+  is_verified?: boolean;
+  created_at: string;
+  approval_status?: string;
+  store_description?: string;
+  categories?: string[];
+  user?: {
+    full_name?: string;
+    username?: string;
+  };
+  is_live?: boolean;
+}
 
 export interface ApiProduct {
   id: number;
@@ -49,8 +85,27 @@ export interface ApiProduct {
   seller?: number;
   category?: number;
   image_url?: string;
-  created_at?: string;
+  created_at: string;
   updated_at?: string;
+}
+
+export interface ApiCategory {
+  id: number;
+  name: string;
+  description?: string;
+  slug?: string;
+}
+
+export interface ApiRelationship {
+  buyer_id?: number;
+  buyer_name?: string;
+  buyer_phone?: string;
+  buyer_email?: string;
+  id: number;
+  seller_id: number;
+  seller_name: string;
+  status: string;
+  created_at: string;
 }
 
 export interface ApiOrderItem {
@@ -79,30 +134,7 @@ export interface ApiOrder {
   sourcing_notes?: string;
   items: ApiOrderItem[];
   created_at: string;
-  updated_at: string;
-}
-
-export interface ApiRelationship {
-  id: number;
-  status: "pending" | "approved" | "denied";
-  requested_at: string;
-  seller_id?: number;
-  store_name?: string;
-  store_location?: string;
-  buyer_id?: number;
-  buyer_name?: string;
-  buyer_phone?: string;
-}
-
-export interface User {
-  id: number;
-  username: string;
-  full_name: string;
-  email: string;
-  role: "buyer" | "seller" | "admin";
-  phone_number: string;
-  is_email_verified: boolean;
-  date_joined: string;
+  updated_at?: string;
 }
 
 export interface RegisterPayload {
@@ -115,11 +147,10 @@ export interface RegisterPayload {
   business_type?: string;
   main_supplier?: string;
   shop_name?: string;
+  store_name?: string;
   shop_location?: string;
   categories?: string[];
 }
-
-// ── Auth ────────────────────────────────────────────────────────────────────
 
 class AuthAPI {
   async login(identifier: string, password: string): Promise<User> {
@@ -127,12 +158,10 @@ class AuthAPI {
       method: "POST",
       body: JSON.stringify({ identifier, password }),
     });
-
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
-      throw new Error(data.error || "Login failed. Please check your credentials.");
+      throw new ApiError(data.error || "Login failed.", response.status);
     }
-
     return response.json();
   }
 
@@ -141,406 +170,281 @@ class AuthAPI {
       method: "POST",
       body: JSON.stringify(payload),
     });
-
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
       const firstError = Object.values(data).flat()[0];
-      throw new Error(firstError || "Registration failed. Please try again.");
+      throw new ApiError(typeof firstError === "string" ? firstError : "Registration failed.", response.status);
     }
-
     return response.json();
   }
 
   async logout(): Promise<void> {
-    await fetchWithSession(`${API_BASE_URL}/accounts/logout/`, {
-      method: "POST",
-    });
+    await fetchWithSession(`${API_BASE_URL}/accounts/logout/`, { method: "POST" });
   }
 
   async me(): Promise<User | null> {
     const response = await fetchWithSession(`${API_BASE_URL}/accounts/me/`);
-    if (response.status === 403 || response.status === 401) {
-      return null;
-    }
-    if (!response.ok) {
-      return null;
-    }
+    if (response.status === 403 || response.status === 401) return null;
+    if (!response.ok) return null;
     return response.json();
   }
 }
-
 export const auth = new AuthAPI();
 
-// ── Sellers ───────────────────────────────────────────────────────────────────
-
-export interface ApiSeller {
-  id: number;
-  store_name: string;
-  store_description?: string;
-  location?: string;
-  categories?: string[];
-  approval_status: string;
-  is_live: boolean;
-  created_at: string;
-  user: User;
-}
-
-function unwrapDRFResults<T>(data: unknown): T[] {
-  // DRF Pagination (PageNumberPagination) => { count, next, previous, results: [] }
-  if (Array.isArray(data)) return data as T[];
-  if (data && typeof data === "object") {
-    const obj = data as { results?: unknown };
-    if (Array.isArray(obj.results)) return obj.results as T[];
+class ProductsAPI {
+  async list(params?: { seller?: number }): Promise<ApiProduct[]> {
+    const url = params?.seller ? `${API_BASE_URL}/products/?seller=${params.seller}` : `${API_BASE_URL}/products/`;
+    const response = await fetchWithSession(url);
+    return response.ok ? response.json() : [];
   }
-  return [];
-}
-
-export const sellers = {
-  async list(): Promise<ApiSeller[]> {
-    const response = await fetchWithSession(`${API_BASE_URL}/accounts/sellers/`);
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || "Failed to load sellers", response.status);
-    }
-    const data = await response.json().catch(() => ({}));
-    return unwrapDRFResults<ApiSeller>(data);
-  },
-
-  async get(id: number): Promise<ApiSeller> {
-    const response = await fetchWithSession(`${API_BASE_URL}/accounts/sellers/${id}/`);
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || "Failed to load seller", response.status);
-    }
-    return response.json();
-  },
-};
-
-// ── Categories ────────────────────────────────────────────────────────────────
-
-export interface ApiCategory {
-  id: number;
-  name: string;
-  slug: string;
-  description?: string;
-}
-
-export const categories = {
-  async list(): Promise<ApiCategory[]> {
-    const response = await fetchWithSession(`${API_BASE_URL}/products/categories/`);
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || "Failed to load categories", response.status);
-    }
-    const data = await response.json().catch(() => ({}));
-    return unwrapDRFResults<ApiCategory>(data);
-  },
-};
-
-
-// ── Products ──────────────────────────────────────────────────────────────────
-
-export const products = {
-  async list(params?: { seller?: number; category?: number; search?: string }): Promise<ApiProduct[]> {
-    const url = new URL(`${API_BASE_URL}/products/`);
-    if (params?.seller) url.searchParams.set("seller", String(params.seller));
-    if (params?.category) url.searchParams.set("category", String(params.category));
-    if (params?.search) url.searchParams.set("search", params.search);
-
-    const response = await fetchWithSession(url.toString());
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || "Failed to load products", response.status);
-    }
-    const data = await response.json().catch(() => ({}));
-    return unwrapDRFResults<ApiProduct>(data);
-  },
 
   async mine(): Promise<ApiProduct[]> {
     const response = await fetchWithSession(`${API_BASE_URL}/products/mine/`);
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || "Failed to load your products", response.status);
-    }
-    const data = await response.json().catch(() => ({}));
-    return unwrapDRFResults<ApiProduct>(data);
-  },
+    return response.ok ? response.json() : [];
+  }
 
-
-  async create(data: Omit<ApiProduct, "id" | "seller" | "created_at" | "updated_at">): Promise<ApiProduct> {
+  async create(productData: any): Promise<ApiProduct> {
     const response = await fetchWithSession(`${API_BASE_URL}/products/`, {
       method: "POST",
-      body: JSON.stringify(data),
+      body: JSON.stringify(productData),
     });
     if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || "Failed to create product", response.status);
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || "Failed to create product");
     }
     return response.json();
-  },
+  }
 
-  async update(id: number, data: Partial<ApiProduct>): Promise<ApiProduct> {
+  async update(id: number, productData: any): Promise<ApiProduct> {
     const response = await fetchWithSession(`${API_BASE_URL}/products/${id}/`, {
       method: "PATCH",
-      body: JSON.stringify(data),
+      body: JSON.stringify(productData),
     });
     if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || "Failed to update product", response.status);
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || "Failed to update product");
     }
     return response.json();
-  },
+  }
 
-  async remove(id: number): Promise<void> {
+  async delete(id: number): Promise<void> {
     const response = await fetchWithSession(`${API_BASE_URL}/products/${id}/`, {
       method: "DELETE",
     });
     if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || "Failed to delete product", response.status);
+      throw new Error("Failed to delete product");
     }
-  },
-};
+  }
+}
+export const products = new ProductsAPI();
 
-// ── Orders ────────────────────────────────────────────────────────────────────
-
-export const orders = {
-  async get(id: number): Promise<ApiOrder> {
-    const response = await fetchWithSession(`${API_BASE_URL}/orders/${id}/`);
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || "Failed to load order", response.status);
-    }
-    return response.json();
-  },
-
-  async create(data: {
-    seller_id?: number;
-    items: { product_id: number; quantity: number }[];
-    buyer_notes?: string;
-  }): Promise<ApiOrder> {
-    const response = await fetchWithSession(`${API_BASE_URL}/orders/`, {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || "Failed to create order", response.status);
-    }
-    return response.json();
-  },
-
-  async update(id: number, data: Partial<ApiOrder>): Promise<ApiOrder> {
-    const response = await fetchWithSession(`${API_BASE_URL}/orders/${id}/`, {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || "Failed to update order", response.status);
-    }
-    return response.json();
-  },
-
+class OrdersAPI {
   async list(): Promise<ApiOrder[]> {
     const response = await fetchWithSession(`${API_BASE_URL}/orders/`);
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || "Failed to load orders", response.status);
-    }
-    const data = await response.json().catch(() => ({}));
-    return unwrapDRFResults<ApiOrder>(data);
-  },
+    return response.ok ? response.json() : [];
+  }
 
   async sellerList(): Promise<ApiOrder[]> {
     const response = await fetchWithSession(`${API_BASE_URL}/orders/seller/`);
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || "Failed to load seller orders", response.status);
-    }
-    const data = await response.json().catch(() => ({}));
-    return unwrapDRFResults<ApiOrder>(data);
-  },
-
-
-  async cancel(id: number): Promise<{ message: string }> {
-    const response = await fetchWithSession(`${API_BASE_URL}/orders/${id}/cancel/`, {
-      method: "POST",
-    });
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || "Failed to cancel order", response.status);
-    }
-    return response.json();
-  },
+    return response.ok ? response.json() : [];
+  }
 
   async sellerLedger(): Promise<ApiOrder[]> {
-    const response = await fetchWithSession(`${API_BASE_URL}/orders/ledger/seller/`);
+    const response = await fetchWithSession(`${API_BASE_URL}/orders/ledger/`);
+    return response.ok ? response.json() : [];
+  }
+
+  async get(orderId: string): Promise<ApiOrder> {
+    const response = await fetchWithSession(`${API_BASE_URL}/orders/${orderId}/`);
+    if (!response.ok) throw new Error("Failed to fetch order");
+    return response.json();
+  }
+
+  async create(orderData: any): Promise<ApiOrder> {
+    const response = await fetchWithSession(`${API_BASE_URL}/orders/`, {
+      method: "POST",
+      body: JSON.stringify(orderData),
+    });
     if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || "Failed to load ledger", response.status);
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || "Failed to create order");
     }
-    const data = await response.json().catch(() => ({}));
-    return unwrapDRFResults<ApiOrder>(data);
-  },
+    return response.json();
+  }
+
+  async update(orderId: number, orderData: any): Promise<ApiOrder> {
+    const response = await fetchWithSession(`${API_BASE_URL}/orders/${orderId}/`, {
+      method: "PATCH",
+      body: JSON.stringify(orderData),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || "Failed to update order");
+    }
+    return response.json();
+  }
 
   async buyerDebts(): Promise<ApiOrder[]> {
     const response = await fetchWithSession(`${API_BASE_URL}/orders/debts/`);
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || "Failed to load debts", response.status);
-    }
-    const data = await response.json().catch(() => ({}));
-    return unwrapDRFResults<ApiOrder>(data);
-  },
+    return response.ok ? response.json() : [];
+  }
 
-
-  async recordPayment(id: number, data: {
-    amount: number;
-    payment_reference?: string;
-    payment_method?: string;
-  }): Promise<ApiOrder> {
-    const response = await fetchWithSession(`${API_BASE_URL}/orders/${id}/pay/`, {
+  async recordPayment(orderId: number, paymentData: any): Promise<any> {
+    const response = await fetchWithSession(`${API_BASE_URL}/orders/${orderId}/pay/`, {
       method: "POST",
-      body: JSON.stringify(data),
+      body: JSON.stringify(paymentData),
     });
     if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || "Failed to record payment", response.status);
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || "Failed to record payment");
     }
     return response.json();
-  },
-};
+  }
+}
+export const orders = new OrdersAPI();
 
-// ── Relationships ─────────────────────────────────────────────────────────────
+class CategoriesAPI {
+  async list(): Promise<ApiCategory[]> {
+    const response = await fetchWithSession(`${API_BASE_URL}/categories/`);
+    return response.ok ? response.json() : [];
+  }
+}
+export const categories = new CategoriesAPI();
 
-export const relationships = {
+class RelationshipsAPI {
+  async list(): Promise<ApiRelationship[]> {
+    const response = await fetchWithSession(`${API_BASE_URL}/relationships/`);
+    return response.ok ? response.json() : [];
+  }
+
   async mine(): Promise<ApiRelationship[]> {
-    const response = await fetchWithSession(`${API_BASE_URL}/accounts/relationships/`);
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || "Failed to load relationships", response.status);
-    }
-    const result = await response.json();
-    return result.relationships ?? [];
-  },
+    const response = await fetchWithSession(`${API_BASE_URL}/relationships/mine/`);
+    return response.ok ? response.json() : [];
+  }
 
-  async requestAccess(sellerId: number): Promise<{ message: string }> {
-    const response = await fetchWithSession(`${API_BASE_URL}/accounts/sellers/${sellerId}/request-access/`, {
+  async requestAccess(sellerId: number): Promise<any> {
+    const response = await fetchWithSession(`${API_BASE_URL}/relationships/`, {
       method: "POST",
+      body: JSON.stringify({ seller_id: sellerId }),
     });
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || "Failed to request access", response.status);
-    }
+    if (!response.ok) throw new Error("Failed to request access");
     return response.json();
-  },
+  }
 
-  async resolve(id: number, action: "approve" | "deny"): Promise<{ message: string }> {
-    const response = await fetchWithSession(`${API_BASE_URL}/accounts/relationships/${id}/${action}/`, {
+  async resolve(relationshipId: number, action: string): Promise<any> {
+    const response = await fetchWithSession(`${API_BASE_URL}/relationships/${relationshipId}/resolve/`, {
       method: "POST",
+      body: JSON.stringify({ action }),
     });
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || `Failed to ${action} buyer`, response.status);
-    }
+    if (!response.ok) throw new Error("Failed to resolve relationship");
     return response.json();
-  },
-};
+  }
+}
+export const relationships = new RelationshipsAPI();
 
-// ── Admin: Seller verification ──────────────────────────────────────────────
+class SellersAPI {
+  async list(): Promise<ApiSeller[]> {
+    const response = await fetchWithSession(`${API_BASE_URL}/accounts/sellers/`);
+    return response.ok ? response.json() : [];
+  }
 
-export const admin = {
-  async pendingSellers(): Promise<ApiSeller[]> {
+  async get(id: string): Promise<ApiSeller> {
+    const response = await fetchWithSession(`${API_BASE_URL}/accounts/sellers/${id}/`);
+    if (!response.ok) throw new Error("Failed to fetch seller");
+    return response.json();
+  }
+}
+export const sellers = new SellersAPI();
+
+class AdminAPI {
+  async dashboardMetrics(): Promise<any> {
+    const response = await fetchWithSession(`${API_BASE_URL}/admin/metrics/`);
+    return response.ok ? response.json() : null;
+  }
+
+  async pendingSellers(): Promise<any[]> {
     const response = await fetchWithSession(`${API_BASE_URL}/accounts/sellers/pending/`);
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || "Failed to load pending sellers", response.status);
-    }
-    return response.json();
-  },
+    return response.ok ? response.json() : [];
+  }
 
-  async approveSeller(id: number): Promise<{ message: string }> {
-    const response = await fetchWithSession(`${API_BASE_URL}/accounts/sellers/${id}/approve/`, {
-      method: "POST",
-    });
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || "Failed to approve seller", response.status);
-    }
-    return response.json();
-  },
-
-  async rejectSeller(id: number, note?: string): Promise<{ message: string }> {
-    const response = await fetchWithSession(`${API_BASE_URL}/accounts/sellers/${id}/reject/`, {
-      method: "POST",
-      body: JSON.stringify({ note }),
-    });
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || "Failed to reject seller", response.status);
-    }
-    return response.json();
-  },
+  async orderList(status?: string): Promise<any[]> {
+    const url = status ? `${API_BASE_URL}/admin/orders/?status=${status}` : `${API_BASE_URL}/admin/orders/`;
+    const response = await fetchWithSession(url);
+    return response.ok ? response.json() : [];
+  }
 
   async userList(role?: string): Promise<User[]> {
-    const url = new URL(`${API_BASE_URL}/accounts/users/`);
-    if (role) url.searchParams.set("role", role);
-    const response = await fetchWithSession(url.toString());
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || "Failed to load users", response.status);
-    }
-    const data = await response.json().catch(() => ({}));
-    return unwrapDRFResults<User>(data);
-  },
-
-
-  async orderList(status?: string): Promise<ApiOrder[]> {
-    const url = new URL(`${API_BASE_URL}/orders/admin/`);
-    if (status) url.searchParams.set("status", status);
-    const response = await fetchWithSession(url.toString());
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(data.error || "Failed to load orders", response.status);
-    }
-    const data = await response.json().catch(() => ({}));
-    return unwrapDRFResults<ApiOrder>(data);
-  },
-
-};
-
-// ── Generic API helpers ───────────────────────────────────────────────────────
-
-export async function apiGet<T>(path: string): Promise<T> {
-  const response = await fetchWithSession(`${API_BASE_URL}${path}`);
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(data.error || `GET ${path} failed`);
+    const url = role ? `${API_BASE_URL}/admin/users/?role=${role}` : `${API_BASE_URL}/admin/users/`;
+    const response = await fetchWithSession(url);
+    return response.ok ? response.json() : [];
   }
-  return response.json();
+
+  async approveSeller(sellerId: number): Promise<any> {
+    const response = await fetchWithSession(`${API_BASE_URL}/accounts/sellers/pending/${sellerId}/approve/`, { method: "POST" });
+    return response.ok ? response.json() : null;
+  }
+
+  async rejectSeller(sellerId: number): Promise<any> {
+    const response = await fetchWithSession(`${API_BASE_URL}/accounts/sellers/pending/${sellerId}/reject/`, { method: "POST" });
+    return response.ok ? response.json() : null;
+  }
+}
+export const admin = new AdminAPI();
+
+class FollowsAPI {
+  async list(): Promise<any[]> {
+    const response = await fetchWithSession(`${API_BASE_URL}/follows/`);
+    return response.ok ? response.json() : [];
+  }
+
+  async mine(): Promise<any[]> {
+    const response = await fetchWithSession(`${API_BASE_URL}/follows/mine/`);
+    return response.ok ? response.json() : [];
+  }
+
+  async follow(sellerId: number): Promise<any> {
+    const response = await fetchWithSession(`${API_BASE_URL}/follows/`, {
+      method: "POST",
+      body: JSON.stringify({ seller_id: sellerId }),
+    });
+    if (!response.ok) throw new Error("Failed to follow seller");
+    return response.json();
+  }
+
+  async unfollow(sellerId: number): Promise<any> {
+    const response = await fetchWithSession(`${API_BASE_URL}/follows/${sellerId}/`, { method: "DELETE" });
+    if (!response.ok) throw new Error("Failed to unfollow seller");
+    return response.json();
+  }
+}
+export const follows = new FollowsAPI();
+
+export interface CommunityStats {
+  members: number;
+  stores: number;
+  products: number;
+  cities: number;
 }
 
-export async function apiPost<T>(path: string, body: unknown): Promise<T> {
-  const response = await fetchWithSession(`${API_BASE_URL}${path}`, {
-    method: "POST",
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(data.error || `POST ${path} failed`);
-  }
-  return response.json();
+export interface CommunityMember {
+  id: number;
+  name: string;
+  role: "Seller" | "Buyer";
+  verified: boolean;
+  location: string;
+  joined: string;
+  avatar: string | null;
 }
 
-export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
-  const response = await fetchWithSession(`${API_BASE_URL}${path}`, {
-    method: "PATCH",
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(data.error || `PATCH ${path} failed`);
-  }
-  return response.json();
+export interface CommunityActivityData {
+  stats: CommunityStats;
+  recent_members: CommunityMember[];
 }
+
+class CommunityAPI {
+  async activity(): Promise<CommunityActivityData | null> {
+    const response = await fetchWithSession(`${API_BASE_URL}/accounts/community/`);
+    return response.ok ? response.json() : null;
+  }
+}
+export const community = new CommunityAPI();

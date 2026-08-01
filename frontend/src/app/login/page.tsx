@@ -90,7 +90,7 @@ export default function LoginPage() {
           </Link>
         </div>
 
-        <Button type="submit" size="md" className="w-full" loading={loading}>
+        <Button type="submit" className="w-full bg-amber-500 text-[#0a1f10] font-bold hover:bg-amber-600" size="md" className="w-full" loading={loading}>
           Sign In
         </Button>
       </form>

@@ -5,7 +5,7 @@ accounts/admin.py — Users, seller stores, buyer profiles, relationships.
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.html import format_html
-from .models import CustomUser, BuyerProfile, SellerProfile, BuyerSellerRelationship
+from .models import CustomUser, BuyerProfile, SellerProfile, BuyerStoreFollow
 
 # ── Admin site branding ───────────────────────────────────────────────────────
 
@@ -154,24 +154,24 @@ class BuyerProfileAdmin(admin.ModelAdmin):
         return obj.user.phone_number or '—'
 
 
-# ── BuyerSellerRelationship ───────────────────────────────────────────────────
+# ── Buyer Store Follows ───────────────────────────────────────────────────────
 
-@admin.action(description='✓ Approve selected access requests')
-def approve_access(modeladmin, request, queryset):
-    count = 0
-    for rel in queryset.filter(status='pending'):
-        rel.approve()
-        count += 1
-    modeladmin.message_user(request, f'{count} access request(s) approved.')
+@admin.register(BuyerStoreFollow)
+class BuyerStoreFollowAdmin(admin.ModelAdmin):
+    list_display = (
+        'buyer_name',
+        'store_name',
+        'created_at',
+    )
 
+    search_fields = (
+        'buyer__first_name',
+        'buyer__last_name',
+        'buyer__email',
+        'seller__store_name',
+    )
 
-@admin.register(BuyerSellerRelationship)
-class BuyerSellerRelationshipAdmin(admin.ModelAdmin):
-    list_display  = ('buyer_name', 'store_name', 'status_badge', 'requested_at', 'resolved_at')
-    list_filter   = ('status',)
-    search_fields = ('buyer__first_name', 'buyer__last_name', 'seller__store_name')
-    ordering      = ('-requested_at',)
-    actions       = [approve_access]
+    ordering = ('-created_at',)
 
     @admin.display(description='Buyer')
     def buyer_name(self, obj):
@@ -180,16 +180,3 @@ class BuyerSellerRelationshipAdmin(admin.ModelAdmin):
     @admin.display(description='Store')
     def store_name(self, obj):
         return obj.seller.store_name
-
-    @admin.display(description='Status')
-    def status_badge(self, obj):
-        styles = {
-            'approved': ('background:#dcfce7;color:#15803d', '✓ Approved'),
-            'pending':  ('background:#fef9c3;color:#a16207', '⏳ Pending'),
-            'denied':   ('background:#fee2e2;color:#b91c1c', '✗ Denied'),
-        }
-        style, label = styles.get(obj.status, ('', obj.status))
-        return format_html(
-            '<span style="display:inline-block;padding:2px 10px;border-radius:999px;'
-            'font-size:12px;font-weight:600;{}">{}</span>', style, label
-        )

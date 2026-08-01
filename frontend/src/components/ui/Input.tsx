@@ -14,25 +14,25 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && <label className="text-label">{label}</label>}
         <div className="relative">
           {icon && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
               {icon}
             </div>
           )}
           <input
             ref={ref}
             className={cn(
-              "w-full rounded-lg border border-slate-700 bg-slate-900/50 px-4 py-2 text-slate-100 placeholder-slate-500 transition-all duration-200",
-              "focus:border-brand-gold focus:bg-slate-900 focus:ring-1 focus:ring-brand-gold/50 focus:outline-none",
+              "flex h-11 w-full rounded-md border border-dark-accent bg-dark-secondary px-4 text-sm text-slate-200 placeholder:text-slate-500 transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 focus-visible:ring-offset-dark-primary",
               "disabled:cursor-not-allowed disabled:opacity-50",
-              "read-only:cursor-default read-only:bg-slate-900/30",
+              "read-only:cursor-default read-only:bg-dark-tertiary",
               icon && "pl-10",
-              error && "border-error focus:ring-error/50",
+              error && "border-error focus-visible:ring-error",
               className
             )}
             {...props}
           />
         </div>
-        {error && <p className="text-xs text-error">{error}</p>}
+        {error && <p className="mt-1.5 text-xs text-error">{error}</p>}
       </div>
     );
   }

@@ -67,9 +67,10 @@ class SellerProfile(models.Model):
     Wholesaler store profile. Requires admin approval before going live.
     """
     APPROVAL_CHOICES = [
-        ('pending',  'Pending review'),
-        ('approved', 'Approved — live'),
-        ('rejected', 'Rejected'),
+        ('pending',    'Pending review'),
+        ('approved',   'Approved — live'),
+        ('rejected',   'Rejected'),
+        ('needs_info', 'Needs more information'),
     ]
 
     user              = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='seller_profile')
@@ -79,9 +80,14 @@ class SellerProfile(models.Model):
     categories        = models.JSONField(default=list, blank=True)
 
     # Approval flow
-    approval_status   = models.CharField(max_length=10, choices=APPROVAL_CHOICES, default='pending', db_index=True)
-    approval_note     = models.TextField(blank=True, help_text="Admin note shown to seller on rejection")
-    approved_at       = models.DateTimeField(null=True, blank=True)
+    approval_status        = models.CharField(max_length=12, choices=APPROVAL_CHOICES, default='pending', db_index=True)
+    approval_note          = models.TextField(blank=True, help_text="Admin note shown to seller on rejection or needs_info")
+    approved_at            = models.DateTimeField(null=True, blank=True)
+    approved_by            = models.ForeignKey(
+        CustomUser, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='approved_sellers', help_text="Admin who approved this seller"
+    )
+    submitted_for_review_at = models.DateTimeField(null=True, blank=True, help_text="When seller was submitted or resubmitted for review")
 
     # Legacy — kept for backwards compatibility
     is_verified       = models.BooleanField(default=False)
@@ -93,16 +99,33 @@ class SellerProfile(models.Model):
     def is_live(self):
         return self.approval_status == 'approved'
 
-    def approve(self):
+    def approve(self, by_user=None):
         self.approval_status = 'approved'
         self.is_verified     = True
         self.approved_at     = timezone.now()
-        self.save(update_fields=["approval_status", "is_verified", "approved_at"])
+        self.approved_by     = by_user
+        update_fields = ["approval_status", "is_verified", "approved_at"]
+        if by_user:
+            update_fields.append("approved_by")
+        self.save(update_fields=update_fields)
 
     def reject(self, note: str = ""):
         self.approval_status = 'rejected'
         self.approval_note   = note
         self.save(update_fields=["approval_status", "approval_note"])
+
+    def needs_more_info(self, note: str = ""):
+        """Mark as needs_info so seller can update and resubmit."""
+        self.approval_status = 'needs_info'
+        self.approval_note   = note
+        self.save(update_fields=["approval_status", "approval_note"])
+
+    def resubmit_for_review(self):
+        """Seller has updated their info — put back in pending."""
+        self.approval_status        = 'pending'
+        self.approval_note          = ''
+        self.submitted_for_review_at = timezone.now()
+        self.save(update_fields=["approval_status", "approval_note", "submitted_for_review_at"])
 
     def __str__(self):
         return f"{self.store_name} [{self.approval_status}]"
@@ -146,3 +169,32 @@ class BuyerSellerRelationship(models.Model):
         self.note        = note
         self.resolved_at = timezone.now()
         self.save(update_fields=["status", "note", "resolved_at"])
+
+
+
+class BuyerStoreFollow(models.Model):
+    """
+    Social-style relationship.
+    Buyers follow stores to discover products and receive updates.
+    """
+
+    buyer = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='followed_stores'
+    )
+
+    seller = models.ForeignKey(
+        SellerProfile,
+        on_delete=models.CASCADE,
+        related_name='followers'
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('buyer', 'seller')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.buyer} follows {self.seller.store_name}"

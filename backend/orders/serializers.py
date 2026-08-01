@@ -6,7 +6,6 @@ Serializers for orders and order items.
 
 from django.db import transaction
 from rest_framework import serializers
-from accounts.models import BuyerSellerRelationship
 from accounts.permissions import is_verified_buyer
 from .models import Order, OrderItem
 from products.models import Product
@@ -118,15 +117,6 @@ class OrderCreateSerializer(serializers.Serializer):
             if store.approval_status != "approved":
                 raise serializers.ValidationError(
                     f"'{product.name}' belongs to a seller that is not approved."
-                )
-
-            if not BuyerSellerRelationship.objects.filter(
-                buyer=user,
-                seller=store,
-                status="approved",
-            ).exists():
-                raise serializers.ValidationError(
-                    f"You must be approved by {store.store_name} before ordering."
                 )
 
             if product.stock_quantity < quantity:

@@ -100,7 +100,7 @@ export default function FulfillOrderPage() {
       setOrder(updatedOrder);
 
       if (newStatus === "cancelled") {
-        router.push("/seller/orders");
+        router.push("/seller/dashboard/orders");
       }
     } catch (err) {
       console.error("Update error:", err);
@@ -131,7 +131,7 @@ export default function FulfillOrderPage() {
         <div className="bg-red-50 border border-red-200 p-6 rounded-2xl text-center text-red-700">
           <AlertCircle className="mx-auto mb-2" />
           <p className="font-bold">{error || "Failed to load order"}</p>
-          <Button variant="secondary" className="mt-4" onClick={() => router.push("/seller/orders")}>
+          <Button variant="secondary" className="mt-4" onClick={() => router.push("/seller/dashboard/orders")}>
             Back to Orders
           </Button>
         </div>

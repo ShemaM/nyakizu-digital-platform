@@ -116,7 +116,18 @@ export default function NewListPage() {
       if (sellerId) {
         const draft = await offlineDB.getDraft(sellerId);
         if (draft) {
-          if (Array.isArray(draft.items)) setItems(draft.items as LineItem[]);
+          if (Array.isArray(draft.items)) {
+              const mappedItems: LineItem[] = draft.items.map((di: any) => {
+                const prod = availableProducts.find(p => p.id === di.product_id);
+                return {
+                  productId: di.product_id,
+                  name: prod ? prod.name : "Unknown Product",
+                  price: prod ? (typeof prod.price === "string" ? parseFloat(prod.price) : prod.price) : 0,
+                  qty: di.quantity || di.qty || 1
+                };
+              });
+              setItems(mappedItems);
+            }
           if (typeof draft.buyer_notes === "string") setSourcingNotes(draft.buyer_notes);
         }
       }

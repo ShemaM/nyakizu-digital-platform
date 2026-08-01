@@ -65,7 +65,7 @@ export function EmptyState({
       {action && (
         <div className="mt-6">
           <Button
-            variant={action.variant || "primary"}
+            variant={action.variant === "primary" ? "default" : action.variant || "default"}
             onClick={action.onClick}
             size="sm"
           >

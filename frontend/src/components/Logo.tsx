@@ -13,7 +13,6 @@ const sizeMap = {
 
 export function Logo({ size = "md", inverted = false, ...props }: LogoProps) {
   const dimension = sizeMap[size];
-  const textColor = inverted ? "#ffffff" : "#0a1f10";
   const accentColor = "#C8860A";
 
   return (

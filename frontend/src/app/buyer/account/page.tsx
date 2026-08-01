@@ -83,7 +83,7 @@ export default function BuyerAccount() {
                   <p className="font-semibold text-white">Sign Out</p>
                   <p className="text-sm text-slate-400">End your current session</p>
                 </div>
-                <Button variant="danger" size="sm" className="gap-2">
+                <Button variant="destructive" size="sm" className="gap-2">
                   <LogOut className="w-4 h-4" />
                   Sign Out
                 </Button>

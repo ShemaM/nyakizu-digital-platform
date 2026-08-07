@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Still a static public/sw.js — see scripts/build-sw.mjs — so it
+        // needs these headers manually. app/manifest.ts, by contrast, is a
+        // Next.js route and sets its own Content-Type/caching automatically.
         source: "/sw.js",
         headers: [
           {
@@ -24,19 +27,6 @@ const nextConfig: NextConfig = {
           {
             key: "Content-Type",
             value: "application/javascript; charset=utf-8",
-          },
-        ],
-      },
-      {
-        source: "/manifest.webmanifest",
-        headers: [
-          {
-            key: "Content-Type",
-            value: "application/manifest+json",
-          },
-          {
-            key: "Cache-Control",
-            value: "public, max-age=0,must-revalidate",
           },
         ],
       },

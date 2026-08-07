@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { useAuth } from "@/lib/auth-context";
+import { DJANGO_ADMIN_URL } from "@/lib/api";
 
 /**
  * Where Django's LOGIN_REDIRECT_URL lands after a Google sign-in.
@@ -24,12 +25,12 @@ export default function GoogleDonePage() {
         router.replace("/login?error=google");
         return;
       }
-      const home =
-        user.role === "seller"
-          ? "/seller/dashboard"
-          : user.role === "admin"
-          ? "/admin/verify"
-          : "/buyer";
+      if (user.role === "admin") {
+        // Different origin — a client-side router.replace can't take them there.
+        window.location.href = DJANGO_ADMIN_URL;
+        return;
+      }
+      const home = user.role === "seller" ? "/seller/dashboard" : "/buyer";
       router.replace(home);
     });
   }, [refetch, router]);

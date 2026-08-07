@@ -59,9 +59,13 @@ class OrderSerializer(serializers.ModelSerializer):
             'total_price', 'final_total', 'amount_paid', 'balance',
             'payment_reference', 'payment_method',
             'delivery_address', 'buyer_notes', 'sourcing_notes',
+            'is_flagged', 'flag_reason', 'flagged_at',
             'items', 'status_history', 'created_at', 'updated_at',
         )
-        read_only_fields = ('id', 'buyer', 'seller', 'total_price', 'created_at', 'updated_at', 'balance')
+        read_only_fields = (
+            'id', 'buyer', 'seller', 'total_price', 'created_at', 'updated_at', 'balance',
+            'is_flagged', 'flag_reason', 'flagged_at',  # set only via the flag/unflag endpoints
+        )
 
 
 class OrderCreateSerializer(serializers.Serializer):

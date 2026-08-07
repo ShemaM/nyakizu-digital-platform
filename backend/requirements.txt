@@ -10,3 +10,14 @@ Pillow==10.4.0
 requests>=2.34
 PyJWT>=2.8
 cryptography>=41.0
+
+# Production: WSGI server, Postgres driver, DATABASE_URL parsing, static file serving
+gunicorn==23.0.0
+psycopg2-binary==2.9.10
+dj-database-url==2.3.0
+whitenoise==6.8.2
+
+# Production: persistent media storage (avatars, product photos) — S3-compatible,
+# targets Cloudflare R2. Inactive unless R2_BUCKET_NAME is set (see settings.py).
+django-storages==1.14.6
+boto3==1.43.66

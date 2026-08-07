@@ -36,8 +36,8 @@ class OrderStatusEventInline(TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(ModelAdmin):
-    list_display = ('id', 'buyer', 'status', 'total_price', 'created_at')
-    list_filter = ('status',)
+    list_display = ('id', 'buyer', 'status', 'total_price', 'is_flagged', 'created_at')
+    list_filter = ('status', 'is_flagged')
     search_fields = ('buyer__username',)
     list_select_related = ('buyer',)
     inlines = [OrderItemInline, OrderStatusEventInline]

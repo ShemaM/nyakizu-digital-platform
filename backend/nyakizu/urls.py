@@ -11,6 +11,7 @@ from django.contrib import admin
 from django.urls import path, include
 
 from .admin_metrics_view import AdminMetricsView
+from .csrf_view import CsrfCookieView
 
 urlpatterns = [
     # Django admin panel — useful for managing data during development
@@ -20,6 +21,7 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
 
     # App-level REST API routes
+    path('api/csrf/', CsrfCookieView.as_view(), name='csrf'),
     path('api/accounts/', include('accounts.urls')),
     path('api/products/', include('products.urls')),
     path('api/orders/', include('orders.urls')),

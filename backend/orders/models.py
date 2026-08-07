@@ -78,6 +78,14 @@ class Order(models.Model):
     # Notes from seller (e.g. "had to source from another supplier")
     sourcing_notes = models.TextField(blank=True)
 
+    # Admin escalation — flagged for review (dispute, suspected fraud, a
+    # cancellation that needs a human look, etc). Deliberately just a flag,
+    # not a full dispute-ticket system: gives admins a way to mark and find
+    # orders that need attention without building out a whole workflow.
+    is_flagged = models.BooleanField(default=False, db_index=True)
+    flag_reason = models.TextField(blank=True)
+    flagged_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

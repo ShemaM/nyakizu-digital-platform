@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Component, ErrorInfo, ReactNode } from "react";
+import { Component, ErrorInfo, ReactNode } from "react";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 import { Button } from "./Button";
 
@@ -72,20 +72,20 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
       // Default error UI
       return (
-        <div className="min-h-screen bg-surface flex items-center justify-center p-4">
+        <div className="min-h-screen bg-dark-primary flex items-center justify-center p-4">
           <div className="max-w-md w-full">
-            <div className="bg-white rounded-2xl border border-red-100 shadow-lg p-8">
+            <div className="bg-white rounded-2xl border border-error/20 shadow-lg p-8">
               {/* Error icon */}
-              <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <AlertTriangle size={32} className="text-red-500" />
+              <div className="w-16 h-16 bg-error/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <AlertTriangle size={32} className="text-error" />
               </div>
 
               {/* Error message */}
-              <div className="text-center mb-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-2">
+              <div className="mb-6">
+                <h2 className="mb-2 text-center text-lg font-bold text-text-primary sm:text-xl">
                   Something went wrong
                 </h2>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-text-secondary">
                   We encountered an unexpected error. This has been logged and our team will look into it.
                 </p>
               </div>
@@ -93,11 +93,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               {/* Error details (development only) */}
               {process.env.NODE_ENV === "development" && this.state.error && (
                 <details className="mb-6">
-                  <summary className="text-xs font-bold text-gray-500 uppercase tracking-wide cursor-pointer mb-2">
+                  <summary className="text-xs font-bold text-slate-500 uppercase tracking-wide cursor-pointer mb-2">
                     Error Details (Development)
                   </summary>
-                  <div className="bg-gray-50 rounded-lg p-4 overflow-auto max-h-48 text-xs font-mono text-gray-700">
-                    <p className="font-bold text-red-600 mb-2">
+                  <div className="bg-slate-900 rounded-lg p-4 overflow-auto max-h-48 text-xs font-mono text-slate-300">
+                    <p className="font-bold text-error mb-2">
                       {this.state.error.toString()}
                     </p>
                     {this.state.errorInfo && (
@@ -130,11 +130,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             </div>
 
             {/* Support link */}
-            <p className="text-center text-xs text-gray-500 mt-4">
+            <p className="text-center text-xs text-slate-500 mt-4">
               Need help?{" "}
               <a
                 href="mailto:support@nyakizu.co.ke"
-                className="text-blue-600 hover:underline"
+                className="text-info hover:underline"
               >
                 Contact Support
               </a>
@@ -156,14 +156,14 @@ interface SimpleErrorFallbackProps {
 
 export function SimpleErrorFallback({ error, resetError }: SimpleErrorFallbackProps) {
   return (
-    <div className="bg-red-50 border border-red-200 rounded-lg p-4 my-4">
+    <div className="bg-error/10 border border-error/30 rounded-lg p-4 my-4">
       <div className="flex items-start gap-3">
-        <AlertTriangle size={20} className="text-red-500 shrink-0 mt-0.5" />
+        <AlertTriangle size={20} className="text-error shrink-0 mt-0.5" />
         <div className="flex-1">
-          <h3 className="text-sm font-bold text-red-900 mb-1">
+          <h3 className="text-sm font-bold text-error mb-1">
             Something went wrong
           </h3>
-          <p className="text-xs text-red-700 mb-3">
+          <p className="text-xs text-text-secondary mb-3">
             {error.message || "An unexpected error occurred"}
           </p>
           <Button

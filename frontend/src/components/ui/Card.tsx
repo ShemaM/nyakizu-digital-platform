@@ -3,20 +3,30 @@ import { cn } from "@/lib/cn";
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: "default" | "elevated" | "outlined";
+  /** Adds a hover lift + shadow bloom for cards that are themselves a click target (e.g. wrapped in a Link). */
+  interactive?: boolean;
 }
 
 const Card = forwardRef<HTMLDivElement, CardProps>(
-  ({ className, variant = "default", ...props }, ref) => {
+  ({ className, variant = "default", interactive = false, ...props }, ref) => {
     const variants = {
-      default: "rounded-xl bg-slate-900/50 border border-slate-800/50 shadow-sm backdrop-blur-sm",
-      elevated: "rounded-xl bg-slate-900/80 border border-slate-700/50 shadow-lg backdrop-blur-md",
-      outlined: "rounded-xl bg-transparent border border-slate-700 shadow-none",
+      default:
+        "bg-white border border-slate-100 rounded-2xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-8px_rgba(15,23,42,0.08)]",
+      elevated:
+        "bg-white border border-slate-100 rounded-2xl shadow-[0_2px_4px_rgba(15,23,42,0.06),0_16px_40px_-8px_rgba(15,23,42,0.14)]",
+      outlined: "bg-transparent border border-slate-200 rounded-2xl",
     };
 
     return (
       <div
         ref={ref}
-        className={cn(variants[variant], className)}
+        className={cn(
+          variants[variant],
+          "transition-all duration-200",
+          interactive &&
+            "cursor-pointer hover:-translate-y-0.5 hover:border-slate-200 hover:shadow-[0_4px_8px_rgba(15,23,42,0.06),0_20px_48px_-8px_rgba(15,23,42,0.18)]",
+          className
+        )}
         {...props}
       />
     );
@@ -29,7 +39,7 @@ const CardHeader = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("border-b border-slate-700/50 px-6 py-4 sm:px-8", className)}
+      className={cn("border-b border-slate-100 px-6 py-5 sm:px-8", className)}
       {...props}
     />
   )
@@ -41,7 +51,7 @@ const CardTitle = forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTMLHeadin
   ({ className, ...props }, ref) => (
     <h2
       ref={ref}
-      className={cn("text-xl font-bold text-slate-50", className)}
+      className={cn("text-lg font-bold text-text-primary sm:text-xl", className)}
       {...props}
     />
   )
@@ -53,7 +63,7 @@ const CardDescription = forwardRef<HTMLParagraphElement, React.HTMLAttributes<HT
   ({ className, ...props }, ref) => (
     <p
       ref={ref}
-      className={cn("text-sm text-slate-400 mt-1", className)}
+      className={cn("text-sm text-text-secondary mt-1", className)}
       {...props}
     />
   )
@@ -77,7 +87,7 @@ const CardFooter = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("border-t border-slate-700/50 flex gap-3 justify-between px-6 py-4 sm:px-8", className)}
+      className={cn("border-t border-slate-100 flex items-center justify-between gap-3 px-6 py-4 sm:px-8", className)}
       {...props}
     />
   )
@@ -85,4 +95,16 @@ const CardFooter = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
 
 CardFooter.displayName = "CardFooter";
 
-export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter };
+const CardSection = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn("px-6 py-4 sm:px-8", className)}
+      {...props}
+    />
+  )
+);
+
+CardSection.displayName = "CardSection";
+
+export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardSection, CardFooter };

@@ -28,12 +28,12 @@ export default function Error({
           </div>
 
           <div className="space-y-2">
-            <h1 className="text-4xl font-black text-white">Something went wrong</h1>
-            <p className="text-lg text-slate-400">
+            <h1 className="text-display font-black text-text-primary">Something went wrong</h1>
+            <p className="text-body-lg text-text-secondary">
               An unexpected error occurred. Please try again.
             </p>
             {error.message && (
-              <p className="text-sm text-slate-500 font-mono bg-slate-900/50 p-3 rounded-lg">
+              <p className="text-body text-text-muted font-mono bg-dark-secondary p-3 rounded-lg">
                 {error.message}
               </p>
             )}

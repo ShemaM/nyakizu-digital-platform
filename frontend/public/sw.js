@@ -54,8 +54,17 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // 1. Skip non-GET and cross-origin requests
+// 1. Skip non-GET and cross-origin requests
   if (request.method !== "GET" || url.origin !== self.location.origin) return;
+
+  // 1b. Avoid SW interfering with Next.js chunk / JS module fetches.
+  //     This prevents “module factory is not available” errors caused by stale caches.
+  //     Next serves JS chunks under /_next/static/* and sometimes as /_next/*.
+  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/_next/")) {
+    event.respondWith(fetch(request, { cache: "no-store" }));
+    return;
+  }
+
 
   // 2. API calls → network-only (never cache sensitive trade/ledger data)
   if (url.pathname.startsWith("/api/")) {

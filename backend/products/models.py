@@ -69,8 +69,7 @@ class Product(models.Model):
     stock_quantity = models.PositiveIntegerField(default=0)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='available')
 
-    # Optional image URL (we store a URL string for simplicity in this version)
-    image_url = models.URLField(blank=True)
+    image = models.ImageField(upload_to='products/', null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -1,0 +1,119 @@
+{% extends 'admin/base.html' %}
+{% load i18n unfold %}
+
+{% block content %}
+<div class="space-y-6">
+
+    {% component "unfold/components/title.html" %}{% trans "Platform overview" %}{% endcomponent %}
+
+    {# ── KPI cards ──────────────────────────────────────────────────────── #}
+    {# Icon chip colors reuse the exact classes unfold's own label.html ships #}
+    {# (info=blue, success=green, warning=orange, danger=red) so they're      #}
+    {# guaranteed present in unfold's compiled CSS bundle.                    #}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% component "unfold/components/card.html" with title="Total users" %}
+            <div class="flex items-center gap-4">
+                <div class="w-11 h-11 shrink-0 rounded-default flex items-center justify-center bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400">
+                    <span class="material-symbols-outlined">group</span>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-base-900 dark:text-base-100">{{ kpi_total_users }}</div>
+                    <div class="text-sm text-base-500 dark:text-base-400">{{ kpi_buyer_seller_split }}</div>
+                </div>
+            </div>
+        {% endcomponent %}
+
+        {% component "unfold/components/card.html" with title="Total orders" %}
+            <div class="flex items-center gap-4">
+                <div class="w-11 h-11 shrink-0 rounded-default flex items-center justify-center bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400">
+                    <span class="material-symbols-outlined">shopping_cart</span>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-base-900 dark:text-base-100">{{ kpi_total_orders }}</div>
+                    <div class="text-sm text-base-500 dark:text-base-400">All time</div>
+                </div>
+            </div>
+        {% endcomponent %}
+
+        {% component "unfold/components/card.html" with title="Gross merchandise value" %}
+            <div class="flex items-center gap-4">
+                <div class="w-11 h-11 shrink-0 rounded-default flex items-center justify-center bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">
+                    <span class="material-symbols-outlined">payments</span>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-base-900 dark:text-base-100">{{ kpi_gmv }}</div>
+                    <div class="text-sm text-base-500 dark:text-base-400">Non-cancelled orders</div>
+                </div>
+            </div>
+        {% endcomponent %}
+
+        {% component "unfold/components/card.html" with title="Active listings" %}
+            <div class="flex items-center gap-4">
+                <div class="w-11 h-11 shrink-0 rounded-default flex items-center justify-center bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400">
+                    <span class="material-symbols-outlined">inventory_2</span>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-base-900 dark:text-base-100">{{ kpi_active_listings }}</div>
+                    <div class="text-sm text-base-500 dark:text-base-400">Products marked available</div>
+                </div>
+            </div>
+        {% endcomponent %}
+
+        {% component "unfold/components/card.html" with title="Pending seller approvals" href=pending_sellers_url %}
+            <div class="flex items-center gap-4">
+                <div class="w-11 h-11 shrink-0 rounded-default flex items-center justify-center bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400">
+                    <span class="material-symbols-outlined">pending_actions</span>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-base-900 dark:text-base-100">{{ kpi_pending_approvals }}</div>
+                    <div class="text-sm text-base-500 dark:text-base-400">Awaiting review</div>
+                </div>
+            </div>
+        {% endcomponent %}
+
+        {% component "unfold/components/card.html" with title="Cancelled orders" %}
+            <div class="flex items-center gap-4">
+                <div class="w-11 h-11 shrink-0 rounded-default flex items-center justify-center bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400">
+                    <span class="material-symbols-outlined">cancel</span>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-base-900 dark:text-base-100">{{ kpi_cancelled_orders }}</div>
+                    <div class="text-sm text-base-500 dark:text-base-400">Last 90 days</div>
+                </div>
+            </div>
+        {% endcomponent %}
+    </div>
+
+    {# ── Charts ─────────────────────────────────────────────────────────── #}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {% component "unfold/components/card.html" with title="User growth (last 90 days)" %}
+            {% component "unfold/components/chart/line.html" with data=chart_user_growth %}{% endcomponent %}
+        {% endcomponent %}
+
+        {% component "unfold/components/card.html" with title="Orders placed (last 90 days)" %}
+            {% component "unfold/components/chart/line.html" with data=chart_order_volume %}{% endcomponent %}
+        {% endcomponent %}
+    </div>
+
+    <div class="grid grid-cols-1 gap-4">
+        {% component "unfold/components/card.html" with title="Catalog by category" %}
+            {% component "unfold/components/chart/bar.html" with data=chart_categories %}{% endcomponent %}
+        {% endcomponent %}
+    </div>
+
+    {# ── Tables ─────────────────────────────────────────────────────────── #}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {% component "unfold/components/table.html" with table=table_top_sellers title="Top sellers" %}{% endcomponent %}
+        {% component "unfold/components/table.html" with table=table_pending_sellers title="Pending seller approvals" %}{% endcomponent %}
+    </div>
+
+    <div class="grid grid-cols-1 gap-4">
+        {% component "unfold/components/table.html" with table=table_recent_orders title="Recent orders" %}{% endcomponent %}
+    </div>
+
+    {# ── Default app/model list, kept below the dashboard ─────────────────── #}
+    <div class="grow">
+        {% include "unfold/helpers/app_list_default.html" %}
+    </div>
+</div>
+{% endblock %}

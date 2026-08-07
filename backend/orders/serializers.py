@@ -6,9 +6,10 @@ Serializers for orders and order items.
 
 from django.db import transaction
 from rest_framework import serializers
-from accounts.models import BuyerSellerRelationship
 from accounts.permissions import is_verified_buyer
-from .models import Order, OrderItem
+from accounts.models import BuyerSellerRelationship
+from .models import Order, OrderItem, OrderStatusEvent
+from .notifications import record_status_event
 from products.models import Product
 
 
@@ -21,8 +22,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OrderItem
-        fields = ('id', 'product', 'product_name', 'quantity', 'unit_price', 'subtotal')
-        read_only_fields = ('id', 'unit_price')   # price is set automatically
+        fields = ('id', 'product', 'product_name', 'quantity', 'unit_price', 'subtotal', 'is_sourcing')
+        read_only_fields = ('id', 'unit_price', 'is_sourcing')   # set automatically at creation
 
     def get_subtotal(self, obj):
         return obj.subtotal()
@@ -34,20 +35,33 @@ class OrderItemCreateSerializer(serializers.Serializer):
     quantity = serializers.IntegerField(min_value=1)
 
 
+class OrderStatusEventSerializer(serializers.ModelSerializer):
+    """One row of an order's status history — powers the buyer-facing tracker."""
+
+    class Meta:
+        model = OrderStatusEvent
+        fields = ('status', 'created_at')
+        read_only_fields = fields
+
+
 class OrderSerializer(serializers.ModelSerializer):
     """Full order representation including all line items."""
 
     items = OrderItemSerializer(many=True, read_only=True)
     buyer_username = serializers.CharField(source='buyer.username', read_only=True)
+    balance = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    status_history = OrderStatusEventSerializer(source='status_events', many=True, read_only=True)
 
     class Meta:
         model = Order
         fields = (
-            'id', 'buyer', 'buyer_username', 'status',
-            'total_price', 'delivery_address', 'buyer_notes',
-            'items', 'created_at', 'updated_at',
+            'id', 'buyer', 'buyer_username', 'seller', 'status',
+            'total_price', 'final_total', 'amount_paid', 'balance',
+            'payment_reference', 'payment_method',
+            'delivery_address', 'buyer_notes', 'sourcing_notes',
+            'items', 'status_history', 'created_at', 'updated_at',
         )
-        read_only_fields = ('id', 'buyer', 'total_price', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'buyer', 'seller', 'total_price', 'created_at', 'updated_at', 'balance')
 
 
 class OrderCreateSerializer(serializers.Serializer):
@@ -97,6 +111,23 @@ class OrderCreateSerializer(serializers.Serializer):
                 "Create one order per seller. Multi-seller orders are not enabled yet."
             )
 
+        first_product = next(iter(products_by_id.values()))
+        try:
+            seller_store = first_product.seller.seller_profile
+        except Exception:
+            raise serializers.ValidationError(
+                "This product does not belong to an approved seller store."
+            )
+
+        is_approved_buyer = BuyerSellerRelationship.objects.filter(
+            buyer=user, seller=seller_store, status="approved"
+        ).exists()
+        if not is_approved_buyer:
+            raise serializers.ValidationError(
+                "You must be approved by this seller before placing an order. "
+                "Request access from their storefront first."
+            )
+
         for product_id, quantity in totals_by_product.items():
             product = products_by_id[product_id]
 
@@ -117,16 +148,12 @@ class OrderCreateSerializer(serializers.Serializer):
                     f"'{product.name}' belongs to a seller that is not approved."
                 )
 
-            if not BuyerSellerRelationship.objects.filter(
-                buyer=user,
-                seller=store,
-                status="approved",
-            ).exists():
-                raise serializers.ValidationError(
-                    f"You must be approved by {store.store_name} before ordering."
-                )
-
-            if product.stock_quantity < quantity:
+            # Zero-stock products are listed as "can be sourced" (see
+            # Product.availability_label) — buyers are invited to order them
+            # anyway and the seller sources them specially, so only a
+            # *partial* shortfall (some stock, just not enough) is a hard
+            # block here.
+            if 0 < product.stock_quantity < quantity:
                 raise serializers.ValidationError(
                     f"Not enough stock for '{product.name}'. "
                     f"Available: {product.stock_quantity}, requested: {quantity}."
@@ -152,25 +179,39 @@ class OrderCreateSerializer(serializers.Serializer):
 
             for item_data in items_data:
                 product = Product.objects.select_for_update().get(id=item_data['product_id'])
+                quantity = item_data['quantity']
+                is_sourcing = product.stock_quantity == 0
 
-                # Re-check stock inside the transaction so concurrent orders cannot oversell.
-                if product.stock_quantity < item_data['quantity']:
+                # Re-check stock inside the transaction so concurrent orders cannot
+                # oversell — a zero-stock item is a sourcing request (allowed), but
+                # a partial shortfall discovered just now is still a hard block.
+                if 0 < product.stock_quantity < quantity:
                     raise serializers.ValidationError(
                         f"Not enough stock for '{product.name}'. "
-                        f"Available: {product.stock_quantity}, requested: {item_data['quantity']}."
+                        f"Available: {product.stock_quantity}, requested: {quantity}."
                     )
 
                 OrderItem.objects.create(
                     order=order,
                     product=product,
-                    quantity=item_data['quantity'],
+                    quantity=quantity,
                     unit_price=product.price,
+                    is_sourcing=is_sourcing,
                 )
 
-                product.stock_quantity -= item_data['quantity']
-                if product.stock_quantity == 0:
-                    product.status = 'out_of_stock'
-                product.save(update_fields=['stock_quantity', 'status', 'updated_at'])
+                if not is_sourcing:
+                    product.stock_quantity -= quantity
+                    if product.stock_quantity == 0:
+                        product.status = 'out_of_stock'
+                    product.save(update_fields=['stock_quantity', 'status', 'updated_at'])
+
+            # Set seller from first item's product
+            first_item = OrderItem.objects.filter(order=order).first()
+            if first_item and first_item.product:
+                order.seller = first_item.product.seller
+                order.save(update_fields=['seller'])
 
             order.calculate_total()
+
+        record_status_event(order, order.status)
         return order

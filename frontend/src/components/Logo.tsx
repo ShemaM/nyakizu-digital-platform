@@ -3,6 +3,8 @@ import { SVGProps } from "react";
 interface LogoProps extends SVGProps<SVGSVGElement> {
   size?: "sm" | "md" | "lg";
   inverted?: boolean;
+  /** Override the mark's color — defaults to brand blue. Used on the warm-toned landing page. */
+  color?: string;
 }
 
 const sizeMap = {
@@ -11,10 +13,9 @@ const sizeMap = {
   lg: 64,
 };
 
-export function Logo({ size = "md", inverted = false, ...props }: LogoProps) {
+export function Logo({ size = "md", inverted = false, color, ...props }: LogoProps) {
   const dimension = sizeMap[size];
-  const textColor = inverted ? "#ffffff" : "#0a1f10";
-  const accentColor = "#C8860A";
+  const accentColor = color ?? "#2563EB";
 
   return (
     <svg

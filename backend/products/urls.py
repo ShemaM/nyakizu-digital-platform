@@ -8,6 +8,7 @@ All paths are relative to /api/products/ (set in root urls.py).
 from django.urls import path
 from .views import (
     CategoryListView,
+    CategoryDetailView,
     ProductListView,
     ProductDetailView,
     MyProductsView,
@@ -18,4 +19,5 @@ urlpatterns = [
     path('<int:pk>/', ProductDetailView.as_view(), name='product-detail'),
     path('mine/', MyProductsView.as_view(), name='my-products'),
     path('categories/', CategoryListView.as_view(), name='category-list'),
+    path('categories/<int:pk>/', CategoryDetailView.as_view(), name='category-detail'),
 ]

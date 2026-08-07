@@ -121,8 +121,10 @@ add_paragraph('The login and onboarding flows are straightforward with clear err
 add_section_heading('3. Code Design Analysis')
 add_subheading('Architecture')
 add_paragraph('The backend follows a layered monolith architecture implemented with Django and Django REST Framework. The frontend uses Next.js App Router with React and TypeScript. The separation of frontend and backend via REST endpoints supports a clear API boundary but remains a single deployable application per layer (not microservices).')
+
+add_paragraph('The frontend architecture for the seller experience is being evolved into a guided, progressive workflow. The main Seller Dashboard acts as a dynamic workspace, conditionally rendering content based on the seller\'s approval status and onboarding progress. This approach aims to reduce cognitive load and provide clear next steps for the user.')
 add_subheading('Modularity')
-add_paragraph('The codebase is organized into domain apps (`accounts`, `products`, `orders`) which provide a good separation of concerns. Frontend concerns (layout, API client, components) are modularized. Business logic is currently mixed into serializers (notably `orders/serializers.py`), reducing reusability and making unit testing harder. A service-layer refactor is recommended for complex operations.')
+add_paragraph('The codebase is organized into domain apps (`accounts`, `products`, `orders`) which provide a good separation of concerns. Frontend concerns (layout, API client, components) are modularized, with the Seller Dashboard now orchestrating several smaller, state-dependent components for onboarding and summary views. Business logic is currently mixed into serializers (notably `orders/serializers.py`), reducing reusability and making unit testing harder. A service-layer refactor is recommended for complex operations.')
 add_subheading('Scalability')
 add_paragraph('Data access patterns use Django ORM with joins on related tables (e.g., SellerOrderList using items__product__seller). These patterns scale with proper indexing but may require pagination tuning, DB indices on foreign keys, and sharding or caching for high order throughput. Offline sync design will also influence scalability due to idempotency and reconciliation requirements.')
 add_subheading('Maintainability')

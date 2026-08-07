@@ -1,59 +1,102 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { Container, Section } from "@/components/layouts";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { DashboardLayout } from "@/components/layouts";
-import { Badge } from "@/components/ui/Badge";
-import { TrendingUp, Users, Zap } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { PageSkeleton } from "@/components/ui/LoadingState";
+import { TrendingUp, Users, Zap, RefreshCw } from "lucide-react";
+import { admin, fmtKES, ApiError, type AdminMetrics } from "@/lib/api";
 
 export default function AdminAnalytics() {
-  const metrics = [
-    {
-      period: "Last 7 days",
-      newUsers: 42,
-      transactions: 234,
-      volume: "KES 1.2M",
-    },
-    {
-      period: "Last 30 days",
-      newUsers: 156,
-      transactions: 892,
-      volume: "KES 4.8M",
-    },
+  const [metrics, setMetrics] = useState<AdminMetrics | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const load = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await admin.dashboardMetrics();
+      setMetrics(data);
+    } catch (err) {
+      console.error("Failed to load analytics:", err);
+      setError(err instanceof ApiError ? err.message : "Failed to load analytics.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout title="Overview">
+        <PageSkeleton showKPIs listCount={0} />
+      </DashboardLayout>
+    );
+  }
+
+  if (error || !metrics) {
+    return (
+      <DashboardLayout title="Overview">
+        <div className="flex flex-col items-center justify-center h-[50vh] gap-3 text-center px-4">
+          <p className="text-sm text-text-muted">{error || "Live data isn't available yet."}</p>
+          <Button onClick={load} size="sm" variant="outline">
+            <RefreshCw size={14} className="mr-1.5" /> Retry
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  const periods = [
+    { title: "Last 7 days", data: metrics.last_7_days },
+    { title: "Last 30 days", data: metrics.last_30_days },
   ];
 
   return (
-    <DashboardLayout title="Analytics">
+    <DashboardLayout title="Overview">
       <Section spacing="md">
         <Container size="xl" className="space-y-6">
-          <h2 className="text-2xl font-bold text-white">Platform Analytics</h2>
+          <div>
+            <h2 className="text-title-lg font-bold text-text-primary">Platform Overview</h2>
+            <p className="text-body text-text-muted mt-1">
+              {metrics.total_users} people on the platform · {metrics.total_orders} orders total · {fmtKES(metrics.total_volume)} lifetime volume
+            </p>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {metrics.map(({ period, newUsers, transactions, volume }) => (
-              <Card key={period}>
+            {periods.map(({ title, data }) => (
+              <Card key={title}>
                 <CardHeader>
-                  <CardTitle className="text-lg">{period}</CardTitle>
+                  <CardTitle className="text-title">{title}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-brand-gold" />
-                        <span className="text-slate-400">New Users</span>
+                        <Users className="w-4 h-4 text-role" />
+                        <span className="text-body text-text-muted">New people</span>
                       </div>
-                      <span className="font-bold text-white">{newUsers}</span>
+                      <span className="font-bold text-text-primary">{data.new_users}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-brand-gold" />
-                        <span className="text-slate-400">Transactions</span>
+                        <Zap className="w-4 h-4 text-role" />
+                        <span className="text-body text-text-muted">Orders placed</span>
                       </div>
-                      <span className="font-bold text-white">{transactions}</span>
+                      <span className="font-bold text-text-primary">{data.transactions}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-brand-gold" />
-                        <span className="text-slate-400">Trade Volume</span>
+                        <TrendingUp className="w-4 h-4 text-role" />
+                        <span className="text-body text-text-muted">Trade volume</span>
                       </div>
-                      <span className="font-bold text-brand-gold text-lg">{volume}</span>
+                      <span className="font-bold text-role text-title">{fmtKES(data.volume)}</span>
                     </div>
                   </div>
                 </CardContent>

@@ -17,8 +17,8 @@ interface EmptyStateProps {
 }
 
 const DEFAULT_ICON_SIZE = 32;
-const DEFAULT_ICON_COLOR = "text-blue-400";
-const DEFAULT_ICON_BG = "bg-blue-50";
+const DEFAULT_ICON_COLOR = "text-role";
+const DEFAULT_ICON_BG = "bg-role-soft";
 
 export function EmptyState({
   icon: Icon,
@@ -31,7 +31,7 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "bg-white rounded-2xl border border-gray-100 p-12 text-center shadow-sm",
+        "rounded-2xl border border-slate-100 bg-white p-12 text-center shadow-sm",
         "animate-fade-in-up",
         className
       )}
@@ -52,10 +52,12 @@ export function EmptyState({
         </div>
       )}
 
-      <p className="text-sm font-bold text-gray-800">{title}</p>
+      <h3 className="text-sm font-bold text-text-primary sm:text-base">
+        {title}
+      </h3>
 
       {description && (
-        <p className="text-xs text-gray-400 mt-2 leading-relaxed max-w-md mx-auto">
+        <p className="mx-auto mt-2 max-w-md text-left text-xs leading-relaxed text-text-secondary">
           {description}
         </p>
       )}
@@ -63,7 +65,7 @@ export function EmptyState({
       {action && (
         <div className="mt-6">
           <Button
-            variant={action.variant || "primary"}
+            variant={action.variant === "primary" ? "default" : action.variant || "default"}
             onClick={action.onClick}
             size="sm"
           >
@@ -85,7 +87,7 @@ export function NoDataEmptyState({ className, onActionClick }: PreConfiguredEmpt
   return (
     <EmptyState
       icon={
-        <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <span className="text-3xl">📭</span>
         </div>
       }
@@ -105,7 +107,7 @@ export function NoSuppliersEmptyState({ className, onActionClick }: PreConfigure
   return (
     <EmptyState
       icon={
-        <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <div className="w-14 h-14 bg-info/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <span className="text-3xl">🏪</span>
         </div>
       }
@@ -125,7 +127,7 @@ export function NoOrdersEmptyState({ className, onActionClick }: PreConfiguredEm
   return (
     <EmptyState
       icon={
-        <div className="w-14 h-14 bg-violet-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <div className="w-14 h-14 bg-violet-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <span className="text-3xl">📦</span>
         </div>
       }
@@ -145,7 +147,7 @@ export function NoProductsEmptyState({ className, onActionClick }: PreConfigured
   return (
     <EmptyState
       icon={
-        <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <div className="w-14 h-14 bg-success/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <span className="text-3xl">🏷️</span>
         </div>
       }
@@ -165,7 +167,7 @@ export function NoPaymentsEmptyState({ className, onActionClick }: PreConfigured
   return (
     <EmptyState
       icon={
-        <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <div className="w-14 h-14 bg-warning/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <span className="text-3xl">💳</span>
         </div>
       }
@@ -185,7 +187,7 @@ export function SearchResultsEmptyState({ className, onActionClick }: PreConfigu
   return (
     <EmptyState
       icon={
-        <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <span className="text-3xl">🔍</span>
         </div>
       }

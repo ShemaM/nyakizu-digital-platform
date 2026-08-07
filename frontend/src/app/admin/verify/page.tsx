@@ -1,126 +1,214 @@
 "use client";
 
-import { useState } from "react";
-import { MapPin, CheckCircle, XCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { MapPin, CheckCircle, XCircle, Store, Clock, RefreshCw } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardSection } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
-import { SELLERS } from "@/lib/dummy-data";
+import { useToast } from "@/components/ui/Toast";
+import { admin, type ApiSeller, ApiError } from "@/lib/api";
 
-type Decision = { sellerId: string; action: "approve" | "reject" } | null;
+interface Decision {
+  sellerId: number;
+  action: "approve" | "reject";
+}
 
 export default function AdminVerifyPage() {
-  const [statuses, setStatuses] = useState<Record<string, string>>(
-    Object.fromEntries(SELLERS.map((s) => [s.id, s.approvalStatus]))
-  );
-  const [pending, setPending] = useState<Decision>(null);
+  const { toast } = useToast();
+  const [sellers, setSellers] = useState<ApiSeller[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState<Decision | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const pendingSellers = SELLERS.filter((s) => statuses[s.id] === "pending");
-  const decidedSellers = SELLERS.filter((s) => statuses[s.id] !== "pending");
+  useEffect(() => {
+    loadSellers();
+  }, []);
 
-  function decide(sellerId: string, action: "approve" | "reject") {
+  const loadSellers = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await admin.pendingSellers();
+      setSellers(data);
+    } catch (err) {
+      console.error("Failed to load sellers:", err);
+      setError(err instanceof ApiError ? err.message : "Failed to load sellers.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const decide = (sellerId: number, action: "approve" | "reject") => {
     setPending({ sellerId, action });
-  }
+  };
 
-  function confirmDecision() {
+  const confirmDecision = async () => {
     if (!pending) return;
     setSaving(true);
-    setTimeout(() => {
-      setStatuses((prev) => ({
-        ...prev,
-        [pending.sellerId]: pending.action === "approve" ? "approved" : "rejected",
-      }));
-      setPending(null);
+    try {
+      if (pending.action === "approve") {
+        await admin.approveSeller(pending.sellerId);
+      } else {
+        await admin.rejectSeller(pending.sellerId);
+      }
+      // Remove the decided seller from the list
+      setSellers((prev) => prev.filter((s) => s.id !== pending.sellerId));
+    } catch (err) {
+      console.error("Action failed:", err);
+      toast(err instanceof ApiError ? err.message : "Action failed. Please try again.", "error");
+    } finally {
       setSaving(false);
-    }, 700);
-  }
+      setPending(null);
+    }
+  };
+
+  const pendingSellers = sellers.filter((s) => s.approval_status === "pending");
+  const rejectedSellers = sellers.filter((s) => s.approval_status === "rejected");
 
   const pendingDecision = pending
-    ? SELLERS.find((s) => s.id === pending.sellerId)
+    ? sellers.find((s) => s.id === pending.sellerId)
     : null;
 
-  return (
-    <AppShell title={`Seller Verification (${pendingSellers.length})`}>
-      {pendingSellers.length === 0 && (
-        <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3">
-          <p className="text-sm font-medium text-green-700">All seller applications reviewed.</p>
+  const formatDate = (iso: string) => {
+    return new Date(iso).toLocaleDateString("en-KE", {
+      day: "numeric", month: "short", year: "numeric",
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <AppShell title="Approve Sellers">
+        <div className="flex items-center justify-center h-[60vh]">
+          <div className="text-text-muted text-sm">Loading sellers...</div>
         </div>
-      )}
+      </AppShell>
+    );
+  }
 
-      {pendingSellers.map((seller) => (
-        <Card key={seller.id}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-gray-900 text-sm">{seller.storeName}</span>
-                <Badge status="pending" />
-              </div>
-              <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
-                <MapPin size={12} /> {seller.location}
-              </div>
-              <p className="text-xs text-gray-500 mt-1 line-clamp-2">{seller.description}</p>
-              <p className="text-xs text-gray-400 mt-1">Applied: {seller.joinedDate}</p>
-            </div>
+  if (error) {
+    return (
+      <AppShell title="Approve Sellers">
+        <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+          <p className="text-error text-sm">{error}</p>
+          <Button onClick={loadSellers} size="sm">
+            <RefreshCw size={14} className="mr-1" /> Retry
+          </Button>
+        </div>
+      </AppShell>
+    );
+  }
+
+  return (
+    <AppShell title={`Approve Sellers (${pendingSellers.length})`}>
+      {/* Pending Section */}
+      <div className="space-y-4 p-4 sm:p-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-label">Waiting for Approval</h2>
+          <Button variant="outline" size="sm" onClick={loadSellers}>
+            <RefreshCw size={14} className="mr-1" /> Refresh
+          </Button>
+        </div>
+
+        {pendingSellers.length === 0 && (
+          <div className="bg-success/10 border border-success/20 rounded-xl px-4 py-6 text-center">
+            <CheckCircle size={24} className="text-success mx-auto mb-2" />
+            <p className="text-sm font-medium text-success">All sellers reviewed.</p>
+            <p className="text-xs text-text-muted mt-1">No sellers waiting for approval.</p>
           </div>
+        )}
 
-          {seller.categories.length > 0 && (
+        {pendingSellers.map((seller) => (
+          <Card key={seller.id}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <Store size={16} className="text-role" />
+                  <span className="font-semibold text-gray-900 text-sm">{seller.store_name}</span>
+                  <Badge variant="warning" className="text-xs">Pending</Badge>
+                </div>
+                <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                  <MapPin size={12} /> {seller.location || "No location"}
+                </div>
+                {seller.store_description && (
+                  <p className="text-xs text-gray-500 mt-1 line-clamp-2">{seller.store_description}</p>
+                )}
+                <div className="flex items-center gap-1 mt-1 text-xs text-gray-400">
+                  <Clock size={11} /> Applied: {formatDate(seller.created_at)}
+                </div>
+              </div>
+            </div>
+
+            {seller.categories && seller.categories.length > 0 && (
+              <CardSection>
+                <p className="text-xs text-gray-400 mb-1.5">Categories</p>
+                <div className="flex flex-wrap gap-1">
+                  {seller.categories.map((cat) => (
+                    <span key={cat} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                      {cat}
+                    </span>
+                  ))}
+                </div>
+              </CardSection>
+            )}
+
             <CardSection>
-              <p className="text-xs text-gray-400 mb-1.5">Categories</p>
-              <div className="flex flex-wrap gap-1">
-                {seller.categories.map((cat) => (
-                  <span key={cat} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{cat}</span>
-                ))}
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="flex-1 text-red-600 border-red-200 hover:bg-red-50"
+                  onClick={() => decide(seller.id, "reject")}
+                  disabled={saving}
+                  loading={saving}
+                >
+                  <XCircle size={14} className="mr-1" /> Reject
+                </Button>
+                <Button
+                  size="sm"
+                  variant="role"
+                  className="flex-1"
+                  onClick={() => decide(seller.id, "approve")}
+                  disabled={saving}
+                  loading={saving}
+                >
+                  <CheckCircle size={14} className="mr-1" /> Approve
+                </Button>
               </div>
             </CardSection>
-          )}
+          </Card>
+        ))}
 
-          <CardSection>
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                className="flex-1 text-red-600 border-red-200 hover:bg-red-50"
-                onClick={() => decide(seller.id, "reject")}
-              >
-                <XCircle size={14} /> Reject
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                className="flex-1"
-                onClick={() => decide(seller.id, "approve")}
-              >
-                <CheckCircle size={14} /> Approve
-              </Button>
-            </div>
-          </CardSection>
-        </Card>
-      ))}
-
-      {decidedSellers.length > 0 && (
-        <section className="space-y-2 mt-4">
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-1">Previously reviewed</h2>
-          {decidedSellers.map((seller) => (
-            <Card key={seller.id} className="opacity-70">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-800">{seller.storeName}</span>
-                <Badge status={statuses[seller.id] as "approved" | "rejected"} />
-              </div>
-            </Card>
-          ))}
-        </section>
-      )}
+        {/* Rejected Section */}
+        {rejectedSellers.length > 0 && (
+          <section className="space-y-2 mt-6">
+            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-1">
+              Rejected ({rejectedSellers.length})
+            </h2>
+            {rejectedSellers.map((seller) => (
+              <Card key={seller.id} className="opacity-70">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-800">{seller.store_name}</span>
+                    <Badge variant="error" className="text-xs">Rejected</Badge>
+                  </div>
+                  <span className="text-xs text-gray-400">{formatDate(seller.created_at)}</span>
+                </div>
+              </Card>
+            ))}
+          </section>
+        )}
+      </div>
 
       <Dialog
         open={!!pending}
         title={pending?.action === "approve" ? "Approve this seller?" : "Reject this seller?"}
         message={
           pending?.action === "approve"
-            ? `${pendingDecision?.storeName} will go live and appear to buyers.`
-            : `${pendingDecision?.storeName} will be notified that their application was rejected.`
+            ? `${pendingDecision?.store_name} will go live and appear to buyers.`
+            : `${pendingDecision?.store_name} will be notified that their application was rejected.`
         }
         confirmLabel={pending?.action === "approve" ? "Yes, approve" : "Yes, reject"}
         variant={pending?.action === "reject" ? "danger" : "primary"}

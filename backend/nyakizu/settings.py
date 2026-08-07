@@ -14,6 +14,7 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(','
 
 # ── Applications ──────────────────────────────────────────────────────────────
 INSTALLED_APPS = [
+    'unfold',  # must precede django.contrib.admin — swaps in UnfoldAdminSite on ready()
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -53,7 +54,7 @@ ROOT_URLCONF = 'nyakizu.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -95,7 +96,120 @@ USE_TZ        = True
 # ── Static files ──────────────────────────────────────────────────────────────
 STATIC_URL = 'static/'
 
+# ── Media (user-uploaded files) ─────────────────────────────────────────────
+MEDIA_URL  = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ── Django admin (django-unfold theme) ─────────────────────────────────────────
+from django.urls import reverse_lazy
+
+UNFOLD = {
+    "SITE_TITLE": "Nyakizu Digital Market",
+    "SITE_HEADER": "Nyakizu Digital Market",
+    "SITE_SUBHEADER": "Platform Management",
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": True,
+    "COLORS": {
+        # Tailwind's `blue` scale — matches the platform's brand primary (#2563eb / blue-600)
+        "primary": {
+            "50":  "#eff6ff",
+            "100": "#dbeafe",
+            "200": "#bfdbfe",
+            "300": "#93c5fd",
+            "400": "#60a5fa",
+            "500": "#3b82f6",
+            "600": "#2563eb",
+            "700": "#1d4ed8",
+            "800": "#1e40af",
+            "900": "#1e3a8a",
+            "950": "#172554",
+        },
+    },
+    "DASHBOARD_CALLBACK": "nyakizu.admin_dashboard.dashboard_callback",
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": False,
+        "navigation": [
+            {
+                "title": "Overview",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Dashboard",
+                        "icon": "dashboard",
+                        "link": reverse_lazy("admin:index"),
+                    },
+                ],
+            },
+            {
+                "title": "Users & Approvals",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Users",
+                        "icon": "group",
+                        "link": reverse_lazy("admin:accounts_customuser_changelist"),
+                    },
+                    {
+                        "title": "Buyer profiles",
+                        "icon": "person",
+                        "link": reverse_lazy("admin:accounts_buyerprofile_changelist"),
+                    },
+                    {
+                        "title": "Seller stores",
+                        "icon": "storefront",
+                        "link": reverse_lazy("admin:accounts_sellerprofile_changelist"),
+                        "badge": "nyakizu.admin_dashboard.pending_sellers_badge",
+                    },
+                    {
+                        "title": "Buyer-seller relationships",
+                        "icon": "handshake",
+                        "link": reverse_lazy("admin:accounts_buyersellerrelationship_changelist"),
+                    },
+                    {
+                        "title": "Store follows",
+                        "icon": "favorite",
+                        "link": reverse_lazy("admin:accounts_buyerstorefollow_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Catalog",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Categories",
+                        "icon": "category",
+                        "link": reverse_lazy("admin:products_category_changelist"),
+                    },
+                    {
+                        "title": "Products",
+                        "icon": "inventory_2",
+                        "link": reverse_lazy("admin:products_product_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Orders & Finance",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Orders",
+                        "icon": "shopping_cart",
+                        "link": reverse_lazy("admin:orders_order_changelist"),
+                    },
+                    {
+                        "title": "Order status log",
+                        "icon": "history",
+                        "link": reverse_lazy("admin:orders_orderstatusevent_changelist"),
+                    },
+                ],
+            },
+        ],
+    },
+}
 
 # ── Django REST Framework ─────────────────────────────────────────────────────
 REST_FRAMEWORK = {
@@ -117,6 +231,7 @@ REST_FRAMEWORK = {
 # Allow both the default Next.js port (3000) and our custom port (3003)
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
+    'http://localhost:3001',
     'http://localhost:3003',
     'http://127.0.0.1:3000',
     'http://127.0.0.1:3003',
@@ -126,6 +241,7 @@ CORS_ALLOW_CREDENTIALS = True   # send session cookie back
 # ── CSRF ──────────────────────────────────────────────────────────────────────
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000',
+    'http://localhost:3001',
     'http://localhost:3003',
     'http://127.0.0.1:3000',
     'http://127.0.0.1:3003',
@@ -134,6 +250,12 @@ CSRF_TRUSTED_ORIGINS = [
 # ── Session cookies ───────────────────────────────────────────────────────────
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SECURE   = False  # set True in production (HTTPS only)
+
+# Without these, Django's default is a 2-week persistent session cookie —
+# a browser that logged into /admin/ once stays signed in for two weeks,
+# which reads as "no login required" the next time the tab is reopened.
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_AGE = 60 * 60 * 4  # 4 hours
 
 # ── Email (SMTP) ────────────────────────────────────────────────────────────
 # These are required for sending the verification email during registration.
@@ -156,18 +278,36 @@ AUTHENTICATION_BACKENDS = [
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
-LOGIN_REDIRECT_URL         = 'http://localhost:3000/'
-ACCOUNT_LOGOUT_REDIRECT_URL = 'http://localhost:3000/'
+# After Google finishes, land on a tiny frontend page that looks up the
+# fresh session and routes the user to their role's dashboard.
+LOGIN_REDIRECT_URL          = f'{FRONTEND_VERIFY_BASE_URL}/auth/google/done'
+ACCOUNT_LOGOUT_REDIRECT_URL = FRONTEND_VERIFY_BASE_URL
 
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
+        # Credentials come from .env — no DB SocialApp/Site row needed.
+        # Register the redirect URI in Google Cloud Console as:
+        #   <backend origin>/accounts/google/login/callback/
+        'APP': {
+            'client_id': config('GOOGLE_CLIENT_ID', default=''),
+            'secret':    config('GOOGLE_CLIENT_SECRET', default=''),
+            'key': '',
+        },
         'SCOPE': ['profile', 'email'],
         'AUTH_PARAMS': {'access_type': 'online'},
         'FETCH_USERINFO': True,
     }
 }
 
+# Send the user straight to Google on GET — no intermediate confirm page.
+SOCIALACCOUNT_LOGIN_ON_GET   = True
 SOCIALACCOUNT_AUTO_SIGNUP    = True
+
+# If someone registered with email/password and later uses Google with the
+# same address, sign them into that existing account instead of erroring.
+# Safe because Google only hands us verified email addresses.
+SOCIALACCOUNT_EMAIL_AUTHENTICATION              = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 ACCOUNT_SIGNUP_FIELDS        = ['email*', 'password1*', 'password2*']
 ACCOUNT_LOGIN_METHODS        = ['email']
 ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'http'

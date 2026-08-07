@@ -1,6 +1,8 @@
+"use client";
+
 import { ReactNode } from "react";
-import { Logo } from "@/components/Logo";
-import { Button } from "@/components/ui/Button";
+import { Check } from "lucide-react";
+import { motion } from "motion/react";
 import Link from "next/link";
 
 export interface AuthLayoutProps {
@@ -8,46 +10,102 @@ export interface AuthLayoutProps {
   title: string;
   subtitle?: string;
   alternate?: boolean;
+  /** Small caption under the card. Defaults to a generic privacy note. */
+  footnote?: string;
+  /** Optional heading shown in the dark panel above the trust points. */
+  panelHeadline?: ReactNode;
+  panelSubtitle?: string;
 }
+
+const TRUST_POINTS = [
+  "Works even when the network is down",
+  "No one else sees your stock or prices",
+  "Free for the community, forever",
+];
 
 export function AuthLayout({
   children,
   title,
   subtitle,
   alternate = false,
+  footnote = "Your data stays private",
+  panelHeadline,
+  panelSubtitle,
 }: AuthLayoutProps) {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
-      {/* Left: Branding & Message */}
-      <div className={`flex-1 flex flex-col justify-between p-6 sm:p-12 ${alternate ? "order-2" : "order-1"} bg-gradient-dark`}>
-        <Link href="/" className="inline-flex w-fit hover:opacity-80 transition-opacity">
-          <Logo size="md" inverted />
+      {/* Top/left: Branding & trust points — near-black + gold, matching the
+          homepage's identity. No `flex-1` on mobile: the panel sizes to its
+          content instead of claiming half the viewport, so the form below
+          never sits below the fold on a phone. */}
+      <div
+        className={`relative flex flex-col justify-center gap-6 overflow-hidden p-6 sm:p-10 lg:flex-1 lg:p-12 ${alternate ? "order-2" : "order-1"} bg-text-primary`}
+      >
+        <div
+          className="pointer-events-none absolute inset-0"
+          aria-hidden="true"
+          style={{
+            background:
+              "radial-gradient(ellipse 600px 400px at 90% -10%, rgba(200,134,10,0.18), transparent 60%)",
+          }}
+        />
+
+        <Link href="/" className="relative inline-flex items-center gap-2.5 w-fit hover:opacity-80 transition-opacity">
+          <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-brand-gold text-text-primary font-black text-lg shrink-0">
+            N
+          </span>
+          <span className="text-lg font-bold text-white tracking-tight">Nyakizu Market</span>
         </Link>
 
-        <div className="hidden lg:block space-y-4 max-w-md">
-          <h1 className="text-4xl font-extrabold text-white">
-            Structured trade, trusted ledger.
-          </h1>
-          <p className="text-lg text-slate-300">
-            Join traders in Nairobi managing orders, payments, and relationships with clarity.
-          </p>
-        </div>
+        {(panelHeadline || panelSubtitle) && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="relative space-y-2.5 max-w-md"
+          >
+            {panelHeadline && (
+              <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight text-white">{panelHeadline}</h1>
+            )}
+            {panelSubtitle && <p className="text-base leading-relaxed text-slate-300">{panelSubtitle}</p>}
+          </motion.div>
+        )}
 
-        <div className="hidden lg:flex items-center gap-2 text-sm text-slate-400">
-          <span className="inline-block w-2 h-2 rounded-full bg-brand-gold" />
-          <span>Offline-capable • Privacy-first • Community-built</span>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: "easeOut", delay: 0.1 }}
+          className="relative space-y-2.5"
+        >
+          {TRUST_POINTS.map((point) => (
+            <div key={point} className="flex items-center gap-2 text-base text-slate-200">
+              <Check className="h-4 w-4 shrink-0 text-brand-gold-light" aria-hidden="true" />
+              <span>{point}</span>
+            </div>
+          ))}
+        </motion.div>
       </div>
 
-      {/* Right: Form */}
-      <div className={`flex-1 flex items-center justify-center p-6 sm:p-12 ${alternate ? "order-1" : "order-2"} bg-dark-primary`}>
-        <div className="w-full max-w-sm space-y-6">
-          <div className="text-center lg:text-left space-y-2">
-            <h2 className="text-2xl font-bold text-white">{title}</h2>
-            {subtitle && <p className="text-slate-400">{subtitle}</p>}
-          </div>
+      {/* Bottom/right: Form */}
+      <div
+        className={`flex flex-1 items-center justify-center p-4 sm:p-8 lg:p-12 ${alternate ? "order-1" : "order-2"} bg-dark-secondary overflow-y-auto`}
+      >
+        <div className="w-full max-w-md py-8 sm:py-10">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut", delay: 0.1 }}
+            className="space-y-6 rounded-2xl border border-dark-accent bg-white p-7 shadow-xl sm:p-9"
+          >
+            <div className="space-y-1.5 text-center lg:text-left">
+              <h2 className="text-3xl font-extrabold text-text-primary sm:text-4xl">{title}</h2>
+              {subtitle && <p className="text-base text-text-secondary">{subtitle}</p>}
+            </div>
 
-          {children}
+            {children}
+          </motion.div>
+
+          <p className="mt-6 text-center text-sm text-text-muted">{footnote}</p>
         </div>
       </div>
     </div>

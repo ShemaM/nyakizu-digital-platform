@@ -1,4 +1,9 @@
 import type { NextConfig } from "next";
+
+// Same value src/lib/api.ts derives BACKEND_ORIGIN from — kept in sync by
+// reading the same env var rather than duplicating the URL.
+const BACKEND_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/api\/?$/, "");
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   reactCompiler: false, // temporarily disabled — Turbopack dev mode + React Compiler
@@ -7,6 +12,17 @@ const nextConfig: NextConfig = {
   // to production only if you still want the compiler's optimizations there.
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
+  },
+  async rewrites() {
+    // Proxies /api/* to the real Django backend so the browser only ever
+    // talks to this app's own origin — see the comment on API_BASE_URL in
+    // lib/api.ts for why (cross-site cookie blocking in Brave/Safari).
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${BACKEND_ORIGIN}/api/:path*`,
+      },
+    ];
   },
   async headers() {
     return [

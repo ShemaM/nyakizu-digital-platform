@@ -1,17 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { DashboardLayout } from "@/components/layouts";
+import { AppShell } from "@/components/AppShell";
+import { Container, Section } from "@/components/layouts";
+import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Dialog } from "@/components/ui/Dialog";
+import { ProgressBar } from "@/components/ui/ProgressBar";
+import { PageSkeleton } from "@/components/ui/LoadingState";
 import { orders, type ApiOrder, fmtKES, parsePrice, ApiError } from "@/lib/api";
-import { LoadingScreen } from "@/components/LoadingScreen";
-import { RefreshCw, Wallet, CheckCircle } from "lucide-react";
+import { useToast } from "@/components/ui/Toast";
+import { RefreshCw, Wallet, CheckCircle, TrendingUp, AlertCircle } from "lucide-react";
 
 export default function SellerLedger() {
+  const { toast } = useToast();
   const [ledgerOrders, setLedgerOrders] = useState<ApiOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +40,7 @@ export default function SellerLedger() {
       setLedgerOrders(data);
     } catch (err) {
       console.error("Failed to load ledger:", err);
-      setError(err instanceof ApiError ? err.message : "Failed to load ledger.");
+      setError(err instanceof ApiError ? err.message : "We could not load your payments.");
     } finally {
       setIsLoading(false);
     }
@@ -63,7 +68,7 @@ export default function SellerLedger() {
       await loadLedger();
     } catch (err) {
       console.error("Payment failed:", err);
-      alert(err instanceof ApiError ? err.message : "Payment failed.");
+      toast(err instanceof ApiError ? err.message : "Payment failed.", "error");
     } finally {
       setPaySaving(false);
     }
@@ -79,125 +84,128 @@ export default function SellerLedger() {
 
   if (isLoading) {
     return (
-      <DashboardLayout title="Payment Ledger">
-        <div className="flex items-center justify-center h-[60vh]">
-          <LoadingScreen />
-        </div>
-      </DashboardLayout>
+      <AppShell title="Payments">
+        <PageSkeleton showKPIs listCount={4} />
+      </AppShell>
     );
   }
 
   if (error) {
     return (
-      <DashboardLayout title="Payment Ledger">
-        <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+      <AppShell title="Payments">
+        <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
           <p className="text-error text-sm">{error}</p>
           <Button onClick={loadLedger} size="sm">Retry</Button>
         </div>
-      </DashboardLayout>
+      </AppShell>
     );
   }
 
-  return (
-    <DashboardLayout title="Payment Ledger">
-      <div className="space-y-6 p-4 sm:p-6">
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                Total Received
-              </p>
-              <p className="text-2xl font-bold text-brand-gold">{fmtKES(totalReceived)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                Outstanding
-              </p>
-              <p className="text-2xl font-bold text-error">{fmtKES(totalOwed)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                Orders
-              </p>
-              <p className="text-2xl font-bold text-white">{ledgerOrders.length}</p>
-            </CardContent>
-          </Card>
-        </div>
+  const STAT_CARDS = [
+    { label: "Total received", value: fmtKES(totalReceived), Icon: TrendingUp, color: "text-success", bg: "bg-success/12" },
+    { label: "Still owed to you", value: fmtKES(totalOwed), Icon: AlertCircle, color: "text-error", bg: "bg-error/12" },
+    { label: "Total orders", value: String(ledgerOrders.length), Icon: Wallet, color: "text-role", bg: "bg-role-soft" },
+  ];
 
-        {/* Transactions */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-white">Ledger</h2>
-            <Button variant="outline" size="sm" onClick={loadLedger}>
-              <RefreshCw size={14} className="mr-1" /> Refresh
-            </Button>
+  return (
+    <AppShell title="Payments">
+      <Section spacing="md">
+        <Container size="xl" className="space-y-8">
+          <SectionHeading
+            eyebrow="Payments"
+            title="Money owed to you"
+            description="Track what buyers owe you and record payments as they come in."
+            action={
+              <Button variant="outline" size="lg" onClick={loadLedger} className="gap-2">
+                <RefreshCw size={16} /> Refresh
+              </Button>
+            }
+          />
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {STAT_CARDS.map(({ label, value, Icon, color, bg }) => (
+              <Card key={label}>
+                <CardContent className="p-5 sm:p-6 flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${bg}`}>
+                    <Icon className={`w-6 h-6 ${color}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className={`text-xl sm:text-2xl font-black truncate ${color}`}>{value}</p>
+                    <p className="text-xs sm:text-sm font-semibold text-text-muted">{label}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
-          {ledgerOrders.length === 0 ? (
-            <div className="text-center py-12 text-slate-400">
-              <Wallet className="w-12 h-12 mx-auto mb-3 text-slate-600" />
-              <p className="text-sm">No ledger entries yet.</p>
-              <p className="text-xs mt-1">Orders will appear here once prices are locked.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {ledgerOrders.map((order) => {
-                const total = parsePrice(order.final_total ?? order.total_price);
-                const paid = parsePrice(order.amount_paid ?? 0);
-                const bal = parsePrice(order.balance ?? total - paid);
-                const isCleared = order.status === "cleared";
+          {/* Transactions */}
+          <div>
+            <SectionHeading title="All payments" description="Every order where the price is final and you're tracking payment." />
 
-                return (
-                  <Card key={order.id}>
-                    <CardContent className="pt-6">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1 flex-1">
-                          <div className="flex items-center gap-3">
-                            <h3 className="font-bold text-white">Order #{order.id}</h3>
-                            <Badge variant={isCleared ? "success" : order.status === "debt_active" ? "error" : "warning"} className="text-xs">
-                              {isCleared ? "Cleared" : order.status === "debt_active" ? "Debt" : "Locked"}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-slate-400">
-                            {order.buyer_username || "Unknown buyer"}
-                          </p>
-                          <div className="flex items-center gap-4 text-xs text-slate-500">
-                            <span>Total: {fmtKES(total)}</span>
-                            <span>Paid: {fmtKES(paid)}</span>
-                            {!isCleared && <span className="text-error font-bold">Balance: {fmtKES(bal)}</span>}
-                          </div>
-                          {order.payment_reference && (
-                            <p className="text-xs text-slate-500">
-                              Ref: {order.payment_reference}
+            {ledgerOrders.length === 0 ? (
+              <div className="bg-white border border-slate-100 rounded-2xl p-12 text-center text-text-muted flex flex-col items-center justify-center min-h-[260px]">
+                <Wallet className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                <p className="text-body font-bold text-text-secondary">No orders to track yet</p>
+                <p className="text-caption text-text-muted mt-1">Orders will show up here once you and the buyer agree on a final price.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {ledgerOrders.map((order) => {
+                  const total = parsePrice(order.final_total ?? order.total_price);
+                  const paid = parsePrice(order.amount_paid ?? 0);
+                  const bal = parsePrice(order.balance ?? total - paid);
+                  const isCleared = order.status === "cleared";
+                  const progress = total > 0 ? (paid / total) * 100 : 0;
+
+                  return (
+                    <Card key={order.id}>
+                      <CardContent className="p-5 sm:p-6">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                          <div className="space-y-1.5 flex-1 min-w-0">
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <h3 className="text-body font-bold text-text-primary">Order #{order.id}</h3>
+                              <Badge variant={isCleared ? "success" : order.status === "debt_active" ? "error" : "warning"}>
+                                {isCleared ? "Paid" : order.status === "debt_active" ? "Debt" : "Partial"}
+                              </Badge>
+                            </div>
+                            <p className="text-body text-text-secondary">
+                              {order.buyer_username || "Unknown buyer"}
                             </p>
-                          )}
+                            {!isCleared && <ProgressBar percent={progress} tone="warning" className="max-w-xs mt-2" />}
+                            <div className="flex items-center gap-4 text-caption text-text-muted mt-2">
+                              <span>Total: {fmtKES(total)}</span>
+                              <span>Paid: {fmtKES(paid)}</span>
+                              {!isCleared && <span className="text-error font-bold">Balance: {fmtKES(bal)}</span>}
+                            </div>
+                            {order.payment_reference && (
+                              <p className="text-caption text-text-muted">
+                                Ref: {order.payment_reference}
+                              </p>
+                            )}
+                          </div>
+                          <div className="shrink-0">
+                            {!isCleared && (
+                              <Button size="lg" onClick={() => openPay(order)} className="gap-1.5">
+                                <CheckCircle size={16} /> Record Payment
+                              </Button>
+                            )}
+                            {isCleared && (
+                              <Badge variant="success">
+                                <CheckCircle size={12} className="mr-1" /> Paid
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-right shrink-0">
-                          {!isCleared && (
-                            <Button size="sm" onClick={() => openPay(order)}>
-                              <CheckCircle size={14} className="mr-1" /> Record Payment
-                            </Button>
-                          )}
-                          {isCleared && (
-                            <Badge variant="success" className="text-xs">
-                              <CheckCircle size={12} className="mr-1" /> Paid
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </Container>
+      </Section>
 
       {/* Payment Dialog */}
       {payOrder && (
@@ -228,7 +236,7 @@ export default function SellerLedger() {
               <select
                 value={payMethod}
                 onChange={(e) => setPayMethod(e.target.value)}
-                className="w-full rounded-lg border border-slate-700 bg-slate-900/50 px-4 py-2 text-sm text-slate-100"
+                className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-text-primary"
               >
                 <option value="mpesa">M-Pesa</option>
                 <option value="cash">Cash</option>
@@ -238,6 +246,6 @@ export default function SellerLedger() {
           </div>
         </Dialog>
       )}
-    </DashboardLayout>
+    </AppShell>
   );
 }

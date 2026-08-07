@@ -5,7 +5,11 @@ accounts/admin.py — Users, seller stores, buyer profiles, relationships.
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.html import format_html
-from .models import CustomUser, BuyerProfile, SellerProfile, BuyerStoreFollow
+from unfold.admin import ModelAdmin
+from .models import (
+    CustomUser, BuyerProfile, SellerProfile, BuyerStoreFollow,
+    BuyerSellerRelationship,
+)
 
 # ── Admin site branding ───────────────────────────────────────────────────────
 
@@ -17,7 +21,7 @@ admin.site.index_title = "Platform Management"
 # ── CustomUser ────────────────────────────────────────────────────────────────
 
 @admin.register(CustomUser)
-class CustomUserAdmin(UserAdmin):
+class CustomUserAdmin(ModelAdmin, UserAdmin):
     list_display   = ('full_name_display', 'email', 'phone_number', 'role',
                       'email_verified_badge', 'is_active', 'date_joined')
     list_filter    = ('role', 'is_active', 'is_email_verified')
@@ -26,7 +30,7 @@ class CustomUserAdmin(UserAdmin):
 
     fieldsets = UserAdmin.fieldsets + (
         ('Nyakizu', {
-            'fields': ('role', 'phone_number', 'is_email_verified',
+            'fields': ('role', 'phone_number', 'avatar', 'is_email_verified',
                        'email_verify_token', 'email_verify_sent'),
         }),
     )
@@ -73,7 +77,7 @@ def reject_stores(modeladmin, request, queryset):
 # ── SellerProfile ─────────────────────────────────────────────────────────────
 
 @admin.register(SellerProfile)
-class SellerProfileAdmin(admin.ModelAdmin):
+class SellerProfileAdmin(ModelAdmin):
     list_display   = ('store_name', 'owner_name', 'owner_phone', 'owner_email',
                       'location', 'categories_display', 'status_badge', 'created_at')
     list_filter    = ('approval_status',)
@@ -82,6 +86,7 @@ class SellerProfileAdmin(admin.ModelAdmin):
     actions        = [approve_stores, reject_stores]
     ordering       = ('approval_status', '-created_at')
     readonly_fields = ('created_at', 'updated_at', 'approved_at', 'is_live')
+    list_select_related = ('user',)
 
     fieldsets = (
         ('Store details', {
@@ -137,13 +142,14 @@ class SellerProfileAdmin(admin.ModelAdmin):
 # ── BuyerProfile ──────────────────────────────────────────────────────────────
 
 @admin.register(BuyerProfile)
-class BuyerProfileAdmin(admin.ModelAdmin):
+class BuyerProfileAdmin(ModelAdmin):
     list_display   = ('buyer_name', 'buyer_phone', 'location', 'business_type',
                       'main_supplier', 'created_at')
     list_filter    = ('business_type',)
     search_fields  = ('user__first_name', 'user__last_name',
                       'user__phone_number', 'location')
     ordering       = ('-created_at',)
+    list_select_related = ('user',)
 
     @admin.display(description='Buyer')
     def buyer_name(self, obj):
@@ -157,7 +163,7 @@ class BuyerProfileAdmin(admin.ModelAdmin):
 # ── Buyer Store Follows ───────────────────────────────────────────────────────
 
 @admin.register(BuyerStoreFollow)
-class BuyerStoreFollowAdmin(admin.ModelAdmin):
+class BuyerStoreFollowAdmin(ModelAdmin):
     list_display = (
         'buyer_name',
         'store_name',
@@ -172,6 +178,27 @@ class BuyerStoreFollowAdmin(admin.ModelAdmin):
     )
 
     ordering = ('-created_at',)
+    list_select_related = ('buyer', 'seller')
+
+    @admin.display(description='Buyer')
+    def buyer_name(self, obj):
+        return obj.buyer.get_full_name() or obj.buyer.username
+
+    @admin.display(description='Store')
+    def store_name(self, obj):
+        return obj.seller.store_name
+
+
+# ── Buyer-Seller Relationships ────────────────────────────────────────────────
+
+@admin.register(BuyerSellerRelationship)
+class BuyerSellerRelationshipAdmin(ModelAdmin):
+    list_display  = ('buyer_name', 'store_name', 'status', 'requested_at', 'resolved_at')
+    list_filter   = ('status',)
+    search_fields = ('buyer__first_name', 'buyer__last_name', 'buyer__email',
+                      'seller__store_name')
+    ordering      = ('-requested_at',)
+    list_select_related = ('buyer', 'seller')
 
     @admin.display(description='Buyer')
     def buyer_name(self, obj):

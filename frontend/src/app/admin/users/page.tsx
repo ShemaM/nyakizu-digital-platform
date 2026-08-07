@@ -93,9 +93,9 @@ export default function AdminUsersPage() {
           ].map(({ label, value, icon: Icon }) => (
             <Card key={label}>
               <CardContent className="pt-6 text-center">
-                <Icon className="w-5 h-5 text-brand-gold mx-auto mb-2" />
-                <p className="text-2xl font-bold text-white">{value}</p>
-                <p className="text-xs text-slate-400">{label}</p>
+                <Icon className="w-5 h-5 text-role mx-auto mb-2" />
+                <p className="text-2xl font-bold text-text-primary">{value}</p>
+                <p className="text-xs text-text-muted">{label}</p>
               </CardContent>
             </Card>
           ))}
@@ -117,8 +117,8 @@ export default function AdminUsersPage() {
                 onClick={() => setRoleFilter(role)}
                 className={`px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-colors ${
                   roleFilter === role
-                    ? "bg-brand-gold text-dark-primary"
-                    : "bg-slate-800 text-slate-400 hover:text-white"
+                    ? "bg-slate-900 text-white"
+                    : "bg-slate-100 text-text-muted hover:text-text-primary"
                 }`}
               >
                 {role || "All"}
@@ -138,7 +138,7 @@ export default function AdminUsersPage() {
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-white">{user.full_name || user.username}</span>
+                      <span className="font-bold text-text-primary">{user.full_name || user.username}</span>
                       <Badge
                         variant={
                           user.role === "admin"
@@ -155,7 +155,7 @@ export default function AdminUsersPage() {
                         <Badge variant="success" className="text-xs">Verified</Badge>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-slate-400">
+                    <div className="flex items-center gap-3 text-xs text-text-muted">
                       <span className="flex items-center gap-1">
                         <Mail size={11} /> {user.email}
                       </span>
@@ -164,7 +164,7 @@ export default function AdminUsersPage() {
                       </span>
                     </div>
                   </div>
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-text-muted">
                     Joined {new Date(user.date_joined).toLocaleDateString("en-KE")}
                   </span>
                 </div>
@@ -172,8 +172,8 @@ export default function AdminUsersPage() {
             </Card>
           ))}
           {filtered.length === 0 && (
-            <div className="text-center py-12 text-slate-400">
-              <Users className="w-12 h-12 mx-auto mb-3 text-slate-600" />
+            <div className="text-center py-12 text-text-muted">
+              <Users className="w-12 h-12 mx-auto mb-3 text-slate-300" />
               <p className="text-sm">No users found.</p>
             </div>
           )}

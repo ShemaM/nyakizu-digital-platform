@@ -130,6 +130,11 @@ class OrderItem(models.Model):
     # Snapshot the price at the moment of purchase
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
 
+    # True when this line was placed against a zero-stock "can be sourced"
+    # product — the seller sources it specially rather than pulling from
+    # shelf stock, and may revise the final invoice total accordingly.
+    is_sourcing = models.BooleanField(default=False)
+
     def subtotal(self):
         """Returns quantity × unit_price for this line item."""
         return self.quantity * self.unit_price
@@ -137,3 +142,29 @@ class OrderItem(models.Model):
     def __str__(self):
         product_name = self.product.name if self.product else '(deleted product)'
         return f"{self.quantity}x {product_name} in Order #{self.order.id}"
+
+
+class OrderStatusEvent(models.Model):
+    """
+    Append-only log of every status an order has passed through.
+
+    Two jobs: gives the buyer-facing tracker real per-step timestamps
+    (Order.status alone only tells you the *current* stage), and is the
+    hook notifications.record_status_event() writes to before emailing —
+    one row per transition, so re-saving an order without changing its
+    status never double-sends a notification.
+    """
+
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name='status_events',
+    )
+    status = models.CharField(max_length=20, choices=Order.STATUS_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"Order #{self.order_id} -> {self.status} at {self.created_at}"

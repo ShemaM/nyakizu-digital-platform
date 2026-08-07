@@ -2,6 +2,7 @@
 orders/views.py
 """
 
+from decimal import Decimal, InvalidOperation
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -9,7 +10,19 @@ from django.db import transaction
 from django.db.models import Q
 from accounts.permissions import is_approved_seller, is_verified_buyer, is_admin_user
 from .models import Order, OrderItem
+from .notifications import record_status_event
 from .serializers import OrderSerializer, OrderCreateSerializer
+
+
+def _orders_for_serialization(queryset):
+    """
+    Attach the select_related/prefetch_related every OrderSerializer listing
+    needs — without it, each order re-queries buyer, items, each item's
+    product, and status_events individually (N+1 across the whole page).
+    """
+    return queryset.select_related("buyer", "seller").prefetch_related(
+        "items__product", "status_events",
+    )
 
 
 class OrderListCreateView(APIView):
@@ -26,7 +39,9 @@ class OrderListCreateView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        orders     = Order.objects.filter(buyer=request.user).order_by("-created_at")
+        orders = _orders_for_serialization(
+            Order.objects.filter(buyer=request.user).order_by("-created_at")
+        )
         serializer = OrderSerializer(orders, many=True)
         return Response(serializer.data)
 
@@ -59,9 +74,9 @@ class SellerOrderListView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        orders = Order.objects.filter(
-            seller=request.user
-        ).distinct().order_by("-created_at")
+        orders = _orders_for_serialization(
+            Order.objects.filter(seller=request.user).distinct().order_by("-created_at")
+        )
         serializer = OrderSerializer(orders, many=True, context={"request": request})
         return Response(serializer.data)
 
@@ -82,7 +97,13 @@ class OrderDetailView(generics.RetrieveUpdateAPIView):
         if is_admin_user(user):
             allowed_orders |= Q()
 
-        return Order.objects.filter(allowed_orders).distinct()
+        return _orders_for_serialization(Order.objects.filter(allowed_orders).distinct())
+
+    def perform_update(self, serializer):
+        old_status = serializer.instance.status
+        order = serializer.save()
+        if order.status != old_status:
+            record_status_event(order, order.status)
 
 
 class CancelOrderView(APIView):
@@ -127,6 +148,7 @@ class CancelOrderView(APIView):
             order.status = "cancelled"
             order.save(update_fields=["status", "updated_at"])
 
+        record_status_event(order, order.status)
         return Response({"message": "Order cancelled."})
 
 
@@ -146,10 +168,12 @@ class SellerLedgerView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        orders = Order.objects.filter(
-            seller=request.user,
-            status__in=["locked", "debt_active", "cleared"],
-        ).order_by("-created_at")
+        orders = _orders_for_serialization(
+            Order.objects.filter(
+                seller=request.user,
+                status__in=["locked", "debt_active", "cleared"],
+            ).order_by("-created_at")
+        )
 
         serializer = OrderSerializer(orders, many=True)
         return Response(serializer.data)
@@ -169,10 +193,12 @@ class BuyerDebtsView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        orders = Order.objects.filter(
-            buyer=request.user,
-            status__in=["locked", "debt_active"],
-        ).order_by("-created_at")
+        orders = _orders_for_serialization(
+            Order.objects.filter(
+                buyer=request.user,
+                status__in=["locked", "debt_active"],
+            ).order_by("-created_at")
+        )
 
         serializer = OrderSerializer(orders, many=True)
         return Response(serializer.data)
@@ -210,9 +236,15 @@ class RecordPaymentView(APIView):
             return Response({"error": "amount is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            amount = float(amount)
-        except (ValueError, TypeError):
+            # Go through str() first — Decimal(float) reproduces the float's
+            # binary rounding error (e.g. Decimal(1500.10) != Decimal("1500.10")),
+            # and amount_paid must stay exact for a money ledger.
+            amount = Decimal(str(amount))
+        except InvalidOperation:
             return Response({"error": "amount must be a number."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if amount <= 0:
+            return Response({"error": "amount must be greater than 0."}, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
             order = Order.objects.select_for_update().get(pk=order.pk)
@@ -227,6 +259,11 @@ class RecordPaymentView(APIView):
 
             order.save(update_fields=["amount_paid", "payment_reference", "payment_method", "status", "updated_at"])
 
+        # Every recorded payment is worth telling the buyer about, even if
+        # two partial payments both land on "debt_active" — unlike the other
+        # transitions this isn't gated on the status label actually changing.
+        record_status_event(order, order.status)
+
         serializer = OrderSerializer(order)
         return Response(serializer.data)
 
@@ -239,7 +276,7 @@ class AdminOrderListView(APIView):
     permission_classes = [permissions.IsAdminUser]
 
     def get(self, request):
-        orders_qs = Order.objects.all().select_related("buyer", "seller").prefetch_related("items").order_by("-created_at")
+        orders_qs = _orders_for_serialization(Order.objects.all()).order_by("-created_at")
         status_filter = request.query_params.get("status")
         if status_filter:
             orders_qs = orders_qs.filter(status=status_filter)

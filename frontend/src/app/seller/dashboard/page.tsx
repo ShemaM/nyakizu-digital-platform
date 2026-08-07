@@ -1,20 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { RefreshCw } from "lucide-react";
+import Link from "next/link";
+import { RefreshCw, ArrowRight } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { Container, Section } from "@/components/layouts";
+import { SectionHeading } from "@/components/ui/SectionHeading";
 import { PageSkeleton } from "@/components/ui/LoadingState";
 import { orders, products, relationships, ApiError, parsePrice } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
-// Import new simple sub-components
 import { SellerHeader } from "@/components/seller-dashboard/SellerHeader";
 import { ShopStats } from "@/components/seller-dashboard/ShopStats";
 import { QuickActions } from "@/components/seller-dashboard/QuickActions";
 import { RecentOrders } from "@/components/seller-dashboard/RecentOrders";
 import { ProductSummary } from "@/components/seller-dashboard/ProductSummary";
-import { BuyerSummary } from "@/components/seller-dashboard/BuyerSummary";
-import { MoneySummary } from "@/components/seller-dashboard/MoneySummary";
 
 export default function SellerDashboardPage() {
   const { user } = useAuth();
@@ -33,19 +33,18 @@ export default function SellerDashboardPage() {
       setIsLoading(true);
       setError(null);
 
-      // Concurrent data fetching from authentic lib modules
       const [ordersData, productsData, relationsData] = await Promise.all([
         orders.sellerList(),
         products.mine(),
         relationships.mine(),
       ]);
 
-      setOrderList(Array.isArray(ordersData) ? ordersData : (ordersData?.results || ordersData?.orders || []));
-      setProductList(Array.isArray(productsData) ? productsData : (productsData?.results || productsData?.products || []));
-      setRelationshipList(Array.isArray(relationsData) ? relationsData : (relationsData?.results || relationsData?.relationships || []));
+      setOrderList(ordersData);
+      setProductList(productsData);
+      setRelationshipList(relationsData);
     } catch (err) {
       console.error("Dashboard fetch error:", err);
-      setError(err instanceof ApiError ? err.message : "Failed to load dashboard. Please try again.");
+      setError(err instanceof ApiError ? err.message : "We could not load your dashboard. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -53,7 +52,7 @@ export default function SellerDashboardPage() {
 
   if (isLoading) {
     return (
-      <AppShell title="Dashboard" showLogo>
+      <AppShell title="Dashboard">
         <PageSkeleton showKPIs={true} listCount={3} />
       </AppShell>
     );
@@ -61,8 +60,8 @@ export default function SellerDashboardPage() {
 
   if (error) {
     return (
-      <AppShell title="Dashboard" showLogo>
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
+      <AppShell title="Dashboard">
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center m-4 sm:m-6">
           <p className="text-red-700 font-medium mb-3">{error}</p>
           <button
             onClick={loadDashboardData}
@@ -81,16 +80,16 @@ export default function SellerDashboardPage() {
   const draftProducts = productList.filter((p) => p.status === "draft").length;
 
   const newOrders = orderList.filter((o) => o.status === "submitted").length;
-  
+
   const moneyOwed = orderList
     .filter((o) => o.status === "debt_active")
-    .reduce((sum, o) => sum + parsePrice(o.total_price), 0);
-    
-  const paidMoney = orderList
-    .filter((o) => o.status === "cleared")
-    .reduce((sum, o) => sum + parsePrice(o.total_price), 0);
+    .reduce((sum, o) => {
+      const balance = o.balance != null
+        ? parsePrice(o.balance)
+        : parsePrice(o.final_total ?? o.total_price) - parsePrice(o.amount_paid ?? 0);
+      return sum + balance;
+    }, 0);
 
-  const totalBuyers = relationshipList.filter((r) => r.status === "approved" || r.status === "active").length;
   const newBuyerRequests = relationshipList.filter((r) => r.status === "pending").length;
 
   const recentOrders = [...orderList]
@@ -98,47 +97,59 @@ export default function SellerDashboardPage() {
     .slice(0, 5);
 
   return (
-    <AppShell title="Dashboard" showLogo>
-      <div className="space-y-6">
-        {/* Section 1: Shop Header */}
-        <SellerHeader
-          shopName={user?.seller_profile?.shop_name || user?.seller_profile?.store_name || "Nyakizu Shop"}
-          sellerName={user?.full_name || user?.username || "Seller"}
-          location={user?.seller_profile?.approval_note || "Nairobi"}
-          status={user?.seller_profile?.approval_status || "Approved"}
-        />
+    <AppShell title="Dashboard">
+      <Section spacing="md">
+        <Container size="xl" className="space-y-10">
+          {/* Greeting hero */}
+          <SellerHeader
+            shopName={user?.seller_profile?.shop_name || user?.seller_profile?.store_name || "Nyakizu Shop"}
+            sellerName={user?.full_name || user?.username || "Seller"}
+            location={user?.seller_profile?.location || "Location not set"}
+            status={user?.seller_profile?.approval_status || "Approved"}
+            avatarUrl={user?.avatar_url}
+          />
 
-        {/* Section 2: Shop Summary */}
-        <ShopStats
-          totalProducts={totalProducts}
-          newOrders={newOrders}
-          moneyOwed={moneyOwed}
-          totalBuyers={totalBuyers}
-        />
+          {/* What needs your attention */}
+          <div>
+            <SectionHeading
+              eyebrow="Overview"
+              title="What needs your attention"
+              description="New orders, buyer requests, and money owed — all in one place."
+            />
+            <ShopStats newOrders={newOrders} newBuyerRequests={newBuyerRequests} moneyOwed={moneyOwed} />
+          </div>
 
-        {/* Section 3: Quick Buttons */}
-        <QuickActions />
+          {/* Shortcuts */}
+          <div>
+            <SectionHeading
+              eyebrow="Shortcuts"
+              title="Manage your shop"
+              description="Jump straight to the tools you use most."
+            />
+            <QuickActions />
+          </div>
 
-        {/* Split Details Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          {/* Section 4: Recent Orders (Spans left/center columns) */}
-          <div className="lg:col-span-2">
+          {/* Recent orders */}
+          <div>
+            <SectionHeading
+              title="Recent orders"
+              description="Your last 5 orders, newest first."
+              action={
+                <Link href="/seller/dashboard/orders" className="inline-flex items-center gap-1 text-sm font-bold text-role hover:opacity-80">
+                  See all <ArrowRight size={14} />
+                </Link>
+              }
+            />
             <RecentOrders orders={recentOrders} />
           </div>
 
-          {/* Sidebar Modules (Right Column) */}
-          <div className="space-y-6">
-            {/* Section 5: Product Summary */}
+          {/* Catalog snapshot */}
+          <div>
+            <SectionHeading title="Your products" description="How your product list looks right now." />
             <ProductSummary total={totalProducts} active={activeProducts} draft={draftProducts} />
-
-            {/* Section 6: Buyer Section */}
-            <BuyerSummary newRequests={newBuyerRequests} myBuyers={totalBuyers} />
-
-            {/* Section 7: Money Section */}
-            <MoneySummary moneyOwed={moneyOwed} paidMoney={paidMoney} />
           </div>
-        </div>
-      </div>
+        </Container>
+      </Section>
     </AppShell>
   );
 }

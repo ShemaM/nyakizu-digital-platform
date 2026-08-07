@@ -35,12 +35,30 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
     def save_user(self, request, sociallogin, form=None):
         """
         Called when a brand-new user signs in with Google.
-        We set role='buyer' and copy the phone number if available.
+
+        Beyond the default save we must make the account equivalent to a
+        normal buyer signup, or the user ends up signed in but unusable:
+        - is_email_verified: Google has already verified the address, and
+          is_verified_buyer() blocks ordering without this flag. (Our own
+          verification email flow never runs for social signups.)
+        - BuyerProfile: normally created by RegisterSerializer, which social
+          signups bypass entirely.
         """
+        from .models import BuyerProfile
+
         user = super().save_user(request, sociallogin, form)
+
+        update_fields = []
         if not user.role:
             user.role = 'buyer'
-            user.save(update_fields=['role'])
+            update_fields.append('role')
+        if not user.is_email_verified:
+            user.is_email_verified = True
+            update_fields.append('is_email_verified')
+        if update_fields:
+            user.save(update_fields=update_fields)
+
+        BuyerProfile.objects.get_or_create(user=user)
         return user
 
     def populate_user(self, request, sociallogin, data):

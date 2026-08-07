@@ -2,11 +2,12 @@
 
 from django.contrib import admin
 from django.utils.html import format_html
+from unfold.admin import ModelAdmin
 from .models import Category, Product
 
 
 @admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
+class CategoryAdmin(ModelAdmin):
     list_display        = ('name', 'slug', 'product_count')
     prepopulated_fields = {'slug': ('name',)}
     search_fields       = ('name',)
@@ -29,7 +30,7 @@ def make_out_of_stock(modeladmin, request, queryset):
 
 
 @admin.register(Product)
-class ProductAdmin(admin.ModelAdmin):
+class ProductAdmin(ModelAdmin):
     list_display   = ('name', 'seller_store', 'category', 'price_display',
                       'stock_quantity', 'status_badge', 'created_at')
     list_filter    = ('status', 'category', 'seller__seller_profile__approval_status')
@@ -38,13 +39,14 @@ class ProductAdmin(admin.ModelAdmin):
     list_editable  = ('stock_quantity',)
     ordering       = ('-created_at',)
     actions        = [make_available, make_out_of_stock]
+    list_select_related = ('category', 'seller', 'seller__seller_profile')
 
     fieldsets = (
         ('Product details', {
             'fields': ('seller', 'category', 'name', 'description'),
         }),
         ('Pricing & inventory', {
-            'fields': ('price', 'stock_quantity', 'status', 'image_url'),
+            'fields': ('price', 'stock_quantity', 'status', 'image'),
         }),
     )
 

@@ -7,12 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { DashboardLayout } from "@/components/layouts";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { PageSkeleton } from "@/components/ui/LoadingState";
 import { Users, TrendingUp, AlertCircle, CheckCircle2, RefreshCw, Clock } from "lucide-react";
-import { admin, sellers, type ApiSeller, ApiError } from "@/lib/api";
+import { admin, sellers, fmtKES, type ApiSeller, type AdminMetrics, ApiError } from "@/lib/api";
 
 export default function AdminDashboard() {
   const [pendingSellers, setPendingSellers] = useState<ApiSeller[]>([]);
   const [approvedSellers, setApprovedSellers] = useState<ApiSeller[]>([]);
+  const [metrics, setMetrics] = useState<AdminMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,12 +26,14 @@ export default function AdminDashboard() {
     try {
       setIsLoading(true);
       setError(null);
-      const [pending, approved] = await Promise.all([
+      const [pending, approved, metricsData] = await Promise.all([
         admin.pendingSellers(),
         sellers.list(),
+        admin.dashboardMetrics(),
       ]);
       setPendingSellers(pending.filter((s) => s.approval_status === "pending"));
       setApprovedSellers(approved);
+      setMetrics(metricsData);
     } catch (err) {
       console.error("Failed to load stats:", err);
       setError(err instanceof ApiError ? err.message : "Failed to load dashboard data.");
@@ -53,20 +57,20 @@ export default function AdminDashboard() {
     },
     {
       icon: TrendingUp,
-      label: "Total Volume",
-      value: "—",
-      subtext: "Coming soon",
+      label: "Total Sales",
+      value: metrics ? fmtKES(metrics.total_volume) : "—",
+      subtext: metrics ? `${metrics.total_orders} orders total` : "Coming soon",
     },
     {
       icon: AlertCircle,
-      label: "Pending Verifications",
+      label: "Waiting for Approval",
       value: String(pendingSellers.length),
-      subtext: "Awaiting review",
+      subtext: "Sellers waiting for you",
       highlight: pendingSellers.length > 0,
     },
     {
       icon: CheckCircle2,
-      label: "Verified Sellers",
+      label: "Approved Sellers",
       value: String(approvedSellers.length),
       subtext: "Active",
     },
@@ -75,9 +79,7 @@ export default function AdminDashboard() {
   if (isLoading) {
     return (
       <DashboardLayout title="Admin Dashboard">
-        <div className="flex items-center justify-center h-[60vh]">
-          <div className="text-slate-400 text-sm">Loading...</div>
-        </div>
+        <PageSkeleton showKPIs listCount={3} />
       </DashboardLayout>
     );
   }
@@ -103,15 +105,15 @@ export default function AdminDashboard() {
             {stats.map(({ icon: Icon, label, value, subtext, highlight }) => (
               <Card key={label} className={highlight ? "border-warning/30" : ""}>
                 <CardContent className="pt-6 space-y-3">
-                  <div className="w-10 h-10 rounded-lg bg-brand-gold/10 flex items-center justify-center">
-                    <Icon className="w-5 h-5 text-brand-gold" />
+                  <div className="w-10 h-10 rounded-lg bg-role-soft flex items-center justify-center">
+                    <Icon className="w-5 h-5 text-role" />
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400 uppercase tracking-wider font-bold">
+                    <p className="text-xs text-text-muted uppercase tracking-wider font-bold">
                       {label}
                     </p>
-                    <p className="text-2xl font-bold text-white">{value}</p>
-                    <p className="text-xs text-slate-500 mt-1">{subtext}</p>
+                    <p className="text-2xl font-bold text-text-primary">{value}</p>
+                    <p className="text-xs text-text-muted mt-1">{subtext}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -122,8 +124,8 @@ export default function AdminDashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Pending Seller Verifications</CardTitle>
-                <CardDescription>Sellers awaiting account approval</CardDescription>
+                <CardTitle>Sellers Waiting for Approval</CardTitle>
+                <CardDescription>New sellers waiting for you to approve them</CardDescription>
               </div>
               <Button variant="outline" size="sm" asChild>
                 <Link href="/admin/verify">Review All</Link>
@@ -131,24 +133,24 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               {pendingSellers.length === 0 ? (
-                <div className="text-center py-8 text-slate-400">
+                <div className="text-center py-8 text-text-muted">
                   <CheckCircle2 size={32} className="mx-auto mb-2 text-success" />
-                  <p className="text-sm">All caught up — no pending verifications.</p>
+                  <p className="text-sm">All caught up — no sellers waiting.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {pendingSellers.slice(0, 5).map((seller) => (
-                    <div key={seller.id} className="flex items-center justify-between p-3 border border-slate-700/50 rounded-lg">
+                    <div key={seller.id} className="flex items-center justify-between p-3 border border-slate-100 rounded-lg">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <p className="font-semibold text-white">{seller.store_name}</p>
+                          <p className="font-semibold text-text-primary">{seller.store_name}</p>
                           <Badge variant="warning" className="text-xs">Pending</Badge>
                         </div>
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-text-muted">
                           {seller.user?.full_name || seller.user?.username} • {seller.location || "No location"}
                         </p>
                       </div>
-                      <div className="text-right space-y-1 text-xs text-slate-400">
+                      <div className="text-right space-y-1 text-xs text-text-muted">
                         <div className="flex items-center gap-1">
                           <Clock size={11} />
                           <span>{formatDate(seller.created_at)}</span>
@@ -157,8 +159,8 @@ export default function AdminDashboard() {
                     </div>
                   ))}
                   {pendingSellers.length > 5 && (
-                    <p className="text-xs text-slate-400 text-center">
-                      +{pendingSellers.length - 5} more pending
+                    <p className="text-xs text-text-muted text-center">
+                      +{pendingSellers.length - 5} more waiting
                     </p>
                   )}
                 </div>

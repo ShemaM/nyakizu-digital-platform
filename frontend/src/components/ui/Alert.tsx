@@ -7,19 +7,24 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const variants = {
-  default: "bg-slate-800/50 border-slate-700 text-slate-200",
+  default: "bg-slate-100 border-slate-200 text-text-secondary",
   success: "bg-success/10 border-success/30 text-success",
   error: "bg-error/10 border-error/30 text-error",
   warning: "bg-warning/10 border-warning/30 text-warning",
   info: "bg-info/10 border-info/30 text-info",
 };
 
+// Only errors/warnings are urgent enough to interrupt a screen reader —
+// informational and success states should announce politely (role="status")
+// rather than aggressively (role="alert") on every benign state change.
+const URGENT_VARIANTS: AlertProps["variant"][] = ["error", "warning"];
+
 export function Alert({ variant = "default", className, ...props }: AlertProps) {
   return (
     <div
-      role="alert"
+      role={URGENT_VARIANTS.includes(variant) ? "alert" : "status"}
       className={cn(
-        "rounded-lg border px-4 py-3 text-sm",
+        "rounded-lg border px-4 py-3 text-body",
         variants[variant],
         className
       )}

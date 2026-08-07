@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { Search, MapPin, Store, UserPlus, CheckCircle, Clock } from "lucide-react";
-import { sellers, admin, relationships, type ApiSeller, type ApiRelationship, ApiError } from "@/lib/api";
+import { Alert } from "@/components/ui/Alert";
+import { Search, MapPin, Store, UserPlus, Clock } from "lucide-react";
+import { sellers, relationships, type ApiSeller, type ApiRelationship, ApiError } from "@/lib/api";
 import { LoadingScreen } from "@/components/LoadingScreen";
 
 export default function BuyerSuppliersPage() {
@@ -28,32 +29,16 @@ export default function BuyerSuppliersPage() {
       setIsLoading(true);
       setError(null);
       
-      // Fetch live records from approved endpoint
       const [sellersData, relsData] = await Promise.all([
         sellers.list(),
         relationships.mine().catch(() => []),
       ]);
-      
-      let finalSellers = Array.isArray(sellersData) ? sellersData : [];
 
-      // Sandbox Fallback: If no approved sellers exist yet, query the pending queue 
-      // via our official admin wrapper so you can instantly see and test active account records.
-      if (finalSellers.length === 0) {
-        try {
-          const pendingData = await admin.pendingSellers();
-          if (Array.isArray(pendingData) && pendingData.length > 0) {
-            finalSellers = pendingData;
-          }
-        } catch (e) {
-          console.error("Could not load pending sellers fallback:", e);
-        }
-      }
-
-      setSupplierList(finalSellers);
+      setSupplierList(Array.isArray(sellersData) ? sellersData : []);
       setMyRels(relsData);
     } catch (err) {
-      console.error("Failed to load records from Django:", err);
-      setError(err instanceof ApiError ? err.message : "Failed to load database records.");
+      console.error("Failed to load suppliers:", err);
+      setError(err instanceof ApiError ? err.message : "We couldn't load suppliers. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -97,8 +82,14 @@ export default function BuyerSuppliersPage() {
   return (
     <DashboardLayout title="Suppliers">
       <div className="space-y-6 p-4 sm:p-6">
+        {error && (
+          <Alert variant="error">
+            {error}
+          </Alert>
+        )}
+
         <Input
-          placeholder="Search live records..."
+          placeholder="Search suppliers..."
           icon={<Search className="w-4 h-4" />}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -106,25 +97,27 @@ export default function BuyerSuppliersPage() {
 
         {approvedSuppliers.length > 0 && (
           <section className="space-y-3">
-            <h2 className="text-sm font-bold text-white uppercase tracking-wide">
-              My Approved Suppliers ({approvedSuppliers.length})
+            <h2 className="text-label">
+              My Suppliers ({approvedSuppliers.length})
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {approvedSuppliers.map((supplier) => (
-                <Card key={supplier.id} className="border-success/30">
+                <Card key={supplier.id}>
                   <CardContent className="pt-6">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1 flex-1">
-                        <div className="flex items-center gap-2">
-                          <Store size={16} className="text-amber-500" />
-                          <span className="font-semibold text-white text-sm">{supplier.store_name || "Wholesale Depot"}</span>
-                          <CheckCircle size={14} className="text-green-400" />
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div className="w-9 h-9 rounded-lg bg-role-soft flex items-center justify-center shrink-0">
+                          <Store size={16} className="text-role" />
                         </div>
-                        <p className="text-xs text-slate-400"><MapPin size={12} className="inline mr-1" /> {supplier.location || "Nairobi"}</p>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-text-primary text-sm truncate">{supplier.store_name || "Wholesale Depot"}</p>
+                          <p className="text-xs text-text-muted"><MapPin size={12} className="inline mr-1" /> {supplier.location || "Nairobi"}</p>
+                        </div>
                       </div>
+                      <Badge variant="success">Approved</Badge>
                     </div>
                     <Button size="sm" className="w-full mt-4" asChild>
-                      <Link href={`/buyer/suppliers/${supplier.id}/storefront`}>Browse Catalog</Link>
+                      <Link href={`/buyer/suppliers/${supplier.id}/storefront`}>See Products</Link>
                     </Button>
                   </CardContent>
                 </Card>
@@ -134,33 +127,36 @@ export default function BuyerSuppliersPage() {
         )}
 
         <section className="space-y-3">
-          <h2 className="text-sm font-bold text-white uppercase tracking-wide">
-            All Active Records ({otherSuppliers.length})
+          <h2 className="text-label">
+            Other Suppliers ({otherSuppliers.length})
           </h2>
 
           {otherSuppliers.length === 0 ? (
-            <div className="text-center py-12 bg-slate-900/40 border border-slate-800 rounded-2xl text-slate-400">
-              <Store className="w-12 h-12 mx-auto mb-3 text-slate-600" />
-              <p className="text-sm font-bold text-slate-300">No active records found</p>
-              <p className="text-xs text-slate-500 mt-1">Register a seller profile in the platform to watch it synchronize live.</p>
+            <div className="text-center py-12 bg-white border border-slate-100 rounded-2xl text-text-muted">
+              <Store className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+              <p className="text-sm font-bold text-text-secondary">No suppliers found</p>
+              <p className="text-xs text-text-muted mt-1">New suppliers will show up here when they join Nyakizu.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {otherSuppliers.map((supplier) => {
                 const rel = getRelStatus(supplier.id);
                 return (
-                  <Card key={supplier.id} className="hover:border-slate-600 transition-colors">
+                  <Card key={supplier.id}>
                     <CardContent className="pt-6">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1 flex-1">
-                          <span className="font-semibold text-white text-sm">{supplier.store_name || "Wholesale Merchant"}</span>
-                          <p className="text-xs text-slate-400 mt-1"><MapPin size={12} className="inline mr-1" /> {supplier.location || "Live Node"}</p>
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                          <Store size={16} className="text-slate-400" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-text-primary text-sm truncate">{supplier.store_name || "Wholesale Store"}</p>
+                          <p className="text-xs text-text-muted mt-0.5"><MapPin size={12} className="inline mr-1" /> {supplier.location || "Nairobi"}</p>
                         </div>
                       </div>
 
                       {rel?.status === "pending" ? (
                         <Button size="sm" variant="secondary" className="w-full mt-4" disabled>
-                          <Clock size={14} className="mr-1" /> Awaiting Approval
+                          <Clock size={14} className="mr-1" /> Waiting for Seller
                         </Button>
                       ) : (
                         <Button
@@ -170,7 +166,7 @@ export default function BuyerSuppliersPage() {
                           onClick={() => handleRequest(supplier.id)}
                           loading={requestingId === supplier.id}
                         >
-                          <UserPlus size={14} className="mr-1" /> Request Access
+                          <UserPlus size={14} className="mr-1" /> Join
                         </Button>
                       )}
                     </CardContent>

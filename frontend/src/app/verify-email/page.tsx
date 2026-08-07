@@ -1,17 +1,25 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 import { AuthLayout } from "@/components/layouts/AuthLayout";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { Alert, AlertDescription } from "@/components/ui/Alert";
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URL, auth, ApiError } from "@/lib/api";
 
 export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<AuthLayout title="Verifying your email" subtitle="Please wait a moment">{null}</AuthLayout>}>
+      <VerifyEmailContent />
+    </Suspense>
+  );
+}
+
+function VerifyEmailContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
 
   const token = searchParams.get("token") || "";
 
@@ -25,6 +33,26 @@ export default function VerifyEmailPage() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string>("");
   const [errorCode, setErrorCode] = useState<"invalid" | "missing" | "unknown">("unknown");
+
+  const [resendEmail, setResendEmail] = useState("");
+  const [resending, setResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState("");
+  const [resendError, setResendError] = useState("");
+
+  async function handleResend(e: React.FormEvent) {
+    e.preventDefault();
+    setResending(true);
+    setResendMessage("");
+    setResendError("");
+    try {
+      const message = await auth.resendVerification(resendEmail);
+      setResendMessage(message);
+    } catch (err) {
+      setResendError(err instanceof ApiError ? err.message : "Could not resend the email. Please try again.");
+    } finally {
+      setResending(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -89,10 +117,10 @@ export default function VerifyEmailPage() {
     <AuthLayout title={title} subtitle={subtitle} alternate>
       <div className="space-y-4">
         {loading && (
-          <div className="rounded-lg border border-slate-800 bg-dark-primary/50 p-6">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-6">
             <div className="flex items-center gap-3">
-              <div className="h-3 w-3 rounded-full bg-brand-gold animate-pulse" />
-              <p className="text-slate-200">Verifying your account...</p>
+              <div className="h-3 w-3 rounded-full bg-info animate-pulse" />
+              <p className="text-text-secondary">Verifying your account...</p>
             </div>
           </div>
         )}
@@ -106,12 +134,12 @@ export default function VerifyEmailPage() {
             </Alert>
 
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button asChild size="md" className="flex-1" loading={false}>
+              <Button asChild className="flex-1" loading={false}>
                 <Link href="/login">Go to login</Link>
               </Button>
             </div>
 
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-text-muted">
               If you can’t access your account, contact support.
             </p>
           </>
@@ -125,35 +153,48 @@ export default function VerifyEmailPage() {
               </AlertDescription>
             </Alert>
 
-            <div className="rounded-lg border border-slate-800 bg-dark-primary/50 p-4">
-              <p className="text-sm text-slate-400">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <p className="text-sm text-text-secondary">
                 {errorCode === "missing"
                   ? "Open the verification link again from your email."
-                  : "Request a new verification email to get a fresh link."}
+                  : "Links expire after a while. Enter your email below and we will send you a new one."}
               </p>
             </div>
 
-            {/*
-              No backend endpoint for requesting a new verification email was found in the provided code.
-              Keep UX: redirect to register to start a fresh registration flow.
-            */}
+            {resendMessage ? (
+              <Alert variant="success">
+                <AlertDescription>{resendMessage}</AlertDescription>
+              </Alert>
+            ) : (
+              <form onSubmit={handleResend} className="space-y-3">
+                <Input
+                  label="Your email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="e.g. amani@gmail.com"
+                  value={resendEmail}
+                  onChange={(e) => setResendEmail(e.target.value)}
+                  required
+                />
+                {resendError && (
+                  <Alert variant="error">
+                    <AlertDescription>{resendError}</AlertDescription>
+                  </Alert>
+                )}
+                <Button type="submit" className="w-full" loading={resending}>
+                  {resending ? "Sending…" : "Send me a new link"}
+                </Button>
+              </form>
+            )}
+
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                size="md"
-                className="flex-1"
-                variant="outline"
-                onClick={() => router.push("/register")}
-              >
-                Request new email
-              </Button>
-              <Button asChild size="md" className="flex-1" variant="secondary">
+              <Button asChild className="flex-1" variant="secondary">
                 <Link href="/login">Back to login</Link>
               </Button>
+              <Button asChild className="flex-1" variant="outline">
+                <Link href="/help">Get help</Link>
+              </Button>
             </div>
-
-            <p className="text-sm text-slate-400">
-              For security, tokens expire after a short period.
-            </p>
           </>
         )}
       </div>

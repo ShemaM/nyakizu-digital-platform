@@ -2,20 +2,23 @@ from django.conf import settings
 from django.db.models import Q
 from django.core.mail import send_mail
 from rest_framework import generics, permissions, status
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth import login, logout
 
-from .models import CustomUser, BuyerProfile, SellerProfile, BuyerStoreFollow
+from .models import CustomUser, BuyerProfile, SellerProfile, BuyerStoreFollow, BuyerSellerRelationship
 from products.models import Product
-from .permissions import is_admin_user, is_verified_buyer
+from .permissions import is_admin_user, is_verified_buyer, is_approved_seller
 from .serializers import (
     RegisterSerializer,
     UserSerializer,
+    AvatarUploadSerializer,
     BuyerProfileSerializer,
     SellerProfileSerializer,
     BuyerStoreFollowSerializer,
     CommunityActivitySerializer,
+    BuyerSellerRelationshipSerializer,
 )
 
 
@@ -67,13 +70,99 @@ class RegisterView(APIView):
                 import traceback
                 traceback.print_exc()
 
-            data = UserSerializer(user).data
+            if user.role == "seller":
+                self._notify_admins_new_seller(user)
+
+            data = UserSerializer(user, context={"request": request}).data
             if settings.DEBUG:
                 data["verification_token"] = token
             return Response(data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    def _notify_admins_new_seller(self, user):
+        """Instantly alert every active staff account that a new seller needs review."""
+        staff_emails = list(
+            CustomUser.objects.filter(is_staff=True, is_active=True)
+            .exclude(email="")
+            .values_list("email", flat=True)
+        )
+        if not staff_emails:
+            return
+
+        try:
+            profile = user.seller_profile
+            review_url = f"{getattr(settings, 'FRONTEND_VERIFY_BASE_URL', 'http://localhost:3000')}/admin/verify"
+
+            subject = f"New seller awaiting approval: {profile.store_name}"
+            message = (
+                f"A new seller has signed up and is waiting for approval.\n\n"
+                f"Store name: {profile.store_name}\n"
+                f"Location:   {profile.location or '—'}\n"
+                f"Categories: {', '.join(profile.categories) or '—'}\n"
+                f"Owner:      {user.get_full_name() or user.username}\n"
+                f"Phone:      {user.phone_number or '—'}\n"
+                f"Email:      {user.email}\n\n"
+                f"Review and approve or reject here:\n{review_url}\n"
+            )
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+                recipient_list=staff_emails,
+                fail_silently=False,
+            )
+        except Exception:
+            import traceback
+            traceback.print_exc()
+
+
+
+class ResendVerificationEmailView(APIView):
+    """
+    POST /api/accounts/resend-verification/
+    Body: { email }
+
+    Regenerates the verification token and re-sends the email — for buyers
+    or sellers who signed up but never got (or lost) the original link.
+
+    Always returns the same generic message regardless of whether the email
+    exists or is already verified, so this endpoint can't be used to probe
+    which addresses have an account.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    GENERIC_MESSAGE = "If that email exists and is not verified yet, we have sent a new link."
+
+    def post(self, request):
+        email = (request.data.get("email") or "").strip()
+        if not email:
+            return Response({"error": "Enter your email address."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = CustomUser.objects.filter(email__iexact=email).first()
+        if user and not user.is_email_verified:
+            token = user.generate_verify_token()
+            try:
+                verify_url = (
+                    f"{getattr(settings, 'FRONTEND_VERIFY_BASE_URL', 'http://localhost:3000')}/"
+                    f"verify-email/?token={token}"
+                )
+                send_mail(
+                    subject="Your Nyakizu verification link",
+                    message=(
+                        "Here is your new verification link:\n\n"
+                        f"{verify_url}\n\n"
+                        "If you did not ask for this, you can ignore this message."
+                    ),
+                    from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+                    recipient_list=[user.email],
+                    fail_silently=False,
+                )
+            except Exception:
+                import traceback
+                traceback.print_exc()
+
+        return Response({"message": self.GENERIC_MESSAGE})
 
 
 class VerifyEmailView(APIView):
@@ -123,7 +212,10 @@ class LoginView(APIView):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
-        if not user_obj.is_email_verified:
+        # Staff/superuser accounts are created via `createsuperuser`, which never
+        # runs the register-flow email-verify step — so `is_email_verified` stays
+        # False forever with no way to flip it. Exempt them from this gate.
+        if not user_obj.is_email_verified and not user_obj.is_staff:
             return Response(
                 {"error": "Please verify your email before signing in."},
                 status=status.HTTP_403_FORBIDDEN,
@@ -136,7 +228,7 @@ class LoginView(APIView):
         # which is the backend whose logic (check_password against CustomUser) we
         # just replicated above.
         login(request, user_obj, backend='django.contrib.auth.backends.ModelBackend')
-        return Response(UserSerializer(user_obj).data)
+        return Response(UserSerializer(user_obj, context={"request": request}).data)
 
 
 class LogoutView(APIView):
@@ -149,9 +241,23 @@ class LogoutView(APIView):
 
 class CurrentUserView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get(self, request):
-        return Response(UserSerializer(request.user).data)
+        return Response(UserSerializer(request.user, context={"request": request}).data)
+
+    def patch(self, request):
+        """PATCH /api/accounts/me/ — upload or replace the signed-in user's avatar."""
+        serializer = AvatarUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user
+        if user.avatar:
+            user.avatar.delete(save=False)
+        user.avatar = serializer.validated_data["avatar"]
+        user.save(update_fields=["avatar"])
+
+        return Response(UserSerializer(user, context={"request": request}).data)
 
 
 class UserListView(APIView):
@@ -167,7 +273,7 @@ class UserListView(APIView):
         role = request.query_params.get("role")
         if role:
             users = users.filter(role=role)
-        serializer = UserSerializer(users, many=True)
+        serializer = UserSerializer(users, many=True, context={"request": request})
         return Response(serializer.data)
 
 
@@ -176,13 +282,19 @@ class UserListView(APIView):
 class SellerProfileListView(generics.ListAPIView):
     """
     GET /api/accounts/sellers/
+    GET /api/accounts/sellers/?username=<username>  — look up one store by
+    its owner's username (used by the public /store/[slug] page).
     Lists only approved (live) stores. Public.
     """
     serializer_class   = SellerProfileSerializer
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
-        return SellerProfile.objects.filter(approval_status="approved")
+        qs = SellerProfile.objects.filter(approval_status="approved")
+        username = self.request.query_params.get("username")
+        if username:
+            qs = qs.filter(user__username=username)
+        return qs
 
 
 class SellerProfileDetailView(generics.RetrieveUpdateAPIView):
@@ -396,6 +508,119 @@ class FollowedStoresView(generics.ListAPIView):
         return BuyerStoreFollow.objects.filter(
             buyer=self.request.user
         ).select_related("seller")
+
+
+class RequestSellerAccessView(APIView):
+    """
+    POST /api/accounts/sellers/<pk>/request-access/
+
+    Path-addressed equivalent of POSTing to /api/accounts/relationships/
+    with { seller_id: pk } in the body — same effect, for callers that
+    already have the seller in the URL (mirrors FollowStoreView's shape).
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        if not is_verified_buyer(request.user):
+            return Response(
+                {"error": "Only verified buyers can request supplier access."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            seller = SellerProfile.objects.get(pk=pk, approval_status="approved")
+        except SellerProfile.DoesNotExist:
+            return Response({"error": "Store not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        relationship, created = BuyerSellerRelationship.objects.get_or_create(
+            buyer=request.user, seller=seller
+        )
+        return Response(
+            BuyerSellerRelationshipSerializer(relationship).data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+
+class RelationshipListCreateView(APIView):
+    """
+    GET  /api/accounts/relationships/ and /api/accounts/relationships/mine/
+         Role-aware: a buyer sees their own requests to sellers; an approved
+         seller sees the requests buyers have made to their store.
+    POST /api/accounts/relationships/
+         A verified buyer requests trusted access to a seller's store.
+         Body: { seller_id }
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        if is_verified_buyer(request.user):
+            qs = BuyerSellerRelationship.objects.filter(buyer=request.user)
+        elif is_approved_seller(request.user):
+            qs = BuyerSellerRelationship.objects.filter(seller=request.user.seller_profile)
+        else:
+            qs = BuyerSellerRelationship.objects.none()
+
+        serializer = BuyerSellerRelationshipSerializer(
+            qs.select_related("buyer", "seller"), many=True
+        )
+        return Response(serializer.data)
+
+    def post(self, request):
+        if not is_verified_buyer(request.user):
+            return Response(
+                {"error": "Only verified buyers can request supplier access."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            seller = SellerProfile.objects.get(
+                pk=request.data.get("seller_id"), approval_status="approved"
+            )
+        except (SellerProfile.DoesNotExist, TypeError, ValueError):
+            return Response({"error": "Store not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        relationship, created = BuyerSellerRelationship.objects.get_or_create(
+            buyer=request.user, seller=seller
+        )
+        return Response(
+            BuyerSellerRelationshipSerializer(relationship).data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+
+class RelationshipResolveView(APIView):
+    """
+    POST /api/accounts/relationships/<id>/resolve/
+    The seller who owns the request approves or denies it. Body: { action: "approve"|"deny" }
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        if not is_approved_seller(request.user):
+            return Response(
+                {"error": "Only approved sellers can resolve buyer requests."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            relationship = BuyerSellerRelationship.objects.get(
+                pk=pk, seller=request.user.seller_profile
+            )
+        except BuyerSellerRelationship.DoesNotExist:
+            return Response({"error": "Request not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        action = request.data.get("action")
+        if action == "approve":
+            relationship.approve()
+        elif action == "deny":
+            relationship.deny()
+        else:
+            return Response(
+                {"error": "action must be 'approve' or 'deny'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(BuyerSellerRelationshipSerializer(relationship).data)
 
 
 class CommunityActivityView(APIView):

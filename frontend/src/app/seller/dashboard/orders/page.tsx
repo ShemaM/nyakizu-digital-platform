@@ -1,14 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Package, ClipboardList, AlertCircle, RefreshCw, Clock, CheckCircle } from "lucide-react";
+import Link from "next/link";
+import { ClipboardList, AlertCircle, RefreshCw, Clock, MapPin } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { Container, Section } from "@/components/layouts";
+import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Avatar } from "@/components/ui/Avatar";
 import { PageSkeleton } from "@/components/ui/LoadingState";
-import { orders, fmtKES } from "@/lib/api";
+import { orders, fmtKES, type ApiOrder } from "@/lib/api";
+import { getStatusLabel, getStatusVariant } from "@/lib/order-status";
 
 export default function SellerOrdersPage() {
-  const [orderList, setOrderList] = useState<any[]>([]);
+  const [orderList, setOrderList] = useState<ApiOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,91 +30,93 @@ export default function SellerOrdersPage() {
       setOrderList(Array.isArray(data) ? data : []);
     } catch (err: any) {
       console.error("Orders load error:", err);
-      setError(err?.message || "Failed to load settlement orders.");
+      setError(err?.message || "We could not load your orders.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case "completed": return "success";
-      case "pending": return "warning";
-      case "cancelled": return "error";
-      default: return "default";
-    }
-  };
-
   if (isLoading) {
     return (
-      <AppShell title="Orders Ledger" showLogo>
+      <AppShell title="Orders">
         <PageSkeleton showKPIs={false} listCount={4} />
       </AppShell>
     );
   }
 
+  const newCount = orderList.filter((o) => o.status === "submitted").length;
+
   return (
-    <AppShell title="Orders Ledger" showLogo>
-      <div className="space-y-6">
-        {/* Header Summary Row */}
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 backdrop-blur-md">
-          <div>
-            <h1 className="text-xl font-black text-slate-100 tracking-tight">Orders Ledger</h1>
-            <p className="text-xs text-slate-400 mt-1">Track wholesale inbound pipeline, client payments, and supply statuses.</p>
-          </div>
-          <button 
-            onClick={loadOrders}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-bold uppercase tracking-wider text-slate-200 border border-slate-700 rounded-xl transition-colors cursor-pointer"
-          >
-            <RefreshCw size={12} /> Sync Ledger
-          </button>
-        </div>
+    <AppShell title="Orders">
+      <Section spacing="md">
+        <Container size="xl" className="space-y-6">
+          <SectionHeading
+            eyebrow="Orders"
+            title="Orders from your buyers"
+            description={
+              newCount > 0
+                ? `${newCount} new order${newCount !== 1 ? "s" : ""} waiting for you to start packing.`
+                : "See and manage every order your buyers have sent you."
+            }
+            action={
+              <Button variant="outline" size="lg" onClick={loadOrders} className="gap-2">
+                <RefreshCw size={16} /> Refresh
+              </Button>
+            }
+          />
 
-        {error && (
-          <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl p-4 text-xs font-semibold flex items-center gap-2">
-            <AlertCircle size={16} /> {error}
-          </div>
-        )}
+          {error && (
+            <div className="bg-rose-50 border border-rose-200 text-rose-600 rounded-xl p-4 text-caption font-semibold flex items-center gap-2">
+              <AlertCircle size={16} /> {error}
+            </div>
+          )}
 
-        {/* Orders Stack */}
-        {orderList.length === 0 ? (
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-12 text-center text-slate-400 flex flex-col items-center justify-center min-h-[300px]">
-            <ClipboardList size={40} className="text-slate-600 mb-3" />
-            <p className="text-sm font-bold text-slate-200">No active orders</p>
-            <p className="text-xs text-slate-500 mt-1">When buyers initiate requests or checkouts, they will instantly display here.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {orderList.map((order) => (
-              <div key={order.id} className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-slate-700 transition-all">
-                <div className="flex items-start gap-3 min-w-0">
-                  <div className="p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-400 shrink-0">
-                    <Package size={18} />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-black text-slate-200">Order #{order.id}</span>
-                      <Badge variant={getStatusBadgeVariant(order.status)}>
-                        {order.status || "Pending"}
-                      </Badge>
+          {/* Orders Stack */}
+          {orderList.length === 0 ? (
+            <div className="bg-white border border-slate-100 rounded-2xl p-12 text-center text-text-muted flex flex-col items-center justify-center min-h-[300px]">
+              <ClipboardList size={40} className="text-slate-300 mb-3" />
+              <p className="text-body font-bold text-text-secondary">No orders yet</p>
+              <p className="text-caption text-text-muted mt-1">When buyers order from you, they will appear here.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {orderList.map((order) => (
+                <Link
+                  key={order.id}
+                  href={`/seller/dashboard/orders/${order.id}/fulfill`}
+                  className="block bg-white border border-slate-100 shadow-sm rounded-2xl p-5 hover:border-role/30 hover:shadow-md transition-all"
+                >
+                  <div className="flex items-start gap-4">
+                    <Avatar name={order.buyer_username || "?"} size="lg" className="shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-body font-black text-text-primary">Order #{order.id}</span>
+                        <Badge variant={getStatusVariant(order.status)}>
+                          {getStatusLabel(order.status)}
+                        </Badge>
+                      </div>
+                      <p className="text-caption text-text-muted mt-1">
+                        Buyer: <span className="text-text-secondary font-semibold">{order.buyer_username || "Buyer"}</span>
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-1 text-xs text-text-muted">
+                        <MapPin size={12} className="text-role shrink-0" />
+                        <span className="truncate">{order.delivery_address || "No location provided"}</span>
+                      </div>
                     </div>
-                    <p className="text-xs text-slate-400 mt-0.5 truncate">
-                      Buyer: <span className="text-slate-300 font-medium">{order.buyer_name || order.buyer || "Marketplace Client"}</span>
-                    </p>
                   </div>
-                </div>
 
-                <div className="flex sm:flex-col items-baseline sm:items-end justify-between border-t border-slate-800/60 sm:border-none pt-3 sm:pt-0">
-                  <span className="text-sm font-black text-slate-100">{fmtKES(order.total || order.amount || 0)}</span>
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-0.5 flex items-center gap-1">
-                    <Clock size={10} /> {order.created_at ? new Date(order.created_at).toLocaleDateString() : "Recent Deal"}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+                  <div className="flex items-center justify-between border-t border-slate-100 mt-4 pt-3">
+                    <span className="text-caption font-bold text-text-muted uppercase tracking-wider flex items-center gap-1">
+                      <Clock size={12} /> {order.created_at ? new Date(order.created_at).toLocaleDateString("en-KE") : "Recent"}
+                    </span>
+                    <span className="text-body-lg font-black text-role">{fmtKES(order.final_total ?? order.total_price)}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </Container>
+      </Section>
     </AppShell>
   );
 }

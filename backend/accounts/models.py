@@ -15,6 +15,7 @@ class CustomUser(AbstractUser):
     role         = models.CharField(max_length=10, choices=ROLE_CHOICES, default='buyer')
     phone_number = models.CharField(max_length=20, blank=True)
     email        = models.EmailField(unique=True)
+    avatar       = models.ImageField(upload_to='avatars/', null=True, blank=True)
 
     # Email verification
     is_email_verified   = models.BooleanField(default=False)
@@ -32,6 +33,19 @@ class CustomUser(AbstractUser):
             return False
         expiry = self.email_verify_sent + timedelta(hours=24)
         return timezone.now() < expiry
+
+    def save(self, *args, **kwargs):
+        # Staff/superuser status IS the system-admin identity in this app —
+        # keep `role` structurally in sync so admin accounts can never drift
+        # into passing the buyer/seller role checks in accounts/permissions.py
+        # (see accounts/migrations/0002_sync_admin_role.py for the one-time
+        # backfill of accounts that predate this override).
+        if (self.is_staff or self.is_superuser) and self.role != 'admin':
+            self.role = 'admin'
+            update_fields = kwargs.get('update_fields')
+            if update_fields is not None:
+                kwargs['update_fields'] = set(update_fields) | {'role'}
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.get_full_name() or self.username} ({self.role})"

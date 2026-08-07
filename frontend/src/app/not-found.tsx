@@ -15,11 +15,11 @@ export default function NotFound() {
           </div>
 
           <div className="space-y-2">
-            <h1 className="text-4xl font-black text-white">404</h1>
-            <p className="text-lg text-slate-400">
+            <h1 className="text-display font-black text-text-primary">404</h1>
+            <p className="text-body-lg text-text-secondary">
               Page not found
             </p>
-            <p className="text-slate-500">
+            <p className="text-body text-text-muted">
               The page you're looking for doesn't exist or has been moved.
             </p>
           </div>

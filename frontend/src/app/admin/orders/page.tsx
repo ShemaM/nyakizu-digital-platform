@@ -7,44 +7,19 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { admin, type ApiOrder, fmtKES, ApiError } from "@/lib/api";
+import { getStatusLabel, getStatusVariant } from "@/lib/order-status";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { ShoppingBag, RefreshCw, Search } from "lucide-react";
 
 const STATUS_OPTIONS = [
   { value: "", label: "All" },
-  { value: "submitted", label: "Submitted" },
-  { value: "sourcing", label: "Sourcing" },
-  { value: "locked", label: "Locked" },
-  { value: "debt_active", label: "Debt" },
-  { value: "cleared", label: "Cleared" },
-  { value: "cancelled", label: "Cancelled" },
+  { value: "submitted", label: getStatusLabel("submitted") },
+  { value: "sourcing", label: getStatusLabel("sourcing") },
+  { value: "locked", label: getStatusLabel("locked") },
+  { value: "debt_active", label: getStatusLabel("debt_active") },
+  { value: "cleared", label: getStatusLabel("cleared") },
+  { value: "cancelled", label: getStatusLabel("cancelled") },
 ];
-
-function getStatusVariant(status: string): "default" | "success" | "warning" | "error" | "info" | "outline" {
-  const map: Record<string, "default" | "success" | "warning" | "error" | "info" | "outline"> = {
-    submitted:   "warning",
-    sourcing:    "info",
-    locked:      "default",
-    debt_active: "error",
-    cleared:     "success",
-    cancelled:   "error",
-    pending:     "warning",
-  };
-  return map[status] || "default";
-}
-
-function getStatusLabel(status: string): string {
-  const map: Record<string, string> = {
-    submitted:   "Submitted",
-    sourcing:    "Sourcing",
-    locked:      "Locked",
-    debt_active: "Debt",
-    cleared:     "Cleared",
-    cancelled:   "Cancelled",
-    pending:     "Pending",
-  };
-  return map[status] || status;
-}
 
 export default function AdminOrdersPage() {
   const [orderList, setOrderList] = useState<ApiOrder[]>([]);
@@ -116,16 +91,16 @@ export default function AdminOrdersPage() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {[
             { label: "Total", value: stats.total },
-            { label: "Submitted", value: stats.submitted },
-            { label: "Sourcing", value: stats.sourcing },
-            { label: "Locked", value: stats.locked },
-            { label: "Debt", value: stats.debt },
-            { label: "Cleared", value: stats.cleared },
+            { label: getStatusLabel("submitted"), value: stats.submitted },
+            { label: getStatusLabel("sourcing"), value: stats.sourcing },
+            { label: getStatusLabel("locked"), value: stats.locked },
+            { label: getStatusLabel("debt_active"), value: stats.debt },
+            { label: getStatusLabel("cleared"), value: stats.cleared },
           ].map(({ label, value }) => (
             <Card key={label}>
               <CardContent className="pt-6 text-center">
-                <p className="text-2xl font-bold text-white">{value}</p>
-                <p className="text-xs text-slate-400">{label}</p>
+                <p className="text-2xl font-bold text-text-primary">{value}</p>
+                <p className="text-xs text-text-muted">{label}</p>
               </CardContent>
             </Card>
           ))}
@@ -147,8 +122,8 @@ export default function AdminOrdersPage() {
                 onClick={() => setStatusFilter(value)}
                 className={`px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-colors ${
                   statusFilter === value
-                    ? "bg-brand-gold text-dark-primary"
-                    : "bg-slate-800 text-slate-400 hover:text-white"
+                    ? "bg-slate-900 text-white"
+                    : "bg-slate-100 text-text-muted hover:text-text-primary"
                 }`}
               >
                 {label}
@@ -168,22 +143,22 @@ export default function AdminOrdersPage() {
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-white">Order #{order.id}</span>
+                      <span className="font-bold text-text-primary">Order #{order.id}</span>
                       <Badge variant={getStatusVariant(order.status)} className="text-xs">
                         {getStatusLabel(order.status)}
                       </Badge>
                     </div>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-text-secondary">
                       Buyer: {order.buyer_username || "—"} • {order.items?.length ?? 0} items
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-text-muted">
                       {new Date(order.created_at).toLocaleDateString("en-KE")}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-brand-gold text-lg">{fmtKES(order.total_price)}</p>
+                    <p className="font-bold text-role text-lg">{fmtKES(order.total_price)}</p>
                     {order.final_total && order.final_total !== order.total_price && (
-                      <p className="text-xs text-slate-400">Final: {fmtKES(order.final_total)}</p>
+                      <p className="text-xs text-text-muted">Final: {fmtKES(order.final_total)}</p>
                     )}
                   </div>
                 </div>
@@ -191,8 +166,8 @@ export default function AdminOrdersPage() {
             </Card>
           ))}
           {filtered.length === 0 && (
-            <div className="text-center py-12 text-slate-400">
-              <ShoppingBag className="w-12 h-12 mx-auto mb-3 text-slate-600" />
+            <div className="text-center py-12 text-text-muted">
+              <ShoppingBag className="w-12 h-12 mx-auto mb-3 text-slate-300" />
               <p className="text-sm">No orders found.</p>
             </div>
           )}

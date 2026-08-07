@@ -1,5 +1,5 @@
-import React from 'react';
 import Link from 'next/link';
+import { Package, CheckCircle2, FileEdit, ArrowRight } from 'lucide-react';
 
 interface ProductSummaryProps {
   total: number;
@@ -8,30 +8,28 @@ interface ProductSummaryProps {
 }
 
 export const ProductSummary: React.FC<ProductSummaryProps> = ({ total, active, draft }) => {
+  const stats = [
+    { label: "Total products", value: total, Icon: Package, color: "text-text-primary" },
+    { label: "Active", value: active, Icon: CheckCircle2, color: "text-success" },
+    { label: "Hidden drafts", value: draft, Icon: FileEdit, color: "text-text-muted" },
+  ];
+
   return (
-    <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800 shadow-sm flex flex-col justify-between h-full">
-      <div>
-        <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider mb-4">Product Summary</h3>
-        <div className="space-y-3 text-xs text-slate-300">
-          <div className="flex justify-between border-b border-slate-800/60 pb-2">
-            <span className="text-slate-400">Total products:</span>
-            <span className="font-bold text-slate-100">{total}</span>
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-6">
+      <div className="grid grid-cols-3 gap-4 flex-1">
+        {stats.map(({ label, value, Icon, color }) => (
+          <div key={label} className="flex flex-col items-center text-center gap-1.5 sm:items-start sm:text-left">
+            <Icon className={`w-5 h-5 ${color}`} />
+            <span className={`text-2xl font-black ${color}`}>{value}</span>
+            <span className="text-xs font-semibold text-text-muted leading-tight">{label}</span>
           </div>
-          <div className="flex justify-between border-b border-slate-800/60 pb-2">
-            <span className="text-slate-400">Active products:</span>
-            <span className="font-bold text-emerald-400">{active}</span>
-          </div>
-          <div className="flex justify-between pb-1">
-            <span className="text-slate-400">Draft products:</span>
-            <span className="font-bold text-slate-500">{draft}</span>
-          </div>
-        </div>
+        ))}
       </div>
-      <Link 
-        href="/seller/dashboard/catalog" 
-        className="mt-5 block text-center bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs border border-slate-700 uppercase tracking-wider transition-colors"
+      <Link
+        href="/seller/dashboard/catalog"
+        className="shrink-0 inline-flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-text-secondary font-bold py-3 px-5 rounded-xl text-sm border border-slate-200 transition-colors"
       >
-        View Products
+        View Products <ArrowRight size={14} />
       </Link>
     </div>
   );

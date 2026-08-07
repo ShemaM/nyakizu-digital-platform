@@ -7,6 +7,7 @@ import { Card, CardSection } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
+import { useToast } from "@/components/ui/Toast";
 import { admin, type ApiSeller, ApiError } from "@/lib/api";
 
 interface Decision {
@@ -15,6 +16,7 @@ interface Decision {
 }
 
 export default function AdminVerifyPage() {
+  const { toast } = useToast();
   const [sellers, setSellers] = useState<ApiSeller[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +58,7 @@ export default function AdminVerifyPage() {
       setSellers((prev) => prev.filter((s) => s.id !== pending.sellerId));
     } catch (err) {
       console.error("Action failed:", err);
-      alert(err instanceof ApiError ? err.message : "Action failed. Please try again.");
+      toast(err instanceof ApiError ? err.message : "Action failed. Please try again.", "error");
     } finally {
       setSaving(false);
       setPending(null);
@@ -78,9 +80,9 @@ export default function AdminVerifyPage() {
 
   if (isLoading) {
     return (
-      <AppShell title="Seller Verification">
+      <AppShell title="Approve Sellers">
         <div className="flex items-center justify-center h-[60vh]">
-          <div className="text-slate-400 text-sm">Loading sellers...</div>
+          <div className="text-text-muted text-sm">Loading sellers...</div>
         </div>
       </AppShell>
     );
@@ -88,7 +90,7 @@ export default function AdminVerifyPage() {
 
   if (error) {
     return (
-      <AppShell title="Seller Verification">
+      <AppShell title="Approve Sellers">
         <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
           <p className="text-error text-sm">{error}</p>
           <Button onClick={loadSellers} size="sm">
@@ -100,11 +102,11 @@ export default function AdminVerifyPage() {
   }
 
   return (
-    <AppShell title={`Seller Verification (${pendingSellers.length})`}>
+    <AppShell title={`Approve Sellers (${pendingSellers.length})`}>
       {/* Pending Section */}
       <div className="space-y-4 p-4 sm:p-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white">Pending Approval</h2>
+          <h2 className="text-label">Waiting for Approval</h2>
           <Button variant="outline" size="sm" onClick={loadSellers}>
             <RefreshCw size={14} className="mr-1" /> Refresh
           </Button>
@@ -113,8 +115,8 @@ export default function AdminVerifyPage() {
         {pendingSellers.length === 0 && (
           <div className="bg-success/10 border border-success/20 rounded-xl px-4 py-6 text-center">
             <CheckCircle size={24} className="text-success mx-auto mb-2" />
-            <p className="text-sm font-medium text-success">All seller applications reviewed.</p>
-            <p className="text-xs text-slate-400 mt-1">No pending sellers waiting for approval.</p>
+            <p className="text-sm font-medium text-success">All sellers reviewed.</p>
+            <p className="text-xs text-text-muted mt-1">No sellers waiting for approval.</p>
           </div>
         )}
 
@@ -123,7 +125,7 @@ export default function AdminVerifyPage() {
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <Store size={16} className="text-brand-gold" />
+                  <Store size={16} className="text-role" />
                   <span className="font-semibold text-gray-900 text-sm">{seller.store_name}</span>
                   <Badge variant="warning" className="text-xs">Pending</Badge>
                 </div>
@@ -160,14 +162,17 @@ export default function AdminVerifyPage() {
                   className="flex-1 text-red-600 border-red-200 hover:bg-red-50"
                   onClick={() => decide(seller.id, "reject")}
                   disabled={saving}
+                  loading={saving}
                 >
                   <XCircle size={14} className="mr-1" /> Reject
                 </Button>
                 <Button
                   size="sm"
-                  className="flex-1 bg-brand-gold text-dark-primary hover:bg-brand-gold-light"
+                  variant="role"
+                  className="flex-1"
                   onClick={() => decide(seller.id, "approve")}
                   disabled={saving}
+                  loading={saving}
                 >
                   <CheckCircle size={14} className="mr-1" /> Approve
                 </Button>

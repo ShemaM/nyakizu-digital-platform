@@ -11,10 +11,12 @@ import { Button } from "@/components/ui/Button";
 import { CategoryFilter } from "@/components/CategoryFilter";
 import { sellers, products, categories, relationships, type ApiSeller, type ApiProduct, type ApiCategory, type ApiRelationship, fmtKES, ApiError } from "@/lib/api";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { useToast } from "@/components/ui/Toast";
 
 export default function StorefrontPage() {
   const params = useParams();
   const sellerId = params.id ? parseInt(params.id as string) : undefined;
+  const { toast } = useToast();
 
   const [seller, setSeller] = useState<ApiSeller | null>(null);
   const [productList, setProductList] = useState<ApiProduct[]>([]);
@@ -40,7 +42,7 @@ export default function StorefrontPage() {
       setError(null);
 
       const [sellerData, productsData, catsData, relsData] = await Promise.all([
-        sellers.get(sellerId!),
+        sellers.get(String(sellerId)),
         products.list({ seller: sellerId }),
         categories.list(),
         relationships.mine().catch(() => []),
@@ -52,7 +54,7 @@ export default function StorefrontPage() {
       setMyRel(relsData.find((r) => r.seller_id === sellerId));
     } catch (err) {
       console.error("Failed to load storefront:", err);
-      setError(err instanceof ApiError ? err.message : "Failed to load storefront.");
+      setError(err instanceof ApiError ? err.message : "We couldn't load this store. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -67,7 +69,7 @@ export default function StorefrontPage() {
       setMyRel(relsData.find((r) => r.seller_id === sellerId));
     } catch (err) {
       console.error("Request failed:", err);
-      alert(err instanceof ApiError ? err.message : "Request failed.");
+      toast(err instanceof ApiError ? err.message : "Request failed.", "error");
     } finally {
       setRequesting(false);
     }
@@ -105,7 +107,7 @@ export default function StorefrontPage() {
 
   if (isLoading) {
     return (
-      <AppShell title="Storefront">
+      <AppShell title="Store">
         <div className="flex items-center justify-center h-[60vh]">
           <LoadingScreen />
         </div>
@@ -115,7 +117,7 @@ export default function StorefrontPage() {
 
   if (error || !seller) {
     return (
-      <AppShell title="Storefront">
+      <AppShell title="Store">
         <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
           <p className="text-error text-sm">{error || "Seller not found."}</p>
           <Button onClick={loadStorefront} size="sm">Retry</Button>
@@ -129,12 +131,12 @@ export default function StorefrontPage() {
 
   return (
     <AppShell
-      title={seller.store_name}
+      title={seller.store_name || seller.shop_name || "Store"}
       headerRight={
         isApproved ? (
           <Link href={`/buyer/lists/new?id=${seller.id}`}>
             <Button size="sm" className="rounded-lg">
-              + New order
+              + New Order
             </Button>
           </Link>
         ) : null
@@ -142,15 +144,15 @@ export default function StorefrontPage() {
     >
       <div className="space-y-4 p-4">
         {/* Store info */}
-        <div className="bg-slate-900/50 border border-slate-800/50 rounded-xl px-4 py-3 space-y-1">
-          <div className="flex items-center gap-1 text-xs text-slate-400">
+        <div className="bg-white border border-slate-100 shadow-sm rounded-xl px-4 py-3 space-y-1">
+          <div className="flex items-center gap-1 text-xs text-text-muted">
             <MapPin size={12} />
             <span>{seller.location || "Nairobi"}</span>
           </div>
           {seller.store_description && (
-            <p className="text-xs text-slate-400">{seller.store_description}</p>
+            <p className="text-xs text-text-secondary">{seller.store_description}</p>
           )}
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-text-muted">
             Member since {formatDate(seller.created_at)}
           </p>
         </div>
@@ -176,10 +178,10 @@ export default function StorefrontPage() {
                 isPending ? "text-warning" : isDenied ? "text-error" : "text-info"
               }`}>
                 {isPending
-                  ? "Your access request is pending approval."
+                  ? "Waiting for the seller to approve you."
                   : isDenied
-                  ? "Your access request was denied."
-                  : "You need access to place orders from this store."}
+                  ? "This seller said no to your request."
+                  : "Ask this seller to let you buy here."}
               </p>
             </div>
             {!isPending && !isDenied && (
@@ -190,12 +192,12 @@ export default function StorefrontPage() {
                 onClick={handleRequest}
                 loading={requesting}
               >
-                <UserPlus size={14} className="mr-1" /> Request Access
+                <UserPlus size={14} className="mr-1" /> Join
               </Button>
             )}
             {isPending && (
               <Button size="sm" variant="secondary" className="w-full" disabled>
-                <Clock size={14} className="mr-1" /> Awaiting Approval
+                <Clock size={14} className="mr-1" /> Waiting for Seller
               </Button>
             )}
           </div>
@@ -203,7 +205,7 @@ export default function StorefrontPage() {
 
         {/* Category filter */}
         {availableCats.length > 0 && (
-          <div className="sticky top-[53px] z-20 bg-dark-primary -mx-4 px-4 py-2 border-b border-slate-800/50">
+          <div className="sticky top-[53px] z-20 bg-dark-primary -mx-4 px-4 py-2 border-b border-slate-100">
             <CategoryFilter
               categories={availableCats.map((c) => ({ id: String(c.id), name: c.name }))}
               active={activeCat ? String(activeCat) : null}
@@ -214,37 +216,37 @@ export default function StorefrontPage() {
 
         {/* Products */}
         {grouped.length === 0 ? (
-          <div className="text-center py-12 text-slate-400">
-            <Package className="w-12 h-12 mx-auto mb-3 text-slate-600" />
+          <div className="text-center py-12 text-text-muted">
+            <Package className="w-12 h-12 mx-auto mb-3 text-slate-300" />
             <p className="text-sm">No products available right now.</p>
           </div>
         ) : (
           grouped.map(({ cat, products }) => (
             <section key={cat.id} className="space-y-3">
               <div className="flex items-center gap-2 px-1 pt-1">
-                <ChevronRight size={14} className="text-brand-gold" />
-                <span className="text-sm font-extrabold text-white">{cat.name}</span>
-                <span className="text-xs text-slate-500">({products.length})</span>
+                <ChevronRight size={14} className="text-role" />
+                <span className="text-sm font-extrabold text-text-primary">{cat.name}</span>
+                <span className="text-xs text-text-muted">({products.length})</span>
               </div>
 
               <div className="space-y-2">
                 {products.map((p) => (
                   <Card key={p.id}>
                     <div className="flex items-start gap-3 p-3">
-                      <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
                         <Package size={18} className="text-slate-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm text-white leading-snug">
+                        <p className="font-semibold text-sm text-text-primary leading-snug">
                           {p.name}
                         </p>
                         {p.description && (
-                          <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">
+                          <p className="text-xs text-text-secondary mt-0.5 line-clamp-1">
                             {p.description}
                           </p>
                         )}
                         <div className="flex items-center justify-between mt-2 flex-wrap gap-1">
-                          <span className="text-sm font-bold text-brand-gold">
+                          <span className="text-sm font-bold text-role">
                             {fmtKES(p.price)}
                           </span>
                           <Badge

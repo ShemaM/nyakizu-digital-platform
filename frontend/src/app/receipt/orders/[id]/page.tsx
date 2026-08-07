@@ -7,7 +7,8 @@ import { Logo } from "@/components/Logo";
 import { orders, type ApiOrder, fmtKES, parsePrice, ApiError } from "@/lib/api";
 import { LoadingScreen } from "@/components/LoadingScreen";
 
-function formatDateTime(iso: string): string {
+function formatDateTime(iso?: string): string {
+  if (!iso) return "—";
   return new Date(iso).toLocaleString("en-KE", {
     day: "numeric",
     month: "short",
@@ -52,7 +53,7 @@ export default function ReceiptPage() {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await orders.get(orderId);
+      const data = await orders.get(id);
       setOrder(data);
     } catch (err) {
       console.error("Failed to load order:", err);
@@ -110,7 +111,7 @@ export default function ReceiptPage() {
       <article className="app-panel mx-auto max-w-md overflow-hidden rounded-lg print:shadow-none">
         <header className="bg-slate-950 px-6 py-5">
           <div className="flex items-center justify-between">
-            <Logo size="sm" inverted />
+            <Logo size="sm" />
             <span className="text-xs font-bold uppercase tracking-wide text-white/60">
               Digital Receipt
             </span>

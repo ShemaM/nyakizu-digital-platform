@@ -11,7 +11,7 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model  = Category
         fields = ("id", "name", "slug", "description")
-        read_only_fields = ("id",)
+        read_only_fields = ("id", "slug")
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -22,6 +22,7 @@ class ProductSerializer(serializers.ModelSerializer):
     category_name   = serializers.CharField(source="category.name", read_only=True)
     seller_username = serializers.CharField(source="seller.username", read_only=True)
     availability_label = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model  = Product
@@ -41,6 +42,12 @@ class ProductSerializer(serializers.ModelSerializer):
             return "available"
         return "can_be_sourced"
 
+    def get_image_url(self, obj):
+        if not obj.image:
+            return None
+        request = self.context.get("request")
+        return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+
 
 class BuyerProductSerializer(serializers.ModelSerializer):
     """
@@ -50,6 +57,7 @@ class BuyerProductSerializer(serializers.ModelSerializer):
     category_name      = serializers.CharField(source="category.name", read_only=True)
     seller_username    = serializers.CharField(source="seller.username", read_only=True)
     availability_label = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model  = Product
@@ -68,11 +76,19 @@ class BuyerProductSerializer(serializers.ModelSerializer):
             return "available"
         return "can_be_sourced"
 
+    def get_image_url(self, obj):
+        if not obj.image:
+            return None
+        request = self.context.get("request")
+        return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+
 
 class ProductCreateSerializer(serializers.ModelSerializer):
+    image = serializers.ImageField(required=False, allow_null=True)
+
     class Meta:
         model  = Product
-        fields = ("category", "name", "description", "price", "stock_quantity", "status", "image_url")
+        fields = ("category", "name", "description", "price", "stock_quantity", "status", "image")
 
     def validate_price(self, value):
         if value <= 0:

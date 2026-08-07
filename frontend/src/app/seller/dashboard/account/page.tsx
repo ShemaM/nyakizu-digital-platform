@@ -1,69 +1,137 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { User, Shield, Building2, Mail, CheckCircle2, AlertCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
+import { Building2, Camera, Mail, CheckCircle2, LogOut } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { Avatar } from "@/components/ui/Avatar";
+import { Button } from "@/components/ui/Button";
+import { PageSkeleton } from "@/components/ui/LoadingState";
+import { auth, ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 
 export default function SellerAccountPage() {
-  const [profile, setProfile] = useState({
-    name: "Nairobi Wholesale Trader",
-    email: "shemanzabakamira@gmail.com",
-    role: "Verified Seller",
-    joinedDate: "August 2026",
-    businessType: "Structured Ledger Enterprise",
-  });
+  const router = useRouter();
+  const { user, isLoading, logout, setSessionUser } = useAuth();
+  const [signingOut, setSigningOut] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    await logout();
+    router.push("/login");
+  }
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    setAvatarError("");
+    setUploadingAvatar(true);
+    try {
+      const updatedUser = await auth.updateAvatar(file);
+      setSessionUser(updatedUser);
+    } catch (err) {
+      setAvatarError(err instanceof ApiError ? err.message : "Could not update your photo.");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
+  if (isLoading || !user) {
+    return (
+      <AppShell title="My Account">
+        <PageSkeleton showKPIs={false} listCount={2} />
+      </AppShell>
+    );
+  }
+
+  const profile = user.seller_profile;
+  const joinedDate = new Date(user.date_joined).toLocaleDateString("en-KE", { month: "long", year: "numeric" });
+  const isVerified = profile?.approval_status === "approved";
+  const whatTheySell = profile?.categories?.length ? profile.categories.join(", ") : "Not set yet";
 
   return (
-    <AppShell title="My Account" showLogo>
+    <AppShell title="My Account">
       <div className="space-y-6 max-w-2xl mx-auto">
         {/* Header segment */}
         <div>
-          <h1 className="text-xl font-black text-slate-100 tracking-tight">Account Profile</h1>
-          <p className="text-xs text-slate-400 mt-1">Manage your enterprise identities, security badges, and ledger configurations.</p>
+          <h1 className="text-title font-black text-text-primary tracking-tight">Account</h1>
+          <p className="text-caption text-text-muted mt-1">Your shop details and sign-in info.</p>
         </div>
 
         {/* Profile Card */}
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 backdrop-blur-md space-y-6">
-          <div className="flex items-center gap-4 pb-6 border-b border-slate-800/60">
-            <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-full flex items-center justify-center font-black text-xl">
-              {profile.name.charAt(0)}
+        <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-6 space-y-6">
+          <div className="flex items-center gap-4 pb-6 border-b border-slate-100">
+            <div className="relative shrink-0">
+              <Avatar name={user.full_name} imageUrl={user.avatar_url} size="2xl" />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="absolute -bottom-1 -right-1 flex items-center justify-center w-9 h-9 rounded-full bg-role text-white border-2 border-white shadow-sm hover:opacity-90 disabled:opacity-60"
+                aria-label="Change profile photo"
+              >
+                <Camera size={17} strokeWidth={2.5} />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-slate-100">{profile.name}</h2>
-                <span className="flex items-center gap-1 bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded-md">
-                  <CheckCircle2 size={10} /> {profile.role}
-                </span>
+                <h2 className="text-body-lg font-bold text-text-primary">{profile?.store_name || user.full_name}</h2>
+                {isVerified && (
+                  <span className="flex items-center gap-1 bg-success/12 border border-success/20 text-success text-caption uppercase font-black tracking-wider px-2 py-0.5 rounded-md">
+                    <CheckCircle2 size={10} /> Verified Seller
+                  </span>
+                )}
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">Member since {profile.joinedDate}</p>
+              <p className="text-caption text-text-muted mt-0.5">Trader since {joinedDate}</p>
+              {uploadingAvatar && <p className="text-caption text-text-muted mt-0.5">Uploading photo…</p>}
+              {avatarError && <p className="text-caption text-error mt-0.5">{avatarError}</p>}
             </div>
           </div>
 
           {/* Details Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-slate-950 border border-slate-800/60 rounded-xl p-4 space-y-1">
-              <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-wider">
-                <Mail size={12} className="text-slate-500" /> Registered Email
+            <div className="bg-dark-secondary border border-slate-100 rounded-xl p-4 space-y-1">
+              <div className="flex items-center gap-2 text-text-muted text-caption font-bold uppercase tracking-wider">
+                <Mail size={12} /> Your Email
               </div>
-              <p className="text-sm text-slate-200 font-medium">{profile.email}</p>
+              <p className="text-body text-text-primary font-medium">{user.email}</p>
             </div>
 
-            <div className="bg-slate-950 border border-slate-800/60 rounded-xl p-4 space-y-1">
-              <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-wider">
-                <Building2 size={12} className="text-slate-500" /> Business Classification
+            <div className="bg-dark-secondary border border-slate-100 rounded-xl p-4 space-y-1">
+              <div className="flex items-center gap-2 text-text-muted text-caption font-bold uppercase tracking-wider">
+                <Building2 size={12} /> What you sell
               </div>
-              <p className="text-sm text-slate-200 font-medium">{profile.businessType}</p>
+              <p className="text-body text-text-primary font-medium">{whatTheySell}</p>
             </div>
           </div>
 
-          {/* Security Alert Banner */}
-          <div className="bg-amber-500/5 border border-amber-500/10 text-amber-400/90 rounded-xl p-4 text-xs font-medium flex items-start gap-2.5">
-            <Shield size={16} className="shrink-0 mt-0.5 text-amber-500" />
-            <div>
-              <p className="font-bold text-slate-200">Ledger Security Active</p>
-              <p className="text-slate-400 mt-0.5">Your trading node is fully cryptographically signed. To update critical bank parameters or settlement protocols, please contact your systems auditor.</p>
-            </div>
+          {/* Privacy note */}
+          <div className="bg-role-soft border border-role/15 text-text-secondary rounded-xl p-4 text-body">
+            Your details are private and only shown to buyers you approve.
           </div>
+        </div>
+
+        <div className="bg-white border border-error/20 shadow-sm rounded-2xl p-6 flex items-center justify-between">
+          <div>
+            <p className="font-semibold text-text-primary">Sign Out</p>
+            <p className="text-body text-text-muted">Log out of your account</p>
+          </div>
+          <Button variant="destructive" size="sm" className="gap-2" onClick={handleSignOut} loading={signingOut}>
+            <LogOut className="w-4 h-4" />
+            Sign Out
+          </Button>
         </div>
       </div>
     </AppShell>

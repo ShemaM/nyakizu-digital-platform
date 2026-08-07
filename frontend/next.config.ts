@@ -1,9 +1,6 @@
 import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  experimental: {
-    cpus: 1,
-  },
   reactCompiler: false, // temporarily disabled — Turbopack dev mode + React Compiler
   // is a known trigger for "module factory is not available" errors (vercel/next.js
   // issues #74167, #84264, #90153). Re-enable once upstream fixes this, or scope it

@@ -1,7 +1,7 @@
 import { cn } from "@/lib/cn";
 
 // Base skeleton animation class
-const SKELETON_BASE = "animate-pulse bg-gray-200 rounded";
+const SKELETON_BASE = "animate-pulse bg-slate-200/80 rounded";
 
 // Generic skeleton component for any element
 interface SkeletonProps {
@@ -23,7 +23,7 @@ export function CardSkeleton({ className, showAvatar = false, lines = 3 }: CardS
   return (
     <div
       className={cn(
-        "bg-white rounded-2xl border border-gray-100 p-4 shadow-[0_1px_3px_rgba(0,0,0,0.07)]",
+        "bg-white rounded-2xl border border-slate-100 p-4 shadow-sm",
         className
       )}
     >
@@ -80,7 +80,7 @@ export function KPICardSkeleton({ className }: KPICardSkeletonProps) {
   return (
     <div
       className={cn(
-        "bg-white rounded-2xl border border-gray-100 p-5 shadow-[0_1px_3px_rgba(0,0,0,0.07)]",
+        "bg-white rounded-2xl border border-slate-100 p-5 shadow-sm",
         className
       )}
     >
@@ -156,9 +156,9 @@ interface TableSkeletonProps {
 
 export function TableSkeleton({ rows = 5, columns = 4, className }: TableSkeletonProps) {
   return (
-    <div className={cn("bg-white rounded-2xl border border-gray-100 overflow-hidden", className)}>
+    <div className={cn("bg-white rounded-2xl border border-slate-100 overflow-hidden", className)}>
       {/* Header */}
-      <div className="border-b border-gray-100 p-4">
+      <div className="border-b border-slate-100 p-4">
         <div className="flex gap-4">
           {Array.from({ length: columns }).map((_, i) => (
             <Skeleton key={i} className="h-4 flex-1" />
@@ -167,7 +167,7 @@ export function TableSkeleton({ rows = 5, columns = 4, className }: TableSkeleto
       </div>
 
       {/* Rows */}
-      <div className="divide-y divide-gray-50">
+      <div className="divide-y divide-slate-100">
         {Array.from({ length: rows }).map((_, i) => (
           <div key={i} className="p-4">
             <div className="flex gap-4">
@@ -201,8 +201,8 @@ interface InlineLoadingProps {
 
 export function InlineLoading({ text = "Loading...", className }: InlineLoadingProps) {
   return (
-    <div className={cn("flex items-center gap-2 text-sm text-gray-500", className)}>
-      <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+    <div className={cn("flex items-center gap-2 text-sm text-text-muted", className)}>
+      <div className="w-4 h-4 border-2 border-role border-t-transparent rounded-full animate-spin" />
       <span>{text}</span>
     </div>
   );
@@ -215,10 +215,10 @@ interface FullPageLoadingProps {
 
 export function FullPageLoading({ text = "Loading..." }: FullPageLoadingProps) {
   return (
-    <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-dark-primary/80 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="text-center">
-        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-sm text-gray-600">{text}</p>
+        <div className="w-12 h-12 border-4 border-role border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-sm text-text-muted">{text}</p>
       </div>
     </div>
   );

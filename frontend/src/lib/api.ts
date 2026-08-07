@@ -1,8 +1,17 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+// Same-origin on purpose — see next.config.ts's rewrites(), which proxies
+// this to the real Django backend. Browsers (Brave/Safari especially)
+// increasingly block cookies between two different top-level domains even
+// when marked SameSite=None; Secure, treating a separate frontend/backend
+// domain pair as tracking-like behavior. Routing through one origin makes
+// the session/CSRF cookies genuinely first-party instead of fighting that.
+export const API_BASE_URL = "/api";
 
-// There's no in-app admin surface — admins are sent to Django's own admin
-// (a different origin from this app) after login.
-export const DJANGO_ADMIN_URL = new URL("/admin/", API_BASE_URL).toString();
+// The real backend origin still matters for things that intentionally
+// bypass the proxy — Django admin is a separate surface entirely, and
+// Google OAuth's redirect flow is a top-level navigation (not an XHR), so
+// it was never subject to the cross-site cookie blocking above.
+const BACKEND_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/api\/?$/, "");
+export const DJANGO_ADMIN_URL = new URL("/admin/", BACKEND_ORIGIN).toString();
 
 /**
  * Reads a cookie by name. In production the session/CSRF cookies are

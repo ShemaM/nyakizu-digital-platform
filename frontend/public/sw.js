@@ -3658,8 +3658,7 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
   };
 
   // sw-src/sw.ts
-  var API_PREFIX = "http://localhost:8000/api".replace(/\/$/, "");
-  var isApiRequest = (url) => (url.origin + url.pathname).startsWith(API_PREFIX);
+  var isApiRequest = (url) => url.origin === self.location.origin && url.pathname.startsWith("/api/");
   var isPublicCatalogRead = (url, request) => request.method === "GET" && isApiRequest(url) && (/\/products\/?$/.test(url.pathname) || /\/products\/categories\/?$/.test(url.pathname));
   var runtimeCaching = [
     {

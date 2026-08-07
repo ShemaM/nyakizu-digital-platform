@@ -39,14 +39,12 @@ import type { RuntimeCaching } from "serwist";
 
 declare const self: ServiceWorkerGlobalScope;
 
-// Replaced with a literal string at build time by scripts/build-sw.mjs
-// (reads NEXT_PUBLIC_API_URL the same way lib/api.ts does). The backend is
-// always a distinct origin from the frontend, even in local dev — see
-// backend/nyakizu/settings.py's CORS_ALLOWED_ORIGINS.
-declare const __API_BASE_URL__: string;
-
-const API_PREFIX = __API_BASE_URL__.replace(/\/$/, "");
-const isApiRequest = (url: URL) => (url.origin + url.pathname).startsWith(API_PREFIX);
+// API calls are same-origin, proxied to the real Django backend via
+// next.config.ts's rewrites() — see lib/api.ts's API_BASE_URL comment for
+// why (cross-site cookies get blocked by Brave/Safari regardless of
+// SameSite=None). That makes this a plain same-origin path check now,
+// no build-time backend URL injection needed.
+const isApiRequest = (url: URL) => url.origin === self.location.origin && url.pathname.startsWith("/api/");
 
 const isPublicCatalogRead = (url: URL, request: Request) =>
   request.method === "GET" &&

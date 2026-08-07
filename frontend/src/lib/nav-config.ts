@@ -1,6 +1,6 @@
 import {
   Store, ClipboardList, BookOpen, User, LayoutDashboard,
-  Package, ShoppingBag, ShieldCheck, Tag, Users,
+  Package, ShoppingBag, Users,
   type LucideIcon,
 } from "lucide-react";
 
@@ -26,17 +26,11 @@ const SELLER_LINKS: NavLink[] = [
   { href: "/seller/dashboard/ledger", label: "Payments", Icon: BookOpen },
 ];
 
-const ADMIN_LINKS: NavLink[] = [
-  { href: "/admin/verify", label: "Approve", Icon: ShieldCheck },
-  { href: "/admin/users", label: "Users", Icon: Users },
-  { href: "/admin/orders", label: "Orders", Icon: ShoppingBag },
-  { href: "/admin/taxonomy", label: "Categories", Icon: Tag },
-];
-
+// Admins are redirected straight to the Django admin (a different origin)
+// on login — there's no in-app admin surface, so no nav links for them.
 export const NAV_BY_ROLE: Record<string, NavLink[]> = {
   buyer: BUYER_LINKS,
   seller: SELLER_LINKS,
-  admin: ADMIN_LINKS,
 };
 
 export function navLinksForRole(role?: string | null): NavLink[] {

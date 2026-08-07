@@ -22,7 +22,7 @@ admin.site.index_title = "Platform Management"
 
 @admin.register(CustomUser)
 class CustomUserAdmin(ModelAdmin, UserAdmin):
-    list_display   = ('full_name_display', 'email', 'phone_number', 'role',
+    list_display   = ('full_name_display', 'email', 'phone_number', 'role_badge',
                       'email_verified_badge', 'is_active', 'date_joined')
     list_filter    = ('role', 'is_active', 'is_email_verified')
     search_fields  = ('first_name', 'last_name', 'username', 'email', 'phone_number')
@@ -40,6 +40,24 @@ class CustomUserAdmin(ModelAdmin, UserAdmin):
     @admin.display(description='Name')
     def full_name_display(self, obj):
         return obj.get_full_name() or obj.username
+
+    # Role is a category, not a status — colors mirror the buyer/seller/admin
+    # role-accent system used across the platform's frontend (not the
+    # green/yellow/red used for order status elsewhere in this admin), so an
+    # "admin" row doesn't visually read as an error state.
+    _ROLE_STYLES = {
+        'buyer':  ('background:#eff6ff;color:#1d4ed8', 'Buyer'),
+        'seller': ('background:#f5f3ff;color:#6d28d9', 'Seller'),
+        'admin':  ('background:#f4f1ea;color:#44403c', 'Admin'),
+    }
+
+    @admin.display(description='Role', ordering='role')
+    def role_badge(self, obj):
+        style, label = self._ROLE_STYLES.get(obj.role, ('', obj.role))
+        return format_html(
+            '<span style="display:inline-block;padding:2px 10px;border-radius:999px;'
+            'font-size:12px;font-weight:600;{}">{}</span>', style, label
+        )
 
     @admin.display(description='Email verified', boolean=True)
     def email_verified_badge(self, obj):

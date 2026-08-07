@@ -85,7 +85,11 @@ export function RouteProgressBar() {
   if (!visible) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[100] h-[3px] bg-transparent" aria-hidden="true">
+    <div
+      className="fixed left-0 right-0 z-[100] h-[3px] bg-transparent"
+      style={{ top: "env(safe-area-inset-top)" }}
+      aria-hidden="true"
+    >
       <div
         className="h-full bg-brand-gold shadow-[0_0_8px_rgba(200,134,10,0.6)] transition-[width] duration-200 ease-out"
         style={{ width: `${progress}%` }}

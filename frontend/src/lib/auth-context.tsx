@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
-import { auth, type User } from "@/lib/api";
+import { auth, primeCsrf, type User } from "@/lib/api";
 
 interface AuthContextType {
   user: User | null;
@@ -49,6 +49,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Fire-and-forget: primes the csrftoken cookie so it's already present
+    // by the time the user submits anything that mutates state (login,
+    // order actions, ...). Independent of refetch()'s own session check.
+    void primeCsrf();
     refetch();
   }, [refetch]);
 

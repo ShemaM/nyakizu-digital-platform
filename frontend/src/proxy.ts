@@ -2,10 +2,9 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 
-function getProtectedRouteRole(pathname: string): "buyer" | "seller" | "admin" | null {
+function getProtectedRouteRole(pathname: string): "buyer" | "seller" | null {
   if (pathname.startsWith("/buyer")) return "buyer";
   if (pathname.startsWith("/seller")) return "seller";
-  if (pathname.startsWith("/admin")) return "admin";
   return null;
 }
 
@@ -31,5 +30,5 @@ export function proxy(req: NextRequest) {
 
 export const config = {
 
-  matcher: ["/buyer/:path*", "/seller/:path*", "/admin/:path*"],
+  matcher: ["/buyer/:path*", "/seller/:path*"],
 };

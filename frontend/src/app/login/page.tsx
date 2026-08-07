@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Alert, AlertDescription } from "@/components/ui/Alert";
 import { GoogleButton } from "@/components/ui/GoogleButton";
-import { auth } from "@/lib/api";
+import { auth, DJANGO_ADMIN_URL } from "@/lib/api";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -51,7 +51,6 @@ function LoginForm() {
   useEffect(() => {
     router.prefetch("/buyer");
     router.prefetch("/seller/dashboard");
-    router.prefetch("/admin/verify");
   }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,15 +62,14 @@ function LoginForm() {
       const user = await auth.login(identifier, password);
       setSessionUser(user);
 
-      const roleHome =
-        user.role === "seller"
-          ? "/seller/dashboard"
-          : user.role === "admin"
-          ? "/admin/verify"
-          : "/buyer";
+      if (user.role === "admin") {
+        // Different origin — a client-side router.push can't take them there.
+        window.location.href = DJANGO_ADMIN_URL;
+        return;
+      }
 
-      const redirectTo =
-        nextUrl && nextUrl.startsWith("/") ? nextUrl : roleHome;
+      const roleHome = user.role === "seller" ? "/seller/dashboard" : "/buyer";
+      const redirectTo = nextUrl && nextUrl.startsWith("/") ? nextUrl : roleHome;
 
       router.push(redirectTo);
       // Deliberately leave `loading` true here — we're navigating away, and

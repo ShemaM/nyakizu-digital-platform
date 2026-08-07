@@ -65,7 +65,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={{ toast }}>
       {children}
       <div
-        className="pointer-events-none fixed top-4 left-1/2 z-[100] flex w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 flex-col gap-2 sm:left-auto sm:right-4 sm:w-full sm:translate-x-0"
+        className="pointer-events-none fixed left-1/2 z-[100] flex w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 flex-col gap-2 sm:left-auto sm:right-4 sm:w-full sm:translate-x-0"
+        style={{ top: "calc(1rem + env(safe-area-inset-top))" }}
         aria-live="polite"
       >
         {toasts.map(({ id, message, variant }) => {

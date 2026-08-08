@@ -6,6 +6,15 @@ const BACKEND_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:800
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Every /api/ call in lib/api.ts already ends in a trailing slash,
+  // matching Django's own APPEND_SLASH convention. Without this, Next's
+  // default trailing-slash redirect strips it (308 -> /api/csrf) before
+  // the rewrite below ever sees the request, Django's middleware then
+  // redirects it right back (301 -> /api/csrf/), and the two bounce off
+  // each other forever — a real infinite loop, confirmed live (curl hit
+  // its redirect limit). This only disables Next's *automatic* trailing-
+  // slash handling; it doesn't add or remove slashes on its own.
+  skipTrailingSlashRedirect: true,
   reactCompiler: false, // temporarily disabled — Turbopack dev mode + React Compiler
   // is a known trigger for "module factory is not available" errors (vercel/next.js
   // issues #74167, #84264, #90153). Re-enable once upstream fixes this, or scope it

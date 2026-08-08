@@ -363,7 +363,7 @@ class ProductsAPI {
     });
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(extractApiErrorMessage(error, "Failed to create product"));
+      throw new ApiError(extractApiErrorMessage(error, "Failed to create product"), response.status);
     }
     return response.json();
   }
@@ -375,7 +375,7 @@ class ProductsAPI {
     });
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(extractApiErrorMessage(error, "Failed to update product"));
+      throw new ApiError(extractApiErrorMessage(error, "Failed to update product"), response.status);
     }
     return response.json();
   }
@@ -385,7 +385,7 @@ class ProductsAPI {
       method: "DELETE",
     });
     if (!response.ok) {
-      throw new Error("Failed to delete product");
+      throw new ApiError("Failed to delete product", response.status);
     }
   }
 }
@@ -409,7 +409,7 @@ class OrdersAPI {
 
   async get(orderId: string): Promise<ApiOrder> {
     const response = await fetchWithSession(`${API_BASE_URL}/orders/${orderId}/`);
-    if (!response.ok) throw new Error("Failed to fetch order");
+    if (!response.ok) throw new ApiError("Failed to fetch order", response.status);
     return response.json();
   }
 
@@ -420,7 +420,7 @@ class OrdersAPI {
     });
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(extractApiErrorMessage(error, "Failed to create order"));
+      throw new ApiError(extractApiErrorMessage(error, "Failed to create order"), response.status);
     }
     return response.json();
   }
@@ -432,7 +432,7 @@ class OrdersAPI {
     });
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(extractApiErrorMessage(error, "Failed to update order"));
+      throw new ApiError(extractApiErrorMessage(error, "Failed to update order"), response.status);
     }
     return response.json();
   }
@@ -449,7 +449,7 @@ class OrdersAPI {
     });
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(extractApiErrorMessage(error, "Failed to record payment"));
+      throw new ApiError(extractApiErrorMessage(error, "Failed to record payment"), response.status);
     }
     return response.json();
   }
@@ -469,7 +469,7 @@ class CategoriesAPI {
     });
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(extractApiErrorMessage(error, "Failed to create category"));
+      throw new ApiError(extractApiErrorMessage(error, "Failed to create category"), response.status);
     }
     return response.json();
   }
@@ -481,7 +481,7 @@ class CategoriesAPI {
     });
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(extractApiErrorMessage(error, "Failed to update category"));
+      throw new ApiError(extractApiErrorMessage(error, "Failed to update category"), response.status);
     }
     return response.json();
   }
@@ -506,7 +506,7 @@ class RelationshipsAPI {
     });
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(extractApiErrorMessage(error, "Failed to request access"));
+      throw new ApiError(extractApiErrorMessage(error, "Failed to request access"), response.status);
     }
     return response.json();
   }
@@ -518,7 +518,7 @@ class RelationshipsAPI {
     });
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(extractApiErrorMessage(error, "Failed to resolve relationship"));
+      throw new ApiError(extractApiErrorMessage(error, "Failed to resolve relationship"), response.status);
     }
     return response.json();
   }
@@ -536,7 +536,7 @@ class SellersAPI {
 
   async get(id: string): Promise<ApiSeller> {
     const response = await fetchWithSession(`${API_BASE_URL}/accounts/sellers/${id}/`);
-    if (!response.ok) throw new Error("Failed to fetch seller");
+    if (!response.ok) throw new ApiError("Failed to fetch seller", response.status);
     return response.json();
   }
 }
@@ -558,13 +558,13 @@ class FollowsAPI {
       method: "POST",
       body: JSON.stringify({ seller_id: sellerId }),
     });
-    if (!response.ok) throw new Error("Failed to follow seller");
+    if (!response.ok) throw new ApiError("Failed to follow seller", response.status);
     return response.json();
   }
 
   async unfollow(sellerId: number): Promise<any> {
     const response = await fetchWithSession(`${API_BASE_URL}/follows/${sellerId}/`, { method: "DELETE" });
-    if (!response.ok) throw new Error("Failed to unfollow seller");
+    if (!response.ok) throw new ApiError("Failed to unfollow seller", response.status);
     return response.json();
   }
 }

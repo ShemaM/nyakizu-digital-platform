@@ -50,6 +50,9 @@ export const metadata: Metadata = {
     follow: true,
     googleBot: { index: true, follow: true },
   },
+  verification: {
+    google: "wsG2_HiGIHL8fIXR8pbJWEhy26T_rGyotEmFyXxbxGU",
+  },
   openGraph: {
     type: "website",
     locale: "en_KE",

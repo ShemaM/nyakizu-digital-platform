@@ -42,18 +42,21 @@ export default function manifest(): MetadataRoute.Manifest {
         short_name: "Suppliers",
         url: "/buyer/suppliers",
         description: "View your trusted suppliers",
+        icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
       },
       {
         name: "New Order",
         short_name: "Order",
         url: "/buyer/lists/new",
         description: "Start a new order",
+        icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
       },
       {
         name: "My Store",
         short_name: "Store",
         url: "/seller/dashboard",
         description: "Manage your seller dashboard",
+        icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
       },
     ],
   };

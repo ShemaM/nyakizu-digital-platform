@@ -42,32 +42,35 @@ export function LandingHeader() {
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-18">
-          {/* Logo */}
-          <Link
-            href="/"
-            className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
-            aria-label="Nyakizu Home"
-          >
-            <Logo size="sm" color="#C8860A" />
-            <span className="hidden sm:inline text-sm font-bold text-text-primary tracking-tight">
-              Nyakizu Market
-            </span>
-          </Link>
+        <div className="flex items-center justify-between h-20 sm:h-24">
+          {/* Logo + nav, grouped together so nav reads as anchored to the
+              brand instead of floating alone in the header's dead centre */}
+          <div className="flex items-center gap-8 lg:gap-12 min-w-0">
+            <Link
+              href="/"
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity shrink-0"
+              aria-label="Nyakizu Home"
+            >
+              <Logo size={56} className="w-11 h-11 sm:w-14 sm:h-14 shrink-0" />
+              <span className="font-display font-bold text-xl sm:text-2xl text-text-primary tracking-tight whitespace-nowrap">
+                Nyakizu Digital
+              </span>
+            </Link>
 
-          {/* Desktop navigation */}
-          <nav className="hidden md:flex items-center gap-5 lg:gap-6">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-base text-text-secondary hover:text-text-primary transition-colors duration-200 relative group"
-              >
-                {link.label}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-brand-gold transition-all duration-300 group-hover:w-full" />
-              </Link>
-            ))}
-          </nav>
+            {/* Desktop navigation */}
+            <nav className="hidden md:flex items-center gap-5 lg:gap-6">
+              {NAV_LINKS.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="text-base text-text-secondary hover:text-text-primary transition-colors duration-200 relative group"
+                >
+                  {link.label}
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-brand-gold transition-all duration-300 group-hover:w-full" />
+                </Link>
+              ))}
+            </nav>
+          </div>
 
           {/* Desktop auth buttons */}
           <div className="hidden md:flex items-center gap-3">
@@ -169,7 +172,7 @@ export function LandingFooter() {
           {/* Brand */}
           <div className="sm:col-span-2 space-y-4">
             <Link href="/" className="inline-flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <Logo size="md" color="#C8860A" />
+              <Logo size="md" />
               <span className="text-xl font-extrabold tracking-tight text-text-primary">
                 Nyakizu
               </span>

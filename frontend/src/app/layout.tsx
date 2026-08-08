@@ -1,7 +1,7 @@
 import "@/app/globals.css";
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
-import { Inter } from "next/font/google";
+import { Inter, Bricolage_Grotesque } from "next/font/google";
 import { MotionConfig } from "motion/react";
 import { AuthProvider } from "@/lib/auth-context";
 import { ToastProvider } from "@/components/ui/Toast";
@@ -13,6 +13,14 @@ import { SITE_URL, SITE_NAME } from "@/lib/seo";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
+  display: "swap",
+});
+
+// Wordmark-only display sans — everything else stays on Inter.
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin"],
+  variable: "--font-display",
+  weight: ["600", "700"],
   display: "swap",
 });
 
@@ -108,7 +116,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className={inter.variable}>
+    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className={`${inter.variable} ${bricolage.variable}`}>
       <head>
         <script
           type="application/ld+json"

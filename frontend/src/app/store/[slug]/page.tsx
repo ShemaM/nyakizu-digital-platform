@@ -1,8 +1,32 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Copy, MapPin, ShoppingBag, Store } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { sellers, products } from "@/lib/api";
+import { SITE_URL } from "@/lib/seo";
 import { StoreProducts } from "./StoreProducts";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const matches = await sellers.list({ username: slug });
+  const seller = matches[0];
+
+  if (!seller) {
+    return { title: "Store not found", robots: { index: false, follow: false } };
+  }
+
+  const title = `${seller.store_name} — Wholesale Phone Accessories in ${seller.location || "Nairobi"}`;
+  const description =
+    seller.store_description ||
+    `Shop wholesale phone accessories from ${seller.store_name}, an approved Nyakizu seller in ${seller.location || "Nairobi"}.`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `${SITE_URL}/store/${slug}` },
+    openGraph: { title, description, url: `${SITE_URL}/store/${slug}`, type: "website" },
+  };
+}
 
 export default async function PublicStorePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -26,12 +50,26 @@ export default async function PublicStorePage({ params }: { params: Promise<{ sl
     );
   }
 
-  const storeUrl = `${process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3003"}/store/${slug}`;
+  const storeUrl = `${SITE_URL}/store/${slug}`;
   const storeProducts = await products.list({ seller: seller.id });
   const joinedDate = new Date(seller.created_at).toLocaleDateString("en-KE", { month: "long", year: "numeric" });
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Store",
+    name: seller.store_name,
+    url: storeUrl,
+    description: seller.store_description || undefined,
+    address: seller.location ? { "@type": "PostalAddress", addressLocality: seller.location, addressCountry: "KE" } : undefined,
+  };
+
   return (
     <main className="min-h-screen bg-surface text-slate-950">
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger -- static, server-generated JSON from our own DB fields, no raw user HTML
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <header className="border-b border-slate-200/80 bg-white/85 backdrop-blur-xl">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
           <Logo size="sm" />

@@ -1,4 +1,9 @@
 import type { NextConfig } from "next";
+
+// Same value src/lib/api.ts derives BACKEND_ORIGIN from — kept in sync by
+// reading the same env var rather than duplicating the URL.
+const BACKEND_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/api\/?$/, "");
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   reactCompiler: false, // temporarily disabled — Turbopack dev mode + React Compiler
@@ -8,9 +13,23 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
   },
+  async rewrites() {
+    // Proxies /api/* to the real Django backend so the browser only ever
+    // talks to this app's own origin — see the comment on API_BASE_URL in
+    // lib/api.ts for why (cross-site cookie blocking in Brave/Safari).
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${BACKEND_ORIGIN}/api/:path*`,
+      },
+    ];
+  },
   async headers() {
     return [
       {
+        // Still a static public/sw.js — see scripts/build-sw.mjs — so it
+        // needs these headers manually. app/manifest.ts, by contrast, is a
+        // Next.js route and sets its own Content-Type/caching automatically.
         source: "/sw.js",
         headers: [
           {
@@ -24,19 +43,6 @@ const nextConfig: NextConfig = {
           {
             key: "Content-Type",
             value: "application/javascript; charset=utf-8",
-          },
-        ],
-      },
-      {
-        source: "/manifest.webmanifest",
-        headers: [
-          {
-            key: "Content-Type",
-            value: "application/manifest+json",
-          },
-          {
-            key: "Cache-Control",
-            value: "public, max-age=0,must-revalidate",
           },
         ],
       },

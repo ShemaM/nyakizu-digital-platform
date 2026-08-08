@@ -3,14 +3,31 @@ Django settings for the Nyakizu Digital Market platform.
 """
 
 from pathlib import Path
-from decouple import config
+from decouple import config, Csv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ── Security ──────────────────────────────────────────────────────────────────
 SECRET_KEY = config('SECRET_KEY', default='dev-insecure-key-change-in-production')
 DEBUG      = config('DEBUG', default=True, cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
+
+if not DEBUG and SECRET_KEY == 'dev-insecure-key-change-in-production':
+    raise ValueError(
+        'SECRET_KEY is still the dev default with DEBUG=False. '
+        'Set a real SECRET_KEY env var before running in production.'
+    )
+
+# Most hosting platforms (Render, Railway, Fly.io, ...) terminate TLS at a
+# proxy in front of the app and forward plain HTTP internally — without
+# this, request.is_secure() is always False behind that proxy, which
+# silently breaks secure-cookie logic and CSRF checks even over HTTPS.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_SSL_REDIRECT     = config('SECURE_SSL_REDIRECT', default=not DEBUG, cast=bool)
+SECURE_HSTS_SECONDS     = config('SECURE_HSTS_SECONDS', default=0 if DEBUG else 60 * 60 * 24 * 7, cast=int)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
+SECURE_HSTS_PRELOAD            = not DEBUG
+CSRF_COOKIE_SECURE     = config('CSRF_COOKIE_SECURE', default=not DEBUG, cast=bool)
 
 # ── Applications ──────────────────────────────────────────────────────────────
 INSTALLED_APPS = [
@@ -25,6 +42,7 @@ INSTALLED_APPS = [
     # Third-party
     'rest_framework',
     'corsheaders',
+    'storages',  # only actually used when R2_BUCKET_NAME is set — see STORAGES below
     'django.contrib.sites',
     'allauth',
     'allauth.account',
@@ -40,6 +58,11 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    # Serves collected static files directly from the app process — no
+    # separate CDN/static host needed, which is what makes single-service
+    # free-tier hosting (Render, Railway, Fly.io, ...) work for a Django
+    # admin that needs its own CSS/JS.
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -69,11 +92,16 @@ TEMPLATES = [
 WSGI_APPLICATION = 'nyakizu.wsgi.application'
 
 # ── Database ──────────────────────────────────────────────────────────────────
+# DATABASE_URL unset (local dev) -> sqlite. Set it (postgres://... — every
+# host below hands you one) and this switches to Postgres with zero other
+# changes needed.
+import dj_database_url
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
+        conn_max_age=600,
+    )
 }
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
@@ -94,11 +122,53 @@ USE_I18N      = True
 USE_TZ        = True
 
 # ── Static files ──────────────────────────────────────────────────────────────
-STATIC_URL = 'static/'
+STATIC_URL  = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'   # `manage.py collectstatic` target; whitenoise serves from here
 
 # ── Media (user-uploaded files) ─────────────────────────────────────────────
-MEDIA_URL  = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# Local disk (FileSystemStorage) unless R2_BUCKET_NAME is set — most
+# free-tier app hosts wipe local disk on every redeploy/restart, so
+# uploads (avatars, product photos) need object storage to actually
+# persist. Targets Cloudflare R2 (S3-compatible, no egress fees, 10GB
+# free) via django-storages; any other S3-compatible provider works too,
+# just point R2_ENDPOINT_URL at it.
+R2_BUCKET_NAME = config('R2_BUCKET_NAME', default='')
+
+if R2_BUCKET_NAME:
+    STORAGES = {
+        'default': {
+            'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage',
+            'OPTIONS': {
+                'bucket_name': R2_BUCKET_NAME,
+                'endpoint_url': config('R2_ENDPOINT_URL'),  # https://<account_id>.r2.cloudflarestorage.com
+                'access_key': config('R2_ACCESS_KEY_ID'),
+                'secret_key': config('R2_SECRET_ACCESS_KEY'),
+                'region_name': 'auto',
+                'signature_version': 's3v4',
+                'addressing_style': 'path',
+                'file_overwrite': False,
+                'querystring_auth': False,  # bucket is public — plain URLs, no signed-request expiry
+            },
+        },
+        'staticfiles': {
+            'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        },
+    }
+    # R2's own public bucket URL (or a custom domain mapped to it) — required
+    # so <img src="..."> tags don't point at the private R2 API endpoint.
+    MEDIA_URL = config('R2_PUBLIC_URL').rstrip('/') + '/'
+else:
+    STORAGES = {
+        'default': {
+            'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        },
+        'staticfiles': {
+            # Adds a content hash to filenames + gzip/brotli compression.
+            'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        },
+    }
+    MEDIA_URL  = '/media/'
+    MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -111,8 +181,15 @@ UNFOLD = {
     "SITE_SUBHEADER": "Platform Management",
     "SHOW_HISTORY": True,
     "SHOW_VIEW_ON_SITE": True,
+    # Forces light mode always. Without this, unfold defaults to "auto" —
+    # it reads the OS/browser's prefers-color-scheme and silently renders
+    # the whole admin dark on any machine set to dark mode, regardless of
+    # anything themed below. That auto-detect, not a template bug, was the
+    # actual source of the "dark blue background" complaint.
+    "THEME": "light",
     "COLORS": {
-        # Tailwind's `blue` scale — matches the platform's brand primary (#2563eb / blue-600)
+        # Tailwind's `blue` scale — matches the platform's brand primary (#2563eb / blue-600),
+        # i.e. the same --primary/--ring token frontend/tailwind.config.ts defines.
         "primary": {
             "50":  "#eff6ff",
             "100": "#dbeafe",
@@ -125,6 +202,23 @@ UNFOLD = {
             "800": "#1e40af",
             "900": "#1e3a8a",
             "950": "#172554",
+        },
+        # Tailwind's `stone` scale — replaces unfold's default cool-slate
+        # neutrals with the same warm-paper/warm-ink undertone as the
+        # frontend's dark.* tokens (#FAF9F6 paper, #14120E ink), instead of
+        # a mismatched cool gray sitting next to the app's warm one.
+        "base": {
+            "50":  "#fafaf9",
+            "100": "#f5f5f4",
+            "200": "#e7e5e4",
+            "300": "#d6d3d1",
+            "400": "#a8a29e",
+            "500": "#78716c",
+            "600": "#57534e",
+            "700": "#44403c",
+            "800": "#292524",
+            "900": "#1c1917",
+            "950": "#0c0a09",
         },
     },
     "DASHBOARD_CALLBACK": "nyakizu.admin_dashboard.dashboard_callback",
@@ -164,7 +258,7 @@ UNFOLD = {
                         "badge": "nyakizu.admin_dashboard.pending_sellers_badge",
                     },
                     {
-                        "title": "Buyer-seller relationships",
+                        "title": "Buyer–Seller Links",
                         "icon": "handshake",
                         "link": reverse_lazy("admin:accounts_buyersellerrelationship_changelist"),
                     },
@@ -228,28 +322,39 @@ REST_FRAMEWORK = {
 }
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
-# Allow both the default Next.js port (3000) and our custom port (3003)
-CORS_ALLOWED_ORIGINS = [
+# EXTRA_CORS_ORIGINS / EXTRA_CSRF_ORIGINS: comma-separated, for the deployed
+# frontend origin(s) — e.g. https://nyakizu.vercel.app. The localhost dev
+# ports stay allowed in every environment so local dev against a deployed
+# backend still works; add production origins on top rather than replacing.
+_dev_frontend_origins = [
     'http://localhost:3000',
     'http://localhost:3001',
     'http://localhost:3003',
     'http://127.0.0.1:3000',
     'http://127.0.0.1:3003',
 ]
+_extra_cors_origins = config('EXTRA_CORS_ORIGINS', default='', cast=Csv())
+_extra_csrf_origins  = config('EXTRA_CSRF_ORIGINS', default='', cast=Csv())
+
+CORS_ALLOWED_ORIGINS = _dev_frontend_origins + list(_extra_cors_origins)
 CORS_ALLOW_CREDENTIALS = True   # send session cookie back
 
 # ── CSRF ──────────────────────────────────────────────────────────────────────
-CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'http://localhost:3003',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:3003',
-]
+CSRF_TRUSTED_ORIGINS = _dev_frontend_origins + list(_extra_csrf_origins)
+
+# 'Lax' is safe here (in both dev and production) specifically because the
+# frontend proxies all /api/ calls through its own origin (see
+# frontend/next.config.ts's rewrites()) rather than calling this backend
+# cross-site — the browser only ever sees same-site requests. Don't set
+# this to 'None' to "support cross-site" without first re-checking that
+# proxy: 'None' cookies get silently dropped by Brave/Safari's cross-site
+# tracking protection regardless of Secure, which is what broke login
+# before the proxy was added.
+CSRF_COOKIE_SAMESITE = config('CSRF_COOKIE_SAMESITE', default='Lax')
 
 # ── Session cookies ───────────────────────────────────────────────────────────
-SESSION_COOKIE_SAMESITE = 'Lax'
-SESSION_COOKIE_SECURE   = False  # set True in production (HTTPS only)
+SESSION_COOKIE_SAMESITE = config('SESSION_COOKIE_SAMESITE', default='Lax')
+SESSION_COOKIE_SECURE   = config('SESSION_COOKIE_SECURE', default=not DEBUG, cast=bool)
 
 # Without these, Django's default is a 2-week persistent session cookie —
 # a browser that logged into /admin/ once stays signed in for two weeks,

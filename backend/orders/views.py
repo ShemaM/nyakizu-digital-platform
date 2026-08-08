@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.db import transaction
 from django.db.models import Q
+from django.utils import timezone
 from accounts.permissions import is_approved_seller, is_verified_buyer, is_admin_user
 from .models import Order, OrderItem
 from .notifications import record_status_event
@@ -271,7 +272,7 @@ class RecordPaymentView(APIView):
 class AdminOrderListView(APIView):
     """
     GET /api/orders/admin/
-    Admin only. Lists all orders with optional status filter.
+    Admin only. Lists all orders with optional status/flagged filters.
     """
     permission_classes = [permissions.IsAdminUser]
 
@@ -280,5 +281,54 @@ class AdminOrderListView(APIView):
         status_filter = request.query_params.get("status")
         if status_filter:
             orders_qs = orders_qs.filter(status=status_filter)
+        if request.query_params.get("flagged") == "true":
+            orders_qs = orders_qs.filter(is_flagged=True)
         serializer = OrderSerializer(orders_qs, many=True)
+        return Response(serializer.data)
+
+
+class FlagOrderView(APIView):
+    """
+    POST /api/orders/<id>/flag/
+    Admin only. Marks an order for review — a lightweight escalation path
+    for cancellations/disputes that need a human look, short of a full
+    dispute-ticket system. Body: { reason }.
+    """
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
+            return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        reason = request.data.get("reason", "").strip()
+        if not reason:
+            return Response({"error": "A reason is required to flag an order."}, status=status.HTTP_400_BAD_REQUEST)
+
+        order.is_flagged = True
+        order.flag_reason = reason
+        order.flagged_at = timezone.now()
+        order.save(update_fields=["is_flagged", "flag_reason", "flagged_at", "updated_at"])
+
+        serializer = OrderSerializer(order)
+        return Response(serializer.data)
+
+
+class UnflagOrderView(APIView):
+    """POST /api/orders/<id>/unflag/ — Admin only. Clears a flag once resolved."""
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
+            return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        order.is_flagged = False
+        order.flag_reason = ""
+        order.flagged_at = None
+        order.save(update_fields=["is_flagged", "flag_reason", "flagged_at", "updated_at"])
+
+        serializer = OrderSerializer(order)
         return Response(serializer.data)

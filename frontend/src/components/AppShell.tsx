@@ -39,7 +39,10 @@ export function AppShell({
       className="min-h-screen w-full min-w-0 bg-dark-primary flex flex-col"
     >
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur-sm">
+      <header
+        className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur-sm"
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
+      >
         <div className="flex items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
           <div className="flex items-center gap-4 min-w-0">
             {/* Always present and always a link — every logged-in page needs

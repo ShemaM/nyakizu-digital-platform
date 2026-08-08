@@ -1,18 +1,71 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+// Same-origin on purpose — see next.config.ts's rewrites(), which proxies
+// this to the real Django backend. Browsers (Brave/Safari especially)
+// increasingly block cookies between two different top-level domains even
+// when marked SameSite=None; Secure, treating a separate frontend/backend
+// domain pair as tracking-like behavior. Routing through one origin makes
+// the session/CSRF cookies genuinely first-party instead of fighting that.
+export const API_BASE_URL = "/api";
+
+// The real backend origin still matters for things that intentionally
+// bypass the proxy — Django admin is a separate surface entirely, and
+// Google OAuth's redirect flow is a top-level navigation (not an XHR), so
+// it was never subject to the cross-site cookie blocking above.
+const BACKEND_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/api\/?$/, "");
+export const DJANGO_ADMIN_URL = new URL("/admin/", BACKEND_ORIGIN).toString();
+
+/**
+ * Reads a cookie by name. In production the session/CSRF cookies are
+ * SameSite=None (see backend/nyakizu/settings.py — required since the
+ * frontend and backend are different sites), which only controls whether
+ * the browser auto-attaches the cookie to outgoing requests; it's still
+ * plain JS-readable, which is exactly what lets us pull the CSRF token
+ * out here and send it back as a header.
+ */
+function getCookie(name: string): string | null {
+  if (typeof document === "undefined") return null; // SSR guard
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 async function fetchWithSession(url: string, options: RequestInit = {}) {
   // FormData bodies must NOT get an explicit Content-Type — the browser sets
   // its own multipart boundary, and overriding it breaks upload parsing.
   const isFormData = options.body instanceof FormData;
+  const method = (options.method || "GET").toUpperCase();
+  // Django's CSRF check only applies to unsafe methods — GET/HEAD/OPTIONS
+  // never need the token, and skipping them means a missing/expired cookie
+  // (e.g. before primeCsrf() has run) can't break read-only calls.
+  const csrfToken = SAFE_METHODS.has(method) ? null : getCookie("csrftoken");
+
   const response = await fetch(url, {
     ...options,
     credentials: "include",
     headers: {
       ...(isFormData ? {} : { "Content-Type": "application/json" }),
+      ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
       ...(options.headers || {}),
     },
   });
   return response;
+}
+
+/**
+ * Ensures the browser is holding a csrftoken cookie before any mutating
+ * request is attempted — Django only sets/rotates that cookie as a side
+ * effect of a request touching django.middleware.csrf.get_token(), which
+ * this pure-API backend otherwise never does. Called once on app load
+ * (see auth-context.tsx). Failure is non-fatal: worst case the first
+ * mutating request 403s and the user retries, same as a stale/missing
+ * cookie any time later in the session.
+ */
+export async function primeCsrf(): Promise<void> {
+  try {
+    await fetch(`${API_BASE_URL}/csrf/`, { credentials: "include" });
+  } catch {
+    // Network hiccup — not worth surfacing to the user for a priming call.
+  }
 }
 
 export class ApiError extends Error {
@@ -190,6 +243,9 @@ export interface ApiOrder {
   sourcing_notes?: string;
   items: ApiOrderItem[];
   status_history?: ApiOrderStatusEvent[];
+  is_flagged?: boolean;
+  flag_reason?: string;
+  flagged_at?: string | null;
   created_at: string;
   updated_at?: string;
 }
@@ -482,58 +538,6 @@ class SellersAPI {
   }
 }
 export const sellers = new SellersAPI();
-
-export interface AdminPeriodMetrics {
-  new_users: number;
-  transactions: number;
-  volume: number;
-}
-
-export interface AdminMetrics {
-  total_users: number;
-  total_buyers: number;
-  total_sellers: number;
-  total_orders: number;
-  total_volume: number;
-  active_listings: number;
-  last_7_days: AdminPeriodMetrics;
-  last_30_days: AdminPeriodMetrics;
-}
-
-class AdminAPI {
-  async dashboardMetrics(): Promise<AdminMetrics | null> {
-    const response = await fetchWithSession(`${API_BASE_URL}/admin/metrics/`);
-    return response.ok ? response.json() : null;
-  }
-
-  async pendingSellers(): Promise<any[]> {
-    const response = await fetchWithSession(`${API_BASE_URL}/accounts/sellers/pending/`);
-    return response.ok ? unwrapList(await response.json()) : [];
-  }
-
-  async orderList(status?: string): Promise<any[]> {
-    const url = status ? `${API_BASE_URL}/orders/admin/?status=${status}` : `${API_BASE_URL}/orders/admin/`;
-    const response = await fetchWithSession(url);
-    return response.ok ? response.json() : [];
-  }
-
-  async userList(role?: string): Promise<User[]> {
-    const url = role ? `${API_BASE_URL}/accounts/users/?role=${role}` : `${API_BASE_URL}/accounts/users/`;
-    const response = await fetchWithSession(url);
-    return response.ok ? response.json() : [];
-  }
-
-  async approveSeller(sellerId: number): Promise<any> {
-    const response = await fetchWithSession(`${API_BASE_URL}/accounts/sellers/pending/${sellerId}/approve/`, { method: "POST" });
-    return response.ok ? response.json() : null;
-  }
-
-  async rejectSeller(sellerId: number): Promise<any> {
-    const response = await fetchWithSession(`${API_BASE_URL}/accounts/sellers/pending/${sellerId}/reject/`, { method: "POST" });
-    return response.ok ? response.json() : null;
-  }
-}
-export const admin = new AdminAPI();
 
 class FollowsAPI {
   async list(): Promise<any[]> {

@@ -342,17 +342,18 @@ CORS_ALLOW_CREDENTIALS = True   # send session cookie back
 # ── CSRF ──────────────────────────────────────────────────────────────────────
 CSRF_TRUSTED_ORIGINS = _dev_frontend_origins + list(_extra_csrf_origins)
 
-# 'Lax' works in dev only because localhost:3000 and localhost:8000 count as
-# the *same site* (same domain, different port — SameSite is domain-scoped,
-# not origin-scoped). In production the frontend and backend are on
-# genuinely different sites (e.g. *.vercel.app vs *.onrender.com), so a Lax
-# cookie is never attached to the frontend's cross-site fetch() calls —
-# login would silently look like it never happened. 'None' fixes that, and
-# requires Secure=True (already true whenever DEBUG=False, below).
-CSRF_COOKIE_SAMESITE = config('CSRF_COOKIE_SAMESITE', default='Lax' if DEBUG else 'None')
+# 'Lax' is safe here (in both dev and production) specifically because the
+# frontend proxies all /api/ calls through its own origin (see
+# frontend/next.config.ts's rewrites()) rather than calling this backend
+# cross-site — the browser only ever sees same-site requests. Don't set
+# this to 'None' to "support cross-site" without first re-checking that
+# proxy: 'None' cookies get silently dropped by Brave/Safari's cross-site
+# tracking protection regardless of Secure, which is what broke login
+# before the proxy was added.
+CSRF_COOKIE_SAMESITE = config('CSRF_COOKIE_SAMESITE', default='Lax')
 
 # ── Session cookies ───────────────────────────────────────────────────────────
-SESSION_COOKIE_SAMESITE = config('SESSION_COOKIE_SAMESITE', default='Lax' if DEBUG else 'None')
+SESSION_COOKIE_SAMESITE = config('SESSION_COOKIE_SAMESITE', default='Lax')
 SESSION_COOKIE_SECURE   = config('SESSION_COOKIE_SECURE', default=not DEBUG, cast=bool)
 
 # Without these, Django's default is a 2-week persistent session cookie —

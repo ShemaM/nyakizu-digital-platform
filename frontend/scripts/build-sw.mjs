@@ -18,8 +18,6 @@ const outdir = path.join(root, "public");
 
 if (!existsSync(outdir)) mkdirSync(outdir, { recursive: true });
 
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-
 await build({
   entryPoints: [path.join(root, "sw-src", "sw.ts")],
   outfile: path.join(outdir, "sw.js"),
@@ -27,9 +25,6 @@ await build({
   format: "iife", // registered as a classic (non-module) SW — no import/export in the output
   target: "es2020",
   minify: process.env.NODE_ENV === "production",
-  define: {
-    __API_BASE_URL__: JSON.stringify(apiBaseUrl),
-  },
 });
 
-console.log(`[build-sw] wrote public/sw.js (API_BASE_URL=${apiBaseUrl})`);
+console.log("[build-sw] wrote public/sw.js");

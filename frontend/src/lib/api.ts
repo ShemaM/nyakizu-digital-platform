@@ -10,7 +10,10 @@ export const API_BASE_URL = "/api";
 // bypass the proxy — Django admin is a separate surface entirely, and
 // Google OAuth's redirect flow is a top-level navigation (not an XHR), so
 // it was never subject to the cross-site cookie blocking above.
-const BACKEND_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/api\/?$/, "");
+// Exported for the rare server-side (not-in-a-browser) call that needs the
+// real backend directly — e.g. app/sitemap.ts, which runs in a Node context
+// with no page origin for a relative API_BASE_URL to resolve against.
+export const BACKEND_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/api\/?$/, "");
 export const DJANGO_ADMIN_URL = new URL("/admin/", BACKEND_ORIGIN).toString();
 
 /**

@@ -26,7 +26,21 @@ const nextConfig: NextConfig = {
     // Proxies /api/* to the real Django backend so the browser only ever
     // talks to this app's own origin — see the comment on API_BASE_URL in
     // lib/api.ts for why (cross-site cookie blocking in Brave/Safari).
+    //
+    // Two rules, not one: a single `/api/:path*` -> `${BACKEND_ORIGIN}/api/:path*`
+    // rule silently drops the trailing slash when substituting :path* — confirmed
+    // live via Render's access log (requests arrived as `/api/csrf`, no slash),
+    // even with skipTrailingSlashRedirect on. Since every real call in
+    // lib/api.ts ends in a trailing slash (matching Django's APPEND_SLASH),
+    // that mismatch made Django 301 back to the slash version, which came
+    // through this same proxy and got stripped again — an infinite loop.
+    // Matching the slash-terminated form explicitly and hard-coding the
+    // slash into that destination forces it through intact.
     return [
+      {
+        source: "/api/:path*/",
+        destination: `${BACKEND_ORIGIN}/api/:path*/`,
+      },
       {
         source: "/api/:path*",
         destination: `${BACKEND_ORIGIN}/api/:path*`,

@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'storages',  # only actually used when R2_BUCKET_NAME is set — see STORAGES below
+    'anymail',   # only actually used when RESEND_API_KEY is set — see EMAIL_BACKEND below
     'django.contrib.sites',
     'allauth',
     'allauth.account',
@@ -393,16 +394,21 @@ SESSION_COOKIE_SECURE   = config('SESSION_COOKIE_SECURE', default=not DEBUG, cas
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_AGE = 60 * 60 * 4  # 4 hours
 
-# ── Email (SMTP) ────────────────────────────────────────────────────────────
-# These are required for sending the verification email during registration.
-# Set them via environment variables / .env.
-# nyakizu.emailing.IPv4EmailBackend forces IPv4 for the SMTP connection —
-# Render's containers (and some other hosts) advertise an IPv6 address with
-# no actual route out, so smtplib's default "try whatever DNS returns first"
-# behavior fails with "Network is unreachable" against smtp.gmail.com's AAAA
-# record. Override via EMAIL_BACKEND if you switch providers/hosts and don't
-# need this.
-EMAIL_BACKEND = config('EMAIL_BACKEND', default='nyakizu.emailing.IPv4EmailBackend')
+# ── Email ─────────────────────────────────────────────────────────────────────
+# Raw SMTP (587/465/25) is outright blocked outbound on Render's free tier —
+# confirmed live (connect() hangs until timeout, a classic firewall signature,
+# even after fixing an earlier IPv6-routing failure on the same port). Set
+# RESEND_API_KEY to send over Resend's HTTPS API instead, which uses port 443
+# like every other outbound call this app already makes, so it isn't subject
+# to that block. Falls back to SMTP (nyakizu.emailing.IPv4EmailBackend) when
+# RESEND_API_KEY is unset — e.g. local dev, or a host that doesn't block SMTP.
+RESEND_API_KEY = config('RESEND_API_KEY', default='')
+if RESEND_API_KEY:
+    EMAIL_BACKEND = 'anymail.backends.resend.EmailBackend'
+    ANYMAIL = {'RESEND_API_KEY': RESEND_API_KEY}
+else:
+    EMAIL_BACKEND = config('EMAIL_BACKEND', default='nyakizu.emailing.IPv4EmailBackend')
+
 EMAIL_HOST = config('EMAIL_HOST', default='')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
@@ -412,6 +418,10 @@ EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
 # SMTP host would otherwise hang the sending thread indefinitely — see
 # nyakizu/emailing.py for why that used to freeze the whole site.
 EMAIL_TIMEOUT = config('EMAIL_TIMEOUT', default=10, cast=int)
+# Without a domain verified in Resend, this MUST be onboarding@resend.dev
+# (Resend's shared test sender) and mail can only reach your own Resend
+# account email — verify a domain in Resend's dashboard to send to anyone
+# else, then point this at an address on that domain.
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
 FRONTEND_VERIFY_BASE_URL = config('FRONTEND_VERIFY_BASE_URL', default='http://localhost:3000')
 

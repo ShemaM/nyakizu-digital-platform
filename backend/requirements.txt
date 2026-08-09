@@ -24,3 +24,7 @@ boto3==1.43.66
 
 # Error monitoring — inactive unless SENTRY_DSN is set (see settings.py).
 sentry-sdk==2.66.1
+
+# Transactional email over HTTPS (Resend) — inactive unless RESEND_API_KEY
+# is set (see settings.py). Raw SMTP is blocked outbound on Render's free tier.
+django-anymail==15.1

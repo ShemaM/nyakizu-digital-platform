@@ -84,7 +84,7 @@ export default function CommunityActivity() {
                 Nyakizu is just getting started. Join now and help shape the marketplace from day one.
               </p>
               <Button size="lg" className="bg-brand-gold hover:bg-brand-gold-dark text-text-primary font-bold border-0" asChild>
-                <Link href="/register">Start Free</Link>
+                <Link href="/register">Sign Up</Link>
               </Button>
             </CardContent>
           </Card>

@@ -78,7 +78,7 @@ export function LandingHeader() {
               <Link href="/login">Sign In</Link>
             </Button>
             <Button size="sm" className="bg-brand-gold hover:bg-brand-gold-dark text-text-primary font-bold shadow-sm border-0 text-base" asChild>
-              <Link href="/register">Start Free</Link>
+              <Link href="/register">Sign Up</Link>
             </Button>
           </div>
 
@@ -154,7 +154,7 @@ export function LandingHeader() {
               className="flex items-center justify-center px-4 py-3 rounded-xl text-sm font-bold bg-brand-gold text-text-primary transition-colors"
               onClick={() => setMobileOpen(false)}
             >
-              Start Free
+              Sign Up
             </Link>
           </div>
         </nav>
@@ -194,7 +194,7 @@ export function LandingFooter() {
               </li>
               <li>
                 <Link href="/register" className="text-base text-text-secondary hover:text-brand-gold-dark transition-colors">
-                  Start Free
+                  Sign Up
                 </Link>
               </li>
               <li>

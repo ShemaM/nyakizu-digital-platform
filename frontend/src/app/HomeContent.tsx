@@ -137,13 +137,7 @@ export function HomeContent() {
               animate="show"
               className="max-w-xl mx-auto text-center lg:max-w-none lg:mx-0 lg:text-left"
             >
-              <motion.span
-                variants={fadeUp}
-                className="inline-flex items-center gap-1.5 rounded-full border border-dark-accent bg-dark-secondary px-4 py-1.5 text-sm font-bold text-text-secondary"
-              >
-                For phone accessories traders
-              </motion.span>
-              <motion.h1 variants={fadeUp} className="mt-5 text-5xl sm:text-6xl xl:text-7xl font-extrabold tracking-tight leading-[1.1] text-text-primary">
+              <motion.h1 variants={fadeUp} className="text-5xl sm:text-6xl xl:text-7xl font-extrabold tracking-tight leading-[1.1] text-text-primary">
                 The trade you already do.
                 <br />
                 <span className="text-brand-gold">Now digital.</span>
@@ -155,7 +149,7 @@ export function HomeContent() {
               </motion.p>
               <motion.div variants={fadeUp} className="mt-8 flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-3">
                 <Button size="lg" className="bg-brand-gold hover:bg-brand-gold-dark text-text-primary font-bold shadow-md px-8 text-base h-14" asChild>
-                  <Link href="/register">Start Free</Link>
+                  <Link href="/register">Sign Up</Link>
                 </Button>
                 <Link
                   href="#problem"
@@ -332,7 +326,7 @@ export function HomeContent() {
           </p>
           <div className="mt-8">
             <Button size="lg" className="bg-brand-gold hover:bg-brand-gold-dark text-text-primary font-bold shadow-md px-8 text-base h-14" asChild>
-              <Link href="/register">Start Free</Link>
+              <Link href="/register">Sign Up</Link>
             </Button>
           </div>
         </Container>

@@ -1,2 +1,2 @@
-web: gunicorn nyakizu.wsgi --workers 3 --threads 2 --timeout 30 --log-file -
+web: gunicorn nyakizu.wsgi --workers 2 --threads 2 --timeout 30 --max-requests 200 --max-requests-jitter 50 --log-file -
 release: python manage.py migrate --noinput

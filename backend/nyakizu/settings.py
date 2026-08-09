@@ -324,6 +324,18 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+    # BrowsableAPIRenderer is a dev convenience (an HTML page instead of raw
+    # JSON) whose templates pull in static assets (bootstrap.min.css etc.)
+    # via the manifest-based staticfiles storage below — if collectstatic
+    # ever doesn't run on a deploy, any request DRF routes to this renderer
+    # (e.g. a client that doesn't send Accept: application/json, like an
+    # uptime monitor) 500s. Only JSONRenderer in production removes that
+    # failure mode entirely: plain JSON responses never touch static files.
+    'DEFAULT_RENDERER_CLASSES': (
+        ['rest_framework.renderers.JSONRenderer', 'rest_framework.renderers.BrowsableAPIRenderer']
+        if config('DEBUG', default=True, cast=bool)
+        else ['rest_framework.renderers.JSONRenderer']
+    ),
     # Global request-volume limits (by IP for anonymous, by user once
     # logged in), plus tighter per-endpoint scopes for the auth flows a
     # credential-stuffing/spam bot would actually target.

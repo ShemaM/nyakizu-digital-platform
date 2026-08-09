@@ -35,6 +35,12 @@ export const metadata: Metadata = {
   },
   description: DESCRIPTION,
   keywords: [
+    "Nyakizu",
+    "Nyakizu Digital",
+    "Nyakizu Platform",
+    "Nyakizu Market",
+    "Nyakizu Digital Market",
+    "Nyakizu Digital Marketplace",
     "phone accessories wholesale Kenya",
     "Nairobi wholesale trade platform",
     "buyer seller ledger app",
@@ -95,6 +101,15 @@ const jsonLd = {
       "@type": "Organization",
       "@id": `${SITE_URL}/#organization`,
       name: SITE_NAME,
+      // Tells Google these all refer to the same entity — the actual search
+      // terms buyers/sellers are likely to type, not just the formal name.
+      alternateName: [
+        "Nyakizu",
+        "Nyakizu Digital",
+        "Nyakizu Platform",
+        "Nyakizu Market",
+        "Nyakizu Digital Marketplace",
+      ],
       url: SITE_URL,
       logo: `${SITE_URL}/icons/icon-512.png`,
       description: "Digitizes trusted phone accessories trade for the Banyamulenge community in Nairobi, Kenya.",
@@ -104,6 +119,13 @@ const jsonLd = {
       "@id": `${SITE_URL}/#website`,
       url: SITE_URL,
       name: SITE_NAME,
+      alternateName: [
+        "Nyakizu",
+        "Nyakizu Digital",
+        "Nyakizu Platform",
+        "Nyakizu Market",
+        "Nyakizu Digital Marketplace",
+      ],
       publisher: { "@id": `${SITE_URL}/#organization` },
       inLanguage: "en-KE",
     },

@@ -21,10 +21,13 @@ outcome blocks the site.
 """
 
 import logging
+import smtplib
+import socket
 import threading
 
 from django.conf import settings
 from django.core.mail import send_mail
+from django.core.mail.backends.smtp import EmailBackend as DjangoSMTPBackend
 
 logger = logging.getLogger("nyakizu.emailing")
 
@@ -36,6 +39,36 @@ logger = logging.getLogger("nyakizu.emailing")
 _LOCMEM_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 
 
+class _IPv4SMTP(smtplib.SMTP):
+    """
+    smtplib.SMTP that only ever connects over IPv4.
+
+    Some hosts (Render's containers, notably) have an IPv6 address
+    configured with no actual route to the internet. smtp.gmail.com
+    resolves to both an A and an AAAA record, and smtplib tries whatever
+    getaddrinfo() returns first — when that's the unroutable IPv6 address,
+    connect() fails immediately with "Network is unreachable", well before
+    TLS/auth are ever attempted. Restricting resolution to AF_INET sidesteps
+    it entirely; the hostname (and therefore TLS SNI/cert check) is
+    unaffected since self._host is unchanged.
+    """
+
+    def _get_socket(self, host, port, timeout):
+        family, socktype, proto, _canonname, sockaddr = socket.getaddrinfo(
+            host, port, socket.AF_INET, socket.SOCK_STREAM
+        )[0]
+        sock = socket.socket(family, socktype, proto)
+        if timeout is not None:
+            sock.settimeout(timeout)
+        sock.connect(sockaddr)
+        return sock
+
+
+class IPv4EmailBackend(DjangoSMTPBackend):
+    """Django SMTP backend that forces the IPv4-only connection above."""
+    connection_class = _IPv4SMTP
+
+
 def send_mail_async(subject, message, recipient_list, from_email=None):
     """Fire-and-forget an email in a background thread; never blocks the request."""
     recipient_list = [r for r in (recipient_list or []) if r]
@@ -43,7 +76,10 @@ def send_mail_async(subject, message, recipient_list, from_email=None):
         return
 
     backend = getattr(settings, "EMAIL_BACKEND", "")
-    is_smtp = backend == "django.core.mail.backends.smtp.EmailBackend"
+    is_smtp = backend in (
+        "django.core.mail.backends.smtp.EmailBackend",
+        "nyakizu.emailing.IPv4EmailBackend",
+    )
     if is_smtp and not (settings.EMAIL_HOST and settings.EMAIL_HOST_USER and settings.EMAIL_HOST_PASSWORD):
         # Fails fast with a specific, searchable log line instead of a bare
         # SMTPException three network hops later — this is exactly what's

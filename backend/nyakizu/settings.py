@@ -396,7 +396,13 @@ SESSION_COOKIE_AGE = 60 * 60 * 4  # 4 hours
 # ── Email (SMTP) ────────────────────────────────────────────────────────────
 # These are required for sending the verification email during registration.
 # Set them via environment variables / .env.
-EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+# nyakizu.emailing.IPv4EmailBackend forces IPv4 for the SMTP connection —
+# Render's containers (and some other hosts) advertise an IPv6 address with
+# no actual route out, so smtplib's default "try whatever DNS returns first"
+# behavior fails with "Network is unreachable" against smtp.gmail.com's AAAA
+# record. Override via EMAIL_BACKEND if you switch providers/hosts and don't
+# need this.
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='nyakizu.emailing.IPv4EmailBackend')
 EMAIL_HOST = config('EMAIL_HOST', default='')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')

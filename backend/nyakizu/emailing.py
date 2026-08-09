@@ -42,6 +42,22 @@ def send_mail_async(subject, message, recipient_list, from_email=None):
     if not recipient_list:
         return
 
+    backend = getattr(settings, "EMAIL_BACKEND", "")
+    is_smtp = backend == "django.core.mail.backends.smtp.EmailBackend"
+    if is_smtp and not (settings.EMAIL_HOST and settings.EMAIL_HOST_USER and settings.EMAIL_HOST_PASSWORD):
+        # Fails fast with a specific, searchable log line instead of a bare
+        # SMTPException three network hops later — this is exactly what's
+        # missing when EMAIL_HOST_USER/EMAIL_HOST_PASSWORD were set in a
+        # local .env (gitignored, never deployed) but never added to the
+        # hosting platform's own environment variables.
+        logger.error(
+            "Cannot send email %r: EMAIL_HOST/EMAIL_HOST_USER/EMAIL_HOST_PASSWORD "
+            "is not fully configured in this environment (EMAIL_HOST=%r, "
+            "EMAIL_HOST_USER set=%s, EMAIL_HOST_PASSWORD set=%s).",
+            subject, settings.EMAIL_HOST, bool(settings.EMAIL_HOST_USER), bool(settings.EMAIL_HOST_PASSWORD),
+        )
+        return
+
     def _send():
         try:
             send_mail(

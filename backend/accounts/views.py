@@ -1,15 +1,21 @@
 from django.conf import settings
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Q
-from django.core.mail import send_mail
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import generics, permissions, status
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from django.contrib.auth import login, logout
 
 from .models import CustomUser, BuyerProfile, SellerProfile, BuyerStoreFollow, BuyerSellerRelationship
 from products.models import Product
 from .permissions import is_admin_user, is_verified_buyer, is_approved_seller
+from nyakizu.emailing import send_mail_async
 from .serializers import (
     RegisterSerializer,
     UserSerializer,
@@ -36,6 +42,8 @@ class RegisterView(APIView):
     """
 
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'register'
 
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -43,32 +51,21 @@ class RegisterView(APIView):
             user = serializer.save()
             token = user.generate_verify_token()
 
-            try:
-                verify_url = (
-                    f"{getattr(settings, 'FRONTEND_VERIFY_BASE_URL', 'http://localhost:3000')}/"
-                    f"verify-email/?token={token}"
-                )
-
-                subject = "Verify your email for Nyakizu Digital Market"
-                message = (
+            verify_url = (
+                f"{getattr(settings, 'FRONTEND_VERIFY_BASE_URL', 'http://localhost:3000')}/"
+                f"verify-email/?token={token}"
+            )
+            send_mail_async(
+                subject="Verify your email for Nyakizu Digital Market",
+                message=(
                     "Welcome to Nyakizu!\n\n"
                     "Please verify your email by opening the link below:\n"
                     f"{verify_url}\n\n"
                     "If you did not create an account, you can ignore this message."
-                )
-
-                send_mail(
-                    subject=subject,
-                    message=message,
-                    from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
-                    recipient_list=[user.email],
-                    fail_silently=False,
-                )
-            except Exception:
-                # Keep registration functional; login will still be blocked until email is verified.
-                # We want the traceback in server logs.
-                import traceback
-                traceback.print_exc()
+                ),
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+                recipient_list=[user.email],
+            )
 
             if user.role == "seller":
                 self._notify_admins_new_seller(user)
@@ -92,10 +89,13 @@ class RegisterView(APIView):
 
         try:
             profile = user.seller_profile
-            review_url = f"{getattr(settings, 'FRONTEND_VERIFY_BASE_URL', 'http://localhost:3000')}/admin/verify"
+        except Exception:
+            return
+        review_url = f"{getattr(settings, 'FRONTEND_VERIFY_BASE_URL', 'http://localhost:3000')}/admin/verify"
 
-            subject = f"New seller awaiting approval: {profile.store_name}"
-            message = (
+        send_mail_async(
+            subject=f"New seller awaiting approval: {profile.store_name}",
+            message=(
                 f"A new seller has signed up and is waiting for approval.\n\n"
                 f"Store name: {profile.store_name}\n"
                 f"Location:   {profile.location or '—'}\n"
@@ -104,17 +104,10 @@ class RegisterView(APIView):
                 f"Phone:      {user.phone_number or '—'}\n"
                 f"Email:      {user.email}\n\n"
                 f"Review and approve or reject here:\n{review_url}\n"
-            )
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
-                recipient_list=staff_emails,
-                fail_silently=False,
-            )
-        except Exception:
-            import traceback
-            traceback.print_exc()
+            ),
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+            recipient_list=staff_emails,
+        )
 
 
 
@@ -131,6 +124,8 @@ class ResendVerificationEmailView(APIView):
     which addresses have an account.
     """
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'password_reset'
 
     GENERIC_MESSAGE = "If that email exists and is not verified yet, we have sent a new link."
 
@@ -142,25 +137,20 @@ class ResendVerificationEmailView(APIView):
         user = CustomUser.objects.filter(email__iexact=email).first()
         if user and not user.is_email_verified:
             token = user.generate_verify_token()
-            try:
-                verify_url = (
-                    f"{getattr(settings, 'FRONTEND_VERIFY_BASE_URL', 'http://localhost:3000')}/"
-                    f"verify-email/?token={token}"
-                )
-                send_mail(
-                    subject="Your Nyakizu verification link",
-                    message=(
-                        "Here is your new verification link:\n\n"
-                        f"{verify_url}\n\n"
-                        "If you did not ask for this, you can ignore this message."
-                    ),
-                    from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
-                    recipient_list=[user.email],
-                    fail_silently=False,
-                )
-            except Exception:
-                import traceback
-                traceback.print_exc()
+            verify_url = (
+                f"{getattr(settings, 'FRONTEND_VERIFY_BASE_URL', 'http://localhost:3000')}/"
+                f"verify-email/?token={token}"
+            )
+            send_mail_async(
+                subject="Your Nyakizu verification link",
+                message=(
+                    "Here is your new verification link:\n\n"
+                    f"{verify_url}\n\n"
+                    "If you did not ask for this, you can ignore this message."
+                ),
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+                recipient_list=[user.email],
+            )
 
         return Response({"message": self.GENERIC_MESSAGE})
 
@@ -189,16 +179,113 @@ class VerifyEmailView(APIView):
         return Response({"message": "Email verified. You can now sign in."})
 
 
+class PasswordResetRequestView(APIView):
+    """
+    POST /api/accounts/password-reset/
+    Body: { email }
+
+    Always returns the same generic message regardless of whether the email
+    exists, so this endpoint can't be used to probe which addresses have an
+    account (same pattern as ResendVerificationEmailView).
+    """
+    permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'password_reset'
+
+    GENERIC_MESSAGE = "If that email has an account, we've sent a password reset link."
+
+    def post(self, request):
+        email = (request.data.get("email") or "").strip()
+        if not email:
+            return Response({"error": "Enter your email address."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = CustomUser.objects.filter(email__iexact=email, is_active=True).first()
+        if user:
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            reset_url = (
+                f"{getattr(settings, 'FRONTEND_VERIFY_BASE_URL', 'http://localhost:3000')}/"
+                f"reset-password/?uid={uid}&token={token}"
+            )
+            send_mail_async(
+                subject="Reset your Nyakizu password",
+                message=(
+                    "Someone requested a password reset for this account.\n\n"
+                    f"Reset your password here (expires in 30 minutes):\n{reset_url}\n\n"
+                    "If you did not request this, you can safely ignore this message — "
+                    "your password will not change."
+                ),
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+                recipient_list=[user.email],
+            )
+
+        return Response({"message": self.GENERIC_MESSAGE})
+
+
+class PasswordResetConfirmView(APIView):
+    """
+    POST /api/accounts/password-reset/confirm/
+    Body: { uid, token, new_password }
+
+    The token is validated by Django's own PasswordResetTokenGenerator,
+    which ties it to the user's current password hash and last_login —
+    so it stops working the moment it's used (the password it's derived
+    from changes) or after PASSWORD_RESET_TIMEOUT seconds, without needing
+    any extra "used" bookkeeping.
+    """
+    permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'password_reset'
+
+    INVALID_MESSAGE = "This reset link is invalid or has expired. Request a new one."
+
+    def post(self, request):
+        uid = request.data.get("uid") or ""
+        token = request.data.get("token") or ""
+        new_password = request.data.get("new_password") or ""
+
+        try:
+            user_id = force_str(urlsafe_base64_decode(uid))
+            user = CustomUser.objects.get(pk=user_id)
+        except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
+            return Response({"error": self.INVALID_MESSAGE}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not default_token_generator.check_token(user, token):
+            return Response({"error": self.INVALID_MESSAGE}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            validate_password(new_password, user=user)
+        except DjangoValidationError as exc:
+            return Response({"new_password": exc.messages}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(new_password)
+        user.save(update_fields=["password"])
+
+        return Response({"message": "Password reset. You can now sign in with your new password."})
+
+
 class LoginView(APIView):
     """
     POST /api/accounts/login/
     Accepts { phone, password } — phone is used as the identifier.
     """
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'login'
 
     def post(self, request):
-        identifier = request.data.get("identifier") or request.data.get("phone") or request.data.get("username", "")
+        identifier = (request.data.get("identifier") or request.data.get("phone") or request.data.get("username", "")).strip()
         password   = request.data.get("password", "")
+
+        # An empty identifier would otherwise match any account that also
+        # has a blank phone_number (phone is optional) via the first filter
+        # below — not an auth bypass on its own (the password still has to
+        # match), but a confusing way to land on an arbitrary account.
+        if not identifier or not password:
+            return Response(
+                {"error": "Incorrect phone number or password."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
         user_obj = (
             CustomUser.objects.filter(phone_number=identifier).first()
@@ -351,11 +438,10 @@ class ApproveSellerView(APIView):
 
         seller.approve(by_user=request.user)
 
-        # Send approval email
-        try:
-            login_url = f"{getattr(settings, 'FRONTEND_VERIFY_BASE_URL', 'http://localhost:3000')}/login"
-            subject = "Your Nyakizu Shop Has Been Approved"
-            message = (
+        login_url = f"{getattr(settings, 'FRONTEND_VERIFY_BASE_URL', 'http://localhost:3000')}/login"
+        send_mail_async(
+            subject="Your Nyakizu Shop Has Been Approved",
+            message=(
                 f"Dear {seller.user.get_full_name() or seller.user.username},\n\n"
                 f"Congratulations! Your store \"{seller.store_name}\" has been approved "
                 f"and is now live on the Nyakizu Digital Market.\n\n"
@@ -367,17 +453,10 @@ class ApproveSellerView(APIView):
                 f"We're excited to have you on board!\n\n"
                 f"Best regards,\n"
                 f"The Nyakizu Team"
-            )
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
-                recipient_list=[seller.user.email],
-                fail_silently=True,
-            )
-        except Exception:
-            import traceback
-            traceback.print_exc()
+            ),
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+            recipient_list=[seller.user.email],
+        )
 
         return Response({"message": f"{seller.store_name} is now live."})
 
@@ -398,37 +477,28 @@ class RejectSellerView(APIView):
         reason = request.data.get("note", "")
         seller.reject(note=reason)
 
-        # Send rejection email
-        try:
-            subject = "Update on Your Nyakizu Seller Application"
-            message = (
-                f"Dear {seller.user.get_full_name() or seller.user.username},\n\n"
-                f"Thank you for applying to list your store \"{seller.store_name}\" "
-                f"on the Nyakizu Digital Market.\n\n"
-                f"After careful review, we regret to inform you that your application "
-                f"has not been approved at this time.\n\n"
-            )
-            if reason:
-                message += (
-                    f"Reason:\n{reason}\n\n"
-                )
-            message += (
-                f"You are welcome to update your information and resubmit your "
-                f"application for review.\n\n"
-                f"If you have any questions, please reach out to our support team.\n\n"
-                f"Best regards,\n"
-                f"The Nyakizu Team"
-            )
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
-                recipient_list=[seller.user.email],
-                fail_silently=True,
-            )
-        except Exception:
-            import traceback
-            traceback.print_exc()
+        message = (
+            f"Dear {seller.user.get_full_name() or seller.user.username},\n\n"
+            f"Thank you for applying to list your store \"{seller.store_name}\" "
+            f"on the Nyakizu Digital Market.\n\n"
+            f"After careful review, we regret to inform you that your application "
+            f"has not been approved at this time.\n\n"
+        )
+        if reason:
+            message += f"Reason:\n{reason}\n\n"
+        message += (
+            f"You are welcome to update your information and resubmit your "
+            f"application for review.\n\n"
+            f"If you have any questions, please reach out to our support team.\n\n"
+            f"Best regards,\n"
+            f"The Nyakizu Team"
+        )
+        send_mail_async(
+            subject="Update on Your Nyakizu Seller Application",
+            message=message,
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+            recipient_list=[seller.user.email],
+        )
 
         return Response({"message": f"{seller.store_name} has been rejected."})
 

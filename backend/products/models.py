@@ -31,6 +31,41 @@ class Category(models.Model):
         ordering = ['name']
 
 
+class CategoryAttribute(models.Model):
+    """
+    A dimension of variation within a category, e.g. Screen Protectors has
+    "Phone Model", "Material", and "Function" — each with its own list of
+    values (AttributeValue). Lets one category carry several independent
+    variant axes instead of a single flat subcategory list.
+    """
+
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='attributes')
+    name = models.CharField(max_length=100)
+    order = models.PositiveSmallIntegerField(default=0, help_text="Display order within the category.")
+
+    class Meta:
+        ordering = ['order', 'name']
+        unique_together = ('category', 'name')
+
+    def __str__(self):
+        return f"{self.category.name} — {self.name}"
+
+
+class AttributeValue(models.Model):
+    """One selectable value for a CategoryAttribute, e.g. "iPhone 13" under "Phone Model"."""
+
+    attribute = models.ForeignKey(CategoryAttribute, on_delete=models.CASCADE, related_name='values')
+    value = models.CharField(max_length=100)
+    order = models.PositiveSmallIntegerField(default=0, help_text="Display order within the attribute.")
+
+    class Meta:
+        ordering = ['order', 'value']
+        unique_together = ('attribute', 'value')
+
+    def __str__(self):
+        return f"{self.attribute.name}: {self.value}"
+
+
 class Product(models.Model):
     """
     A single product listing by a seller.
@@ -67,9 +102,14 @@ class Product(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
     stock_quantity = models.PositiveIntegerField(default=0)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='available')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='available', db_index=True)
 
     image = models.ImageField(upload_to='products/', null=True, blank=True)
+
+    attribute_values = models.ManyToManyField(
+        AttributeValue, blank=True, related_name='products',
+        help_text="Variant selections, e.g. Phone Model: iPhone 13, Material: Tempered Glass.",
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

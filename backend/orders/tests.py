@@ -12,10 +12,11 @@ from products.models import Category, Product
 class OrderWorkflowTests(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.category = Category.objects.create(
+        # get_or_create, not create: the products app seeds a "Chargers"
+        # category via data migration, so a fixed name+slug can already exist.
+        self.category, _ = Category.objects.get_or_create(
             name="Chargers",
-            slug="chargers",
-            description="Wall chargers",
+            defaults={"slug": "chargers", "description": "Wall chargers"},
         )
 
         self.buyer = CustomUser.objects.create_user(
@@ -137,7 +138,7 @@ class OrderNotificationTests(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.category = Category.objects.create(name="Chargers", slug="chargers")
+        self.category, _ = Category.objects.get_or_create(name="Chargers", defaults={"slug": "chargers"})
 
         self.buyer = CustomUser.objects.create_user(
             username="buyer", email="buyer@example.com", password="Buyer1234!",

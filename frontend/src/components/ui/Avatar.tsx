@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/cn";
 import { User } from "lucide-react";
@@ -40,10 +41,11 @@ export function Avatar({
   showInitials = true,
   imageUrl,
 }: AvatarProps) {
+  const [imageFailed, setImageFailed] = useState(false);
   const sizeClass = SIZE_CLASSES[size];
   const initialText = showInitials ? initials(name) : name[0]?.toUpperCase() ?? "?";
 
-  if (imageUrl) {
+  if (imageUrl && !imageFailed) {
     return (
       <div
         className={cn(
@@ -58,17 +60,7 @@ export function Avatar({
           fill
           unoptimized
           className="object-cover"
-          onError={(e) => {
-            e.currentTarget.style.display = "none";
-            e.currentTarget.parentElement?.classList.add(
-              avatarColor(name),
-              "flex",
-              "items-center",
-              "justify-center",
-              "text-white",
-              "font-bold"
-            );
-          }}
+          onError={() => setImageFailed(true)}
         />
       </div>
     );

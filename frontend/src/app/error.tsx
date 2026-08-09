@@ -1,5 +1,6 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
 import { Button } from "@/components/ui/Button";
 import { Container, Section } from "@/components/layouts";
 import Link from "next/link";
@@ -15,6 +16,7 @@ export default function Error({
 }) {
   useEffect(() => {
     console.error(error);
+    Sentry.captureException(error);
   }, [error]);
 
   return (
@@ -32,11 +34,17 @@ export default function Error({
             <p className="text-body-lg text-text-secondary">
               An unexpected error occurred. Please try again.
             </p>
-            {error.message && (
+            {process.env.NODE_ENV === "development" && error.message ? (
+              // Raw error text can carry internal details (query params, stack
+              // hints) — fine for local debugging, not for a production user.
               <p className="text-body text-text-muted font-mono bg-dark-secondary p-3 rounded-lg">
                 {error.message}
               </p>
-            )}
+            ) : error.digest ? (
+              <p className="text-caption text-text-muted">
+                Reference: <span className="font-mono">{error.digest}</span>
+              </p>
+            ) : null}
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">

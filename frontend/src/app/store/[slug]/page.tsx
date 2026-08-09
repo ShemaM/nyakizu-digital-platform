@@ -67,8 +67,9 @@ export default async function PublicStorePage({ params }: { params: Promise<{ sl
     <main className="min-h-screen bg-surface text-slate-950">
       <script
         type="application/ld+json"
-        // eslint-disable-next-line react/no-danger -- static, server-generated JSON from our own DB fields, no raw user HTML
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        // eslint-disable-next-line react/no-danger -- JSON-LD, but store_name/description/location are
+        // seller-controlled free text, so `<` is escaped below to block a `</script>` breakout (stored XSS).
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
       <header className="border-b border-slate-200/80 bg-white/85 backdrop-blur-xl">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">

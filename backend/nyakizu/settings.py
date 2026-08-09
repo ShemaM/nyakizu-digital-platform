@@ -107,6 +107,11 @@ DATABASES = {
 # ── Auth ──────────────────────────────────────────────────────────────────────
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
+# Password-reset email links stop working after this long. 30 minutes is the
+# commonly recommended window (enough time to check email, tight enough to
+# limit a leaked/intercepted link's usefulness) — Django's default is 3 days.
+PASSWORD_RESET_TIMEOUT = config('PASSWORD_RESET_TIMEOUT', default=60 * 30, cast=int)
+
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
@@ -319,6 +324,20 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+    # Global request-volume limits (by IP for anonymous, by user once
+    # logged in), plus tighter per-endpoint scopes for the auth flows a
+    # credential-stuffing/spam bot would actually target.
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '200/hour',
+        'user': '1000/hour',
+        'login': '10/min',
+        'register': '10/hour',
+        'password_reset': '5/hour',
+    },
 }
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
@@ -371,6 +390,10 @@ EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+# Python's smtplib has no socket timeout by default, so a slow/unreachable
+# SMTP host would otherwise hang the sending thread indefinitely — see
+# nyakizu/emailing.py for why that used to freeze the whole site.
+EMAIL_TIMEOUT = config('EMAIL_TIMEOUT', default=10, cast=int)
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
 FRONTEND_VERIFY_BASE_URL = config('FRONTEND_VERIFY_BASE_URL', default='http://localhost:3000')
 
@@ -419,3 +442,57 @@ ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'http'
 
 ACCOUNT_ADAPTER           = 'accounts.adapters.AccountAdapter'
 SOCIALACCOUNT_ADAPTER     = 'accounts.adapters.SocialAccountAdapter'
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+# Every app logger (e.g. nyakizu.emailing) and Django's own request/security
+# loggers get one formatted stream to stdout, which is what Render's log
+# viewer actually captures — without this, uncaught exceptions rely on
+# Python's bare "lastResort" handler with no timestamp/level/logger name.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} {levelname} {name}: {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': config('DJANGO_LOG_LEVEL', default='INFO'),
+            'propagate': False,
+        },
+    },
+}
+
+# ── Error monitoring (optional) ─────────────────────────────────────────────────
+# Inactive until SENTRY_DSN is set — no account/DSN was configured for this
+# project, so this only wires the integration up; set SENTRY_DSN in the
+# environment (Render/Vercel) to start actually capturing exceptions.
+SENTRY_DSN = config('SENTRY_DSN', default='')
+if SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.integrations.logging import LoggingIntegration
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[
+            DjangoIntegration(),
+            LoggingIntegration(level=None, event_level='ERROR'),
+        ],
+        environment=config('SENTRY_ENVIRONMENT', default='production' if not DEBUG else 'development'),
+        traces_sample_rate=config('SENTRY_TRACES_SAMPLE_RATE', default=0.0, cast=float),
+        send_default_pii=False,
+    )

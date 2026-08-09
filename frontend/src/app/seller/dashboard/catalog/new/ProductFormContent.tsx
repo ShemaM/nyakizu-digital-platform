@@ -3,16 +3,21 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { ArrowLeft, ArrowRight, AlertCircle, Lightbulb, Check, Pencil, ImagePlus, X } from "lucide-react";
+import {
+  ArrowLeft, ArrowRight, AlertCircle, Lightbulb, Check, Pencil,
+  ImagePlus, X, Camera, Link2, Upload,
+} from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { PageSkeleton } from "@/components/ui/LoadingState";
-import { products } from "@/lib/api";
+import { products, categories, type ApiCategory } from "@/lib/api";
 import { cn } from "@/lib/cn";
 
-const STEPS = ["Product name", "Photo", "Price & stock", "Who can see it?", "Description", "Review & save"] as const;
-type StepIndex = 0 | 1 | 2 | 3 | 4 | 5;
+const STEPS = [
+  "Product name", "Category", "Photo", "Price & stock", "Who can see it?", "Description", "Review & save",
+] as const;
+type StepIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 const VISIBILITY_OPTIONS = [
   {
@@ -54,7 +59,9 @@ export function ProductFormContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<StepIndex>(0);
-  const photoInputRef = useRef<HTMLInputElement>(null);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const pasteZoneRef = useRef<HTMLDivElement>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -63,8 +70,19 @@ export function ProductFormContent() {
     description: "",
     status: "available",
   });
+  const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [selectedValueIds, setSelectedValueIds] = useState<Record<number, number>>({}); // attributeId -> valueId
+  const [categoryList, setCategoryList] = useState<ApiCategory[]>([]);
+
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageSourceUrl, setImageSourceUrl] = useState<string | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [linkInput, setLinkInput] = useState("");
+  const [imageError, setImageError] = useState<string | null>(null);
+
+  useEffect(() => {
+    categories.list().then(setCategoryList);
+  }, []);
 
   useEffect(() => {
     if (!editId) return;
@@ -78,28 +96,101 @@ export function ProductFormContent() {
           description: existing.description || "",
           status: existing.status,
         });
+        if (existing.category) setCategoryId(existing.category);
+        if (existing.attribute_values?.length) {
+          // We only know the value ids here, not which attribute each one
+          // belongs to — that gets resolved once categoryList has loaded
+          // and we can look each value up (see effect below).
+          setSelectedValueIds((prev) => ({
+            ...prev,
+            ...Object.fromEntries(existing.attribute_values!.map((v) => [v.id, v.id])),
+          }));
+        }
         if (existing.image_url) setImagePreviewUrl(existing.image_url);
       }
       setIsLoading(false);
     });
   }, [editId]);
 
-  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+  // Resolve the flat list of pre-selected value ids (from the effect above)
+  // into the { attributeId: valueId } shape once we know each value's
+  // parent attribute, so the picker below highlights the right chip.
+  useEffect(() => {
+    if (!editId || !categoryList.length) return;
+    setSelectedValueIds((prev) => {
+      const flatIds = Object.keys(prev).map(Number);
+      if (!flatIds.length) return prev;
+      const byAttribute: Record<number, number> = {};
+      for (const cat of categoryList) {
+        for (const attr of cat.attributes || []) {
+          for (const val of attr.values) {
+            if (flatIds.includes(val.id)) byAttribute[attr.id] = val.id;
+          }
+        }
+      }
+      return Object.keys(byAttribute).length ? byAttribute : prev;
+    });
+  }, [categoryList, editId]);
+
+  const selectedCategory = categoryList.find((c) => c.id === categoryId) || null;
+
+  function setPhotoFromFile(file: File) {
+    setImageError(null);
+    setImageFile(file);
+    setImageSourceUrl(null);
+    setImagePreviewUrl(URL.createObjectURL(file));
+  }
+
+  function handleUploadChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (!file) return;
-    setImageFile(file);
-    setImagePreviewUrl(URL.createObjectURL(file));
+    if (file) setPhotoFromFile(file);
+  }
+
+  function handleUseLink() {
+    const url = linkInput.trim();
+    if (!url) return;
+    try {
+      new URL(url);
+    } catch {
+      setImageError("That doesn't look like a valid link.");
+      return;
+    }
+    setImageError(null);
+    setImageFile(null);
+    setImageSourceUrl(url);
+    setImagePreviewUrl(url);
+  }
+
+  function handlePasteImage(e: React.ClipboardEvent) {
+    const items = Array.from(e.clipboardData.items || []);
+    const imageItem = items.find((item) => item.type.startsWith("image/"));
+    if (imageItem) {
+      const file = imageItem.getAsFile();
+      if (file) {
+        e.preventDefault();
+        setPhotoFromFile(file);
+        return;
+      }
+    }
+    // No image data on the clipboard — fall back to treating it as a pasted link.
+    const text = e.clipboardData.getData("text");
+    if (text) {
+      setLinkInput(text);
+    }
   }
 
   function clearPhoto() {
     setImageFile(null);
+    setImageSourceUrl(null);
     setImagePreviewUrl(null);
+    setLinkInput("");
+    setImageError(null);
   }
 
   function canAdvance(): boolean {
     if (step === 0) return formData.name.trim().length > 0;
-    if (step === 2) return formData.price.trim().length > 0 && !isNaN(parseFloat(formData.price));
+    if (step === 3) return formData.price.trim().length > 0 && !isNaN(parseFloat(formData.price));
     return true;
   }
 
@@ -109,7 +200,7 @@ export function ProductFormContent() {
       return;
     }
     setError(null);
-    setStep((s) => (s < 5 ? ((s + 1) as StepIndex) : s));
+    setStep((s) => (s < 6 ? ((s + 1) as StepIndex) : s));
   }
 
   function goBack() {
@@ -129,13 +220,19 @@ export function ProductFormContent() {
       setIsSaving(true);
       setError(null);
 
-      const payload = {
+      const payload: Record<string, unknown> = {
         name: formData.name.trim(),
         price: parseFloat(formData.price),
         stock_quantity: formData.stock_quantity ? parseInt(formData.stock_quantity, 10) : 0,
         description: formData.description.trim() || "",
         status: formData.status,
       };
+      if (categoryId) payload.category = categoryId;
+      const attributeValueIds = Object.values(selectedValueIds);
+      if (attributeValueIds.length) payload.attribute_value_ids = attributeValueIds;
+      // A pasted link has no File object — send it as a plain field and let
+      // the server fetch it (see products/image_fetch.py).
+      if (!imageFile && imageSourceUrl) payload.image_source_url = imageSourceUrl;
 
       if (isEditing) {
         await products.update(Number(editId), payload, imageFile);
@@ -154,7 +251,7 @@ export function ProductFormContent() {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (step < 5) {
+    if (step < 6) {
       goNext();
     } else {
       void handleSave();
@@ -170,6 +267,14 @@ export function ProductFormContent() {
   }
 
   const visibilityChoice = VISIBILITY_OPTIONS.find((o) => o.value === formData.status) ?? VISIBILITY_OPTIONS[0];
+  const selectedVariantSummary = Object.entries(selectedValueIds)
+    .map(([attrId, valId]) => {
+      const attr = selectedCategory?.attributes?.find((a) => a.id === Number(attrId));
+      const val = attr?.values.find((v) => v.id === valId);
+      return val?.value;
+    })
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <AppShell title={isEditing ? "Edit Product" : "Add Product"}>
@@ -233,34 +338,130 @@ export function ProductFormContent() {
           {step === 1 && (
             <div className="space-y-4">
               <div>
+                <h2 className="text-body-lg font-bold text-text-primary">Which category is this? (optional)</h2>
+                <p className="text-caption text-text-muted mt-0.5">
+                  Picking a category lets buyers filter by things like phone model or material.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                {categoryList.map((cat) => {
+                  const selected = categoryId === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => {
+                        setCategoryId(selected ? null : cat.id);
+                        setSelectedValueIds({});
+                      }}
+                      disabled={isSaving}
+                      className={cn(
+                        "text-left rounded-xl border p-3.5 transition-all",
+                        selected ? "border-role bg-role-soft ring-1 ring-role/20" : "border-slate-200 hover:border-slate-300"
+                      )}
+                    >
+                      <p className="text-caption font-bold text-text-primary">{cat.name}</p>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {selectedCategory?.attributes?.map((attr) => (
+                <div key={attr.id} className="space-y-1.5 pt-2">
+                  <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">{attr.name}</label>
+                  <div className="flex flex-wrap gap-2">
+                    {attr.values.map((val) => {
+                      const selected = selectedValueIds[attr.id] === val.id;
+                      return (
+                        <button
+                          key={val.id}
+                          type="button"
+                          onClick={() =>
+                            setSelectedValueIds((prev) => {
+                              const next = { ...prev };
+                              if (selected) delete next[attr.id];
+                              else next[attr.id] = val.id;
+                              return next;
+                            })
+                          }
+                          disabled={isSaving}
+                          className={cn(
+                            "px-3 py-1.5 rounded-full text-caption font-semibold border transition-all",
+                            selected
+                              ? "border-role bg-role text-white"
+                              : "border-slate-200 text-text-secondary hover:border-slate-300"
+                          )}
+                        >
+                          {val.value}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-4">
+              <div>
                 <h2 className="text-body-lg font-bold text-text-primary">Add a photo (optional)</h2>
                 <p className="text-caption text-text-muted mt-0.5">
                   Buyers trust items with a real photo more. You can skip this and add one later.
                 </p>
               </div>
-              <div className="flex flex-col items-center gap-3 py-2">
-                <button
-                  type="button"
-                  onClick={() => photoInputRef.current?.click()}
-                  disabled={isSaving}
-                  className="relative w-44 h-44 rounded-2xl border-2 border-dashed border-slate-300 bg-dark-secondary flex items-center justify-center overflow-hidden hover:border-role transition-colors cursor-pointer"
-                >
+
+              <div
+                ref={pasteZoneRef}
+                onPaste={handlePasteImage}
+                tabIndex={0}
+                className="flex flex-col items-center gap-3 py-2 rounded-2xl outline-none focus:ring-2 focus:ring-role/30"
+              >
+                <div className="relative w-44 h-44 rounded-2xl border-2 border-dashed border-slate-300 bg-dark-secondary flex items-center justify-center overflow-hidden">
                   {imagePreviewUrl ? (
-                    <Image src={imagePreviewUrl} alt="Product photo" fill unoptimized className="object-cover" />
+                    // eslint-disable-next-line @next/next/no-img-element -- pasted links may be from hosts Next/Image isn't configured for
+                    <img src={imagePreviewUrl} alt="Product photo" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="flex flex-col items-center gap-2 text-text-muted">
+                    <span className="flex flex-col items-center gap-2 text-text-muted px-4 text-center">
                       <ImagePlus size={28} />
-                      <span className="text-caption font-semibold">Tap to add a photo</span>
+                      <span className="text-caption font-semibold">Upload, take a picture, or paste one below</span>
                     </span>
                   )}
-                </button>
-                <input
-                  ref={photoInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handlePhotoChange}
-                />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => uploadInputRef.current?.click()} disabled={isSaving}>
+                    <Upload size={14} /> Upload
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => cameraInputRef.current?.click()} disabled={isSaving}>
+                    <Camera size={14} /> Take Picture
+                  </Button>
+                </div>
+
+                <input ref={uploadInputRef} type="file" accept="image/*" className="hidden" onChange={handleUploadChange} />
+                <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleUploadChange} />
+
+                <div className="w-full space-y-1.5 pt-1">
+                  <label className="text-xs font-bold text-text-secondary uppercase tracking-wider flex items-center gap-1.5">
+                    <Link2 size={12} /> Or paste a link / image (Ctrl+V)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Paste an image link here, or click here and press Ctrl+V"
+                      value={linkInput}
+                      onChange={(e) => setLinkInput(e.target.value)}
+                      onPaste={handlePasteImage}
+                      disabled={isSaving}
+                      className="flex-1 bg-white border border-slate-200 focus:border-role rounded-xl px-3 py-2 text-caption text-text-primary placeholder-slate-400 outline-none transition-all"
+                    />
+                    <Button type="button" variant="outline" size="sm" onClick={handleUseLink} disabled={isSaving || !linkInput.trim()}>
+                      Use link
+                    </Button>
+                  </div>
+                  {imageError && <p className="text-caption text-error">{imageError}</p>}
+                </div>
+
                 {imagePreviewUrl && (
                   <button
                     type="button"
@@ -274,7 +475,7 @@ export function ProductFormContent() {
             </div>
           )}
 
-          {step === 2 && (
+          {step === 3 && (
             <div className="space-y-4">
               <div>
                 <h2 className="text-body-lg font-bold text-text-primary">How much, and how many?</h2>
@@ -321,7 +522,7 @@ export function ProductFormContent() {
             </div>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <div className="space-y-4">
               <div>
                 <h2 className="text-body-lg font-bold text-text-primary">Who should see this product?</h2>
@@ -361,7 +562,7 @@ export function ProductFormContent() {
             </div>
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <div className="space-y-4">
               <div>
                 <h2 className="text-body-lg font-bold text-text-primary">Any extra details? (optional)</h2>
@@ -385,7 +586,7 @@ export function ProductFormContent() {
             </div>
           )}
 
-          {step === 5 && (
+          {step === 6 && (
             <div className="space-y-4">
               <div>
                 <h2 className="text-body-lg font-bold text-text-primary">Check everything before you save</h2>
@@ -398,19 +599,24 @@ export function ProductFormContent() {
               )}
               <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden">
                 <ReviewRow label="Product name" value={formData.name || "—"} onEdit={() => setStep(0)} />
-                <ReviewRow label="Photo" value={imagePreviewUrl ? "Added" : "None added"} onEdit={() => setStep(1)} />
+                <ReviewRow
+                  label="Category"
+                  value={selectedCategory ? `${selectedCategory.name}${selectedVariantSummary ? ` (${selectedVariantSummary})` : ""}` : "None"}
+                  onEdit={() => setStep(1)}
+                />
+                <ReviewRow label="Photo" value={imagePreviewUrl ? "Added" : "None added"} onEdit={() => setStep(2)} />
                 <ReviewRow
                   label="Price"
                   value={formData.price ? `${formData.price} KES` : "—"}
-                  onEdit={() => setStep(2)}
+                  onEdit={() => setStep(3)}
                 />
                 <ReviewRow
                   label="Stock quantity"
                   value={formData.stock_quantity || "Not set"}
-                  onEdit={() => setStep(2)}
+                  onEdit={() => setStep(3)}
                 />
-                <ReviewRow label="Who can see it" value={visibilityChoice.title} onEdit={() => setStep(3)} />
-                <ReviewRow label="Description" value={formData.description || "None added"} onEdit={() => setStep(4)} />
+                <ReviewRow label="Who can see it" value={visibilityChoice.title} onEdit={() => setStep(4)} />
+                <ReviewRow label="Description" value={formData.description || "None added"} onEdit={() => setStep(5)} />
               </div>
             </div>
           )}
@@ -425,7 +631,7 @@ export function ProductFormContent() {
             )}
 
             <Button type="submit" loading={isSaving} variant="role" className="gap-2 px-6">
-              {step < 5 ? (
+              {step < 6 ? (
                 <>
                   Next <ArrowRight size={16} />
                 </>

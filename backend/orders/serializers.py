@@ -152,17 +152,6 @@ class OrderCreateSerializer(serializers.Serializer):
                     f"'{product.name}' belongs to a seller that is not approved."
                 )
 
-            # Zero-stock products are listed as "can be sourced" (see
-            # Product.availability_label) — buyers are invited to order them
-            # anyway and the seller sources them specially, so only a
-            # *partial* shortfall (some stock, just not enough) is a hard
-            # block here.
-            if 0 < product.stock_quantity < quantity:
-                raise serializers.ValidationError(
-                    f"Not enough stock for '{product.name}'. "
-                    f"Available: {product.stock_quantity}, requested: {quantity}."
-                )
-
         data['items'] = [
             {'product_id': product_id, 'quantity': quantity}
             for product_id, quantity in totals_by_product.items()
@@ -184,16 +173,12 @@ class OrderCreateSerializer(serializers.Serializer):
             for item_data in items_data:
                 product = Product.objects.select_for_update().get(id=item_data['product_id'])
                 quantity = item_data['quantity']
-                is_sourcing = product.stock_quantity == 0
-
-                # Re-check stock inside the transaction so concurrent orders cannot
-                # oversell — a zero-stock item is a sourcing request (allowed), but
-                # a partial shortfall discovered just now is still a hard block.
-                if 0 < product.stock_quantity < quantity:
-                    raise serializers.ValidationError(
-                        f"Not enough stock for '{product.name}'. "
-                        f"Available: {product.stock_quantity}, requested: {quantity}."
-                    )
+                # Sellers can always outsource a shortfall — zero stock and a
+                # partial shortfall (some stock, just not enough) are both
+                # sourcing requests, not a hard block. Sell whatever is
+                # actually on the shelf and flag the line for the seller to
+                # source/price the rest.
+                is_sourcing = product.stock_quantity < quantity
 
                 OrderItem.objects.create(
                     order=order,
@@ -203,8 +188,8 @@ class OrderCreateSerializer(serializers.Serializer):
                     is_sourcing=is_sourcing,
                 )
 
-                if not is_sourcing:
-                    product.stock_quantity -= quantity
+                if product.stock_quantity > 0:
+                    product.stock_quantity = max(product.stock_quantity - quantity, 0)
                     if product.stock_quantity == 0:
                         product.status = 'out_of_stock'
                     product.save(update_fields=['stock_quantity', 'status', 'updated_at'])

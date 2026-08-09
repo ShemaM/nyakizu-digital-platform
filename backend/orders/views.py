@@ -4,6 +4,7 @@ orders/views.py
 
 from decimal import Decimal, InvalidOperation
 from rest_framework import generics, permissions, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.db import transaction
@@ -102,26 +103,42 @@ class OrderDetailView(generics.RetrieveUpdateAPIView):
 
     def perform_update(self, serializer):
         old_status = serializer.instance.status
+        new_status = serializer.validated_data.get("status", old_status)
+        if new_status == "cancelled" and old_status != "cancelled":
+            # Cancelling has side effects (releasing stock back to inventory)
+            # that only CancelOrderView performs — going through this generic
+            # PATCH used to silently skip that and leak sold-out stock.
+            raise ValidationError(
+                {"status": "Use the cancel endpoint (/orders/<id>/cancel/) to cancel an order."}
+            )
+
         order = serializer.save()
         if order.status != old_status:
             record_status_event(order, order.status)
 
 
 class CancelOrderView(APIView):
-    """POST /api/orders/<id>/cancel/ — buyer cancels a submitted order."""
+    """
+    POST /api/orders/<id>/cancel/ — the buyer or the fulfilling seller
+    cancels an order that hasn't been locked yet.
+    """
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
-        try:
-            order = Order.objects.get(pk=pk, buyer=request.user)
-        except Order.DoesNotExist:
-            return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        if not is_verified_buyer(request.user):
+        user = request.user
+        is_buyer = is_verified_buyer(user)
+        is_seller = is_approved_seller(user)
+        if not is_buyer and not is_seller:
             return Response(
-                {"error": "Only verified buyers can cancel buyer orders."},
+                {"error": "Only the buyer or seller on this order can cancel it."},
                 status=status.HTTP_403_FORBIDDEN,
             )
+
+        owned_orders = Q(pk=pk) & (Q(buyer=user) | Q(seller=user))
+        try:
+            order = Order.objects.get(owned_orders)
+        except Order.DoesNotExist:
+            return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
 
         if order.status not in ("submitted", "sourcing"):
             return Response(
@@ -130,15 +147,18 @@ class CancelOrderView(APIView):
             )
 
         with transaction.atomic():
-            order = Order.objects.select_for_update().get(pk=order.pk, buyer=request.user)
+            order = Order.objects.select_for_update().get(pk=order.pk)
             if order.status not in ("submitted", "sourcing"):
                 return Response(
                     {"error": f"Cannot cancel an order with status '{order.status}'."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Release stock back
-            for item in OrderItem.objects.select_related("product").filter(order=order):
+            # Release stock back — only for items actually taken out of
+            # inventory. Sourcing items never decremented stock at creation
+            # (see OrderCreateSerializer.create), so crediting them back here
+            # would inflate stock_quantity beyond what's really on the shelf.
+            for item in OrderItem.objects.select_related("product").filter(order=order, is_sourcing=False):
                 if item.product_id:
                     product = item.product
                     product.stock_quantity += item.quantity

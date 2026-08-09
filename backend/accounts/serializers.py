@@ -1,8 +1,12 @@
+import re
+
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import transaction
 from .models import CustomUser, BuyerProfile, SellerProfile, BuyerStoreFollow, BuyerSellerRelationship
+
+PHONE_RE = re.compile(r"^\+?[0-9 ()-]{7,20}$")
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -37,11 +41,30 @@ class RegisterSerializer(serializers.Serializer):
         return value
 
     def validate_email(self, value):
-        if CustomUser.objects.filter(email__iexact=value).exists():
-            raise serializers.ValidationError("An account with this email already exists.")
+        existing = CustomUser.objects.filter(email__iexact=value).first()
+        if existing:
+            # A slow/timed-out request can leave a real account behind even
+            # though the user saw a "failed" response — point them at the
+            # actual next step instead of a dead-end duplicate error.
+            if not existing.is_email_verified:
+                raise serializers.ValidationError(
+                    "An account with this email already exists but isn't verified yet. "
+                    "Check your inbox for the verification link, or use 'Resend verification email'."
+                )
+            raise serializers.ValidationError(
+                "An account with this email already exists. Please sign in instead."
+            )
         return value.lower()
 
     def validate_phone(self, value):
+        value = value.strip()
+        if not value:
+            # Blank is allowed (phone is optional) — without this early return,
+            # every blank-phone signup after the first would collide against
+            # each other on an "" == "" match below.
+            return value
+        if not PHONE_RE.match(value):
+            raise serializers.ValidationError("Enter a valid phone number.")
         if CustomUser.objects.filter(phone_number=value).exists():
             raise serializers.ValidationError("An account with this phone number already exists.")
         return value

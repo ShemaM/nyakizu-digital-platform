@@ -2,19 +2,47 @@
 
 from django.contrib import admin
 from django.utils.html import format_html
-from unfold.admin import ModelAdmin
-from .models import Category, Product
+from unfold.admin import ModelAdmin, TabularInline
+from .models import AttributeValue, Category, CategoryAttribute, Product
+
+
+class AttributeValueInline(TabularInline):
+    model = AttributeValue
+    extra = 1
+
+
+@admin.register(CategoryAttribute)
+class CategoryAttributeAdmin(ModelAdmin):
+    list_display  = ('name', 'category', 'value_count')
+    list_filter   = ('category',)
+    search_fields = ('name', 'category__name')
+    inlines       = [AttributeValueInline]
+
+    @admin.display(description='Values')
+    def value_count(self, obj):
+        return obj.values.count()
+
+
+class CategoryAttributeInline(TabularInline):
+    model = CategoryAttribute
+    extra = 1
+    show_change_link = True
 
 
 @admin.register(Category)
 class CategoryAdmin(ModelAdmin):
-    list_display        = ('name', 'slug', 'product_count')
+    list_display        = ('name', 'slug', 'product_count', 'attribute_count')
     prepopulated_fields = {'slug': ('name',)}
     search_fields       = ('name',)
+    inlines             = [CategoryAttributeInline]
 
     @admin.display(description='Products')
     def product_count(self, obj):
         return obj.products.count()
+
+    @admin.display(description='Attributes')
+    def attribute_count(self, obj):
+        return obj.attributes.count()
 
 
 @admin.action(description='Mark selected products as Available')

@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Logo } from "@/components/Logo";
@@ -22,11 +22,26 @@ export function AppShell({
   title,
   headerRight,
 }: AppShellProps) {
-  const { user, logout } = useAuth();
+  const { user, isLoading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const links = navLinksForRole(user?.role);
   const currentActiveHref = activeNavHref(pathname, links);
+
+  // A buyer landing on /seller/* (or vice versa) — a stale bookmark, a
+  // shared device, a link typed by hand — used to just hit the backend's
+  // role check and surface a raw "Only approved sellers can..." error.
+  // Bounce them to their own dashboard instead of letting that happen.
+  useEffect(() => {
+    if (isLoading || !user) return;
+    const inSellerSection = pathname.startsWith("/seller");
+    const inBuyerSection = pathname.startsWith("/buyer");
+    if (inSellerSection && user.role !== "seller") {
+      router.replace(user.role === "buyer" ? "/buyer" : "/login");
+    } else if (inBuyerSection && user.role !== "buyer") {
+      router.replace(user.role === "seller" ? "/seller/dashboard" : "/login");
+    }
+  }, [isLoading, user, pathname, router]);
 
   const handleLogout = async () => {
     await logout();

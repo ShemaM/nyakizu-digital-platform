@@ -75,23 +75,33 @@ export default function FulfillOrderPage() {
 
       const updatedOrder = await orders.update(orderId, payload);
       setOrder(updatedOrder);
-
-      if (newStatus === "cancelled") {
-        router.push("/seller/dashboard/orders");
-      }
     } catch (err) {
       console.error("Update error:", err);
       toast(err instanceof ApiError ? err.message : "We could not update this order. Please try again.", "error");
     } finally {
       setIsSaving(false);
       setConfirmLock(false);
-      setConfirmCancel(false);
     }
   };
 
   const handleStartSourcing = () => updateOrderStatus("sourcing");
   const handleLock = () => updateOrderStatus("locked", finalTotal);
-  const handleCancel = () => updateOrderStatus("cancelled");
+
+  const handleCancel = async () => {
+    setIsSaving(true);
+    try {
+      // Cancelling has side effects (releasing stock back to inventory) that
+      // only the dedicated cancel endpoint performs — a generic status PATCH
+      // would silently skip that.
+      await orders.cancel(orderId);
+      router.push("/seller/dashboard/orders");
+    } catch (err) {
+      console.error("Cancel error:", err);
+      toast(err instanceof ApiError ? err.message : "We could not cancel this order. Please try again.", "error");
+      setIsSaving(false);
+      setConfirmCancel(false);
+    }
+  };
 
   // ── Payment Recording ────────────────────────────────────────────────────
   const openPayDialog = () => {

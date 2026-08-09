@@ -5,16 +5,13 @@ Sends the buyer (and, on a brand-new order, the seller) a plain-English
 email whenever an order's status changes, and logs the transition to
 OrderStatusEvent so the buyer-facing tracker has real per-step timestamps.
 
-Mirrors the send_mail pattern already used in accounts/views.py — a failed
-send is caught and logged, never lets email break the request that
-triggered it.
+Uses send_mail_async (nyakizu/emailing.py) so a slow/unreachable SMTP
+server can never block the request that triggered the notification.
 """
 
-import traceback
-
 from django.conf import settings
-from django.core.mail import send_mail
 
+from nyakizu.emailing import send_mail_async
 from .models import OrderStatusEvent
 
 
@@ -68,43 +65,35 @@ def send_order_status_email(order, status):
         return
 
     subject, body_template = template
-    try:
-        body = body_template.format(
-            id=order.id,
-            store=_seller_store_name(order),
-            total=order.final_total if order.final_total is not None else order.total_price,
-            balance=order.balance,
-        )
-        send_mail(
-            subject=f"Nyakizu: {subject}",
-            message=f"{body}\n\nSee your order: {_frontend_base_url()}/buyer/orders/{order.id}/",
-            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
-            recipient_list=[order.buyer.email],
-            fail_silently=False,
-        )
-    except Exception:
-        traceback.print_exc()
+    body = body_template.format(
+        id=order.id,
+        store=_seller_store_name(order),
+        total=order.final_total if order.final_total is not None else order.total_price,
+        balance=order.balance,
+    )
+    send_mail_async(
+        subject=f"Nyakizu: {subject}",
+        message=f"{body}\n\nSee your order: {_frontend_base_url()}/buyer/orders/{order.id}/",
+        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+        recipient_list=[order.buyer.email],
+    )
 
 
 def send_new_order_seller_email(order):
     """Email the seller that a new order landed (best-effort)."""
     if not order.seller or not order.seller.email:
         return
-    try:
-        buyer_name = order.buyer.get_full_name() or order.buyer.username
-        send_mail(
-            subject="Nyakizu: You have a new order",
-            message=(
-                f"{buyer_name} placed order #{order.id} with your store. "
-                "Please review it and start packing.\n\n"
-                f"See the order: {_frontend_base_url()}/seller/dashboard/orders/{order.id}/fulfill/"
-            ),
-            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
-            recipient_list=[order.seller.email],
-            fail_silently=False,
-        )
-    except Exception:
-        traceback.print_exc()
+    buyer_name = order.buyer.get_full_name() or order.buyer.username
+    send_mail_async(
+        subject="Nyakizu: You have a new order",
+        message=(
+            f"{buyer_name} placed order #{order.id} with your store. "
+            "Please review it and start packing.\n\n"
+            f"See the order: {_frontend_base_url()}/seller/dashboard/orders/{order.id}/fulfill/"
+        ),
+        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+        recipient_list=[order.seller.email],
+    )
 
 
 def record_status_event(order, status):

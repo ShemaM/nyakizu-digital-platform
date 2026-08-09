@@ -1,0 +1,60 @@
+"""
+nyakizu/emailing.py
+
+Shared helper for every outbound email in the project (verification links,
+seller approval/rejection, order status updates, admin alerts).
+
+Why this exists: `django.core.mail.send_mail` was being called inline, in
+the request/response cycle, at ~7 call sites. In production the backend
+runs a single gunicorn worker (see Procfile), so any one of those calls
+blocking on a slow or unreachable SMTP server — Python's smtplib has no
+socket timeout by default — froze that worker completely, and with it
+every other request in flight (login, order actions, everything), until
+the OS finally killed the socket. That is almost certainly why "everything
+is slow" and actions had to be retried: the retry just got lucky and hit
+a worker that wasn't stuck in a stalled email call.
+
+Sending in a background thread means a slow/broken SMTP config can no
+longer stall the HTTP response — the request finishes immediately and the
+email either lands a moment later or fails and gets logged, but neither
+outcome blocks the site.
+"""
+
+import logging
+import threading
+
+from django.conf import settings
+from django.core.mail import send_mail
+
+logger = logging.getLogger("nyakizu.emailing")
+
+# Django's test runner forces EMAIL_BACKEND to this in-memory backend so
+# tests can assert against mail.outbox. Sending from a background thread
+# would make that assertion racy (the request can return, and the test can
+# check mail.outbox, before the thread finishes) — inline is both safe and
+# instant there, since locmem never touches the network.
+_LOCMEM_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+
+
+def send_mail_async(subject, message, recipient_list, from_email=None):
+    """Fire-and-forget an email in a background thread; never blocks the request."""
+    recipient_list = [r for r in (recipient_list or []) if r]
+    if not recipient_list:
+        return
+
+    def _send():
+        try:
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=from_email,
+                recipient_list=recipient_list,
+                fail_silently=False,
+            )
+        except Exception:
+            logger.exception("Failed to send email %r to %r", subject, recipient_list)
+
+    if getattr(settings, "EMAIL_BACKEND", "") == _LOCMEM_BACKEND:
+        _send()
+    else:
+        threading.Thread(target=_send, daemon=True).start()

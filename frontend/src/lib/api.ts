@@ -180,6 +180,12 @@ export interface ApiSeller {
   is_live?: boolean;
 }
 
+export interface ApiProductAttributeValue {
+  id: number;
+  attribute_name: string;
+  value: string;
+}
+
 export interface ApiProduct {
   id: number;
   name: string;
@@ -192,8 +198,20 @@ export interface ApiProduct {
   category?: number;
   category_name?: string;
   image_url?: string;
+  attribute_values?: ApiProductAttributeValue[];
   created_at: string;
   updated_at?: string;
+}
+
+export interface ApiAttributeValue {
+  id: number;
+  value: string;
+}
+
+export interface ApiCategoryAttribute {
+  id: number;
+  name: string;
+  values: ApiAttributeValue[];
 }
 
 export interface ApiCategory {
@@ -201,6 +219,7 @@ export interface ApiCategory {
   name: string;
   description?: string;
   slug?: string;
+  attributes?: ApiCategoryAttribute[];
 }
 
 export interface ApiRelationship {
@@ -331,6 +350,30 @@ class AuthAPI {
     }
     return data.message as string;
   }
+
+  async requestPasswordReset(email: string): Promise<string> {
+    const response = await fetchWithSession(`${API_BASE_URL}/accounts/password-reset/`, {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new ApiError(extractApiErrorMessage(data, "Could not send the reset link. Please try again."), response.status);
+    }
+    return data.message as string;
+  }
+
+  async confirmPasswordReset(uid: string, token: string, newPassword: string): Promise<string> {
+    const response = await fetchWithSession(`${API_BASE_URL}/accounts/password-reset/confirm/`, {
+      method: "POST",
+      body: JSON.stringify({ uid, token, new_password: newPassword }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new ApiError(extractApiErrorMessage(data, "Could not reset your password. Please try again."), response.status);
+    }
+    return data.message as string;
+  }
 }
 export const auth = new AuthAPI();
 
@@ -338,6 +381,12 @@ function buildProductFormData(productData: Record<string, unknown>, imageFile: F
   const formData = new FormData();
   Object.entries(productData).forEach(([key, value]) => {
     if (value === undefined || value === null) return;
+    // attribute_value_ids is a list — DRF reads repeated same-key form
+    // fields as the list, not a single comma-joined string.
+    if (Array.isArray(value)) {
+      value.forEach((item) => formData.append(key, String(item)));
+      return;
+    }
     formData.append(key, String(value));
   });
   formData.append("image", imageFile);
@@ -433,6 +482,17 @@ class OrdersAPI {
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       throw new ApiError(extractApiErrorMessage(error, "Failed to update order"), response.status);
+    }
+    return response.json();
+  }
+
+  async cancel(orderId: number): Promise<{ message: string }> {
+    const response = await fetchWithSession(`${API_BASE_URL}/orders/${orderId}/cancel/`, {
+      method: "POST",
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new ApiError(extractApiErrorMessage(error, "Failed to cancel order"), response.status);
     }
     return response.json();
   }

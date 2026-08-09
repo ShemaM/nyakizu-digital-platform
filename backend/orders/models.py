@@ -46,7 +46,7 @@ class Order(models.Model):
         null=True, blank=True,
     )
 
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='submitted')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='submitted', db_index=True)
 
     # Initial estimate at time of order
     total_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)

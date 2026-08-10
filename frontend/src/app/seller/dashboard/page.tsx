@@ -110,32 +110,23 @@ export default function SellerDashboardPage() {
           />
 
           {/* Key metrics — "how's business", separate from the action cards below.
-              Zero is not shown — an empty/zero metric is noise, not signal. */}
-          {(ordersPending > 0 || totalRevenue > 0 || activeProducts > 0) && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {ordersPending > 0 && (
-                <MetricCard Icon={ShoppingBag} label="Orders Pending" value={String(ordersPending)} hint="Submitted or being packed" />
-              )}
-              {totalRevenue > 0 && (
-                <MetricCard Icon={Wallet} label="Revenue" value={fmtKES(totalRevenue)} hint="Total collected, all time" tone="success" />
-              )}
-              {activeProducts > 0 && (
-                <MetricCard Icon={Layers} label="Active Listings" value={String(activeProducts)} hint={`${totalProducts} total, ${draftProducts} draft`} />
-              )}
-            </div>
-          )}
+              Always shown, at a stable position, so the dashboard's layout
+              doesn't shift depending on data. */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <MetricCard Icon={ShoppingBag} label="Orders Pending" value={String(ordersPending)} hint="Submitted or being packed" />
+            <MetricCard Icon={Wallet} label="Revenue" value={fmtKES(totalRevenue)} hint="Total collected, all time" tone="success" />
+            <MetricCard Icon={Layers} label="Active Listings" value={String(activeProducts)} hint={`${totalProducts} total, ${draftProducts} draft`} />
+          </div>
 
-          {/* What needs your attention — hidden entirely once there's nothing pending */}
-          {(newOrders > 0 || newBuyerRequests > 0 || moneyOwed > 0) && (
-            <div>
-              <SectionHeading
-                eyebrow="Overview"
-                title="What needs your attention"
-                description="New orders, buyer requests, and money owed — all in one place."
-              />
-              <ShopStats newOrders={newOrders} newBuyerRequests={newBuyerRequests} moneyOwed={moneyOwed} />
-            </div>
-          )}
+          {/* What needs your attention */}
+          <div>
+            <SectionHeading
+              eyebrow="Overview"
+              title="What needs your attention"
+              description="New orders, buyer requests, and money owed — all in one place."
+            />
+            <ShopStats newOrders={newOrders} newBuyerRequests={newBuyerRequests} moneyOwed={moneyOwed} />
+          </div>
 
           {/* Shortcuts */}
           <div>

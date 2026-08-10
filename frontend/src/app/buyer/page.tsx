@@ -51,10 +51,18 @@ export default function BuyerDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadDashboardData();
+    // Guards against setting state after the user has already navigated
+    // away (e.g. a quick tap to another tab before the fetch resolves) —
+    // the request itself still completes, but its result is discarded
+    // instead of updating a component that's no longer on screen.
+    let cancelled = false;
+    loadDashboardData(() => cancelled);
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = async (isCancelled: () => boolean = () => false) => {
     try {
       setIsLoading(true);
       setError(null);
@@ -62,13 +70,15 @@ export default function BuyerDashboard() {
         orders.list(),
         relationships.mine(),
       ]);
+      if (isCancelled()) return;
       setOrderList(ordersData);
       setRelationshipList(relationsData);
     } catch (err) {
+      if (isCancelled()) return;
       console.error("Buyer dashboard fetch error:", err);
       setError(err instanceof ApiError ? err.message : "We couldn't load your dashboard. Please try again.");
     } finally {
-      setIsLoading(false);
+      if (!isCancelled()) setIsLoading(false);
     }
   };
 
@@ -86,7 +96,7 @@ export default function BuyerDashboard() {
         <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center m-4 sm:m-6">
           <p className="text-red-700 font-medium mb-3">{error}</p>
           <button
-            onClick={loadDashboardData}
+            onClick={() => loadDashboardData()}
             className="flex items-center gap-1.5 text-xs font-semibold text-red-700 hover:text-red-800 cursor-pointer mx-auto bg-red-100 px-4 py-2 rounded-lg"
           >
             <RefreshCw size={14} /> Try Again
@@ -112,11 +122,11 @@ export default function BuyerDashboard() {
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
   const stats = [
-    { icon: ShoppingCart, label: "Active Orders", value: String(activeOrders.length), raw: activeOrders.length },
-    { icon: Package, label: "Completed", value: String(completedOrders.length), raw: completedOrders.length },
-    { icon: TrendingUp, label: "Total Spent", value: fmtKES(totalSpent), raw: totalSpent },
-    { icon: Store, label: "Suppliers", value: String(approvedSuppliers.length), raw: approvedSuppliers.length },
-  ].filter((stat) => stat.raw > 0); // zero is not shown
+    { icon: ShoppingCart, label: "Active Orders", value: String(activeOrders.length) },
+    { icon: Package, label: "Completed", value: String(completedOrders.length) },
+    { icon: TrendingUp, label: "Total Spent", value: fmtKES(totalSpent) },
+    { icon: Store, label: "Suppliers", value: String(approvedSuppliers.length) },
+  ];
 
   return (
     <DashboardLayout title="Dashboard">
@@ -149,27 +159,25 @@ export default function BuyerDashboard() {
           </div>
 
           {/* Stats */}
-          {stats.length > 0 && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
-              {stats.map(({ icon: Icon, label, value }) => (
-                <Card key={label}>
-                  <CardContent className="p-4 sm:p-5 flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-xl bg-role-soft flex items-center justify-center shrink-0">
-                      <Icon className="w-5 h-5 text-role" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xl sm:text-2xl font-bold text-text-primary leading-tight truncate">{value}</p>
-                      <p className="text-xs text-text-muted font-medium truncate">{label}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
+            {stats.map(({ icon: Icon, label, value }) => (
+              <Card key={label}>
+                <CardContent className="p-4 sm:p-5 flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-role-soft flex items-center justify-center shrink-0">
+                    <Icon className="w-5 h-5 text-role" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xl sm:text-2xl font-bold text-text-primary leading-tight truncate">{value}</p>
+                    <p className="text-xs text-text-muted font-medium truncate">{label}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
           {/* Suppliers strip */}
           {approvedSuppliers.length > 0 && (
-            <Card className="mb-8">
+            <Card className="relative mb-8">
               <CardContent className="py-5 flex items-center gap-5 overflow-x-auto">
                 <span className="text-label shrink-0">
                   My Suppliers
@@ -197,6 +205,12 @@ export default function BuyerDashboard() {
                   View all <ChevronRight size={14} />
                 </Link>
               </CardContent>
+              {/* Fade cue — hints there's more to scroll to on desktop, where
+                  the scrollbar itself may not be visible until hovered. */}
+              <span
+                className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 rounded-r-2xl bg-gradient-to-l from-white to-transparent"
+                aria-hidden="true"
+              />
             </Card>
           )}
 

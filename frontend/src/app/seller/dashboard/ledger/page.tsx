@@ -102,10 +102,10 @@ export default function SellerLedger() {
   }
 
   const STAT_CARDS = [
-    { label: "Total received", value: fmtKES(totalReceived), raw: totalReceived, Icon: TrendingUp, color: "text-success", bg: "bg-success/12" },
-    { label: "Still owed to you", value: fmtKES(totalOwed), raw: totalOwed, Icon: AlertCircle, color: "text-error", bg: "bg-error/12" },
-    { label: "Total orders", value: String(ledgerOrders.length), raw: ledgerOrders.length, Icon: Wallet, color: "text-role", bg: "bg-role-soft" },
-  ].filter((card) => card.raw > 0); // zero is not shown
+    { label: "Total received", value: fmtKES(totalReceived), Icon: TrendingUp, color: "text-success", bg: "bg-success/12" },
+    { label: "Still owed to you", value: fmtKES(totalOwed), Icon: AlertCircle, color: "text-error", bg: "bg-error/12" },
+    { label: "Total orders", value: String(ledgerOrders.length), Icon: Wallet, color: "text-role", bg: "bg-role-soft" },
+  ];
 
   return (
     <AppShell title="Payments">
@@ -123,23 +123,21 @@ export default function SellerLedger() {
           />
 
           {/* Summary Cards */}
-          {STAT_CARDS.length > 0 && (
-            <div className={`grid gap-4 ${STAT_CARDS.length === 1 ? "grid-cols-1" : STAT_CARDS.length === 2 ? "grid-cols-2" : "sm:grid-cols-3"}`}>
-              {STAT_CARDS.map(({ label, value, Icon, color, bg }) => (
-                <Card key={label}>
-                  <CardContent className="p-5 sm:p-6 flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${bg}`}>
-                      <Icon className={`w-6 h-6 ${color}`} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className={`text-xl sm:text-2xl font-black truncate ${color}`}>{value}</p>
-                      <p className="text-xs sm:text-sm font-semibold text-text-muted">{label}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {STAT_CARDS.map(({ label, value, Icon, color, bg }) => (
+              <Card key={label}>
+                <CardContent className="p-5 sm:p-6 flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${bg}`}>
+                    <Icon className={`w-6 h-6 ${color}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className={`text-xl sm:text-2xl font-black truncate ${color}`}>{value}</p>
+                    <p className="text-xs sm:text-sm font-semibold text-text-muted">{label}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
           {/* Transactions */}
           <div>

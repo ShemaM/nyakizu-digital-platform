@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 /**
@@ -22,6 +22,27 @@ export function RouteProgressBar() {
   const [progress, setProgress] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hideRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const start = useCallback(() => {
+    if (hideRef.current) clearTimeout(hideRef.current);
+    if (timerRef.current) clearInterval(timerRef.current);
+    setVisible(true);
+    setProgress(15);
+    // Indeterminate creep toward — but never reaching — 90%, since we don't
+    // know the real length of the route's compile+fetch.
+    timerRef.current = setInterval(() => {
+      setProgress((p) => (p < 90 ? p + (90 - p) * 0.12 : p));
+    }, 200);
+  }, []);
+
+  const finish = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setProgress(100);
+    hideRef.current = setTimeout(() => {
+      setVisible(false);
+      setProgress(0);
+    }, 250);
+  }, []);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -48,28 +69,7 @@ export function RouteProgressBar() {
 
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
-  }, []);
-
-  function start() {
-    if (hideRef.current) clearTimeout(hideRef.current);
-    if (timerRef.current) clearInterval(timerRef.current);
-    setVisible(true);
-    setProgress(15);
-    // Indeterminate creep toward — but never reaching — 90%, since we don't
-    // know the real length of the route's compile+fetch.
-    timerRef.current = setInterval(() => {
-      setProgress((p) => (p < 90 ? p + (90 - p) * 0.12 : p));
-    }, 200);
-  }
-
-  function finish() {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setProgress(100);
-    hideRef.current = setTimeout(() => {
-      setVisible(false);
-      setProgress(0);
-    }, 250);
-  }
+  }, [start]);
 
   // Fires whenever the resolved route actually changes — the real signal
   // that navigation completed, regardless of how long it took.
@@ -79,8 +79,7 @@ export function RouteProgressBar() {
       if (timerRef.current) clearInterval(timerRef.current);
       if (hideRef.current) clearTimeout(hideRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, searchParams]);
+  }, [pathname, searchParams, finish]);
 
   if (!visible) return null;
 

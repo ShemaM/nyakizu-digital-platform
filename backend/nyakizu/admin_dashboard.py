@@ -158,6 +158,82 @@ def _gmv_by_month_chart(since):
     })
 
 
+def _repeat_buyer_rate():
+    """% of buyers (with at least one non-cancelled order) who have placed
+    more than one — a wholesaler cares about this separately from raw order
+    count because it's the number that tells them whether buyers are
+    actually coming back, not just whether the platform is getting orders."""
+    buyer_order_counts = (
+        Order.objects.exclude(status="cancelled")
+        .values("buyer")
+        .annotate(count=Count("id"))
+    )
+    total_buyers = len(buyer_order_counts)
+    if not total_buyers:
+        return 0.0
+    repeat_buyers = sum(1 for row in buyer_order_counts if row["count"] > 1)
+    return repeat_buyers / total_buyers * 100
+
+
+DEBT_AGE_BUCKETS = [("0-7 days", 0, 7), ("8-30 days", 8, 30), ("31+ days", 31, None)]
+
+
+def _debt_aging_chart(now):
+    """
+    Buckets every order's outstanding balance by how long ago it was
+    placed. A single "total debt" KPI can't distinguish a wholesaler with
+    KES 50,000 owed from last week (normal, still being collected) from
+    the same total owed from a month ago (a real collection problem) —
+    this splits it apart.
+    """
+    orders = Order.objects.filter(status__in=["locked", "debt_active"])
+    buckets = {label: Decimal("0") for label, _, _ in DEBT_AGE_BUCKETS}
+    for order in orders:
+        balance = order.balance
+        if balance <= 0:
+            continue
+        age_days = (now - order.created_at).days
+        for label, lo, hi in DEBT_AGE_BUCKETS:
+            if age_days >= lo and (hi is None or age_days <= hi):
+                buckets[label] += balance
+                break
+    return json.dumps({
+        "labels": list(buckets.keys()),
+        "datasets": [{
+            "label": "Outstanding debt (KES)",
+            "data": [float(v) for v in buckets.values()],
+            "backgroundColor": ["#fbbf24", "#f97316", "#dc2626"],
+        }],
+    })
+
+
+FUNNEL_STAGES = [("submitted", "Submitted"), ("sourcing", "Sourcing"), ("locked", "Locked"), ("cleared", "Cleared")]
+
+
+def _order_funnel_chart(since):
+    """
+    How many orders (placed in the selected period) ever reached each
+    stage — via OrderStatusEvent, not the order's *current* status, so an
+    order that's already `cleared` still counts toward "Submitted" and
+    "Locked" instead of only showing up in the last stage it reached.
+    """
+    reached = (
+        OrderStatusEvent.objects
+        .filter(order__created_at__gte=since, status__in=[s for s, _ in FUNNEL_STAGES])
+        .values("status")
+        .annotate(order_count=Count("order", distinct=True))
+    )
+    counts = {row["status"]: row["order_count"] for row in reached}
+    return json.dumps({
+        "labels": [label for _, label in FUNNEL_STAGES],
+        "datasets": [{
+            "label": "Orders reaching this stage",
+            "data": [counts.get(stage, 0) for stage, _ in FUNNEL_STAGES],
+            "backgroundColor": "#2563eb",
+        }],
+    })
+
+
 def _category_chart():
     rows = list(
         Category.objects.annotate(product_count=Count("products"))
@@ -219,6 +295,12 @@ def dashboard_callback(request, context):
     total_orders_recent = Order.objects.filter(created_at__gte=since).count()
     cancellation_rate = (cancelled_recent / total_orders_recent * 100) if total_orders_recent else 0
 
+    current_order_count = current_orders.count()
+    previous_order_count = previous_orders.count()
+    aov_current = (float(gmv_current) / current_order_count) if current_order_count else 0.0
+    aov_previous = (float(gmv_previous) / previous_order_count) if previous_order_count else 0.0
+    repeat_buyer_rate = _repeat_buyer_rate()
+
     context["period"] = period
     context["period_label"] = VALID_PERIODS[period]
     context["period_options"] = [
@@ -268,6 +350,23 @@ def dashboard_callback(request, context):
                     empty_message="No outstanding debts — every order is settled.",
                     display=f"KES {debt_total:,.0f} across {debt_orders_with_balance} order(s)",
                     href=reverse("admin:orders_order_changelist") + "?status__exact=debt_active",
+                ),
+            ],
+        },
+        {
+            "title": "Advanced Analytics",
+            "kpis": [
+                _kpi(
+                    "aov", "Average Order Value", aov_current, icon="receipt_long", tone="primary",
+                    display=f"KES {aov_current:,.0f}", empty_message="No orders yet in this period to average.",
+                    href=reverse("admin:orders_order_changelist"),
+                    trend=_pct_change(aov_current, aov_previous),
+                ),
+                _kpi(
+                    "repeat_buyer_rate", "Repeat Buyer Rate", repeat_buyer_rate, icon="repeat", tone="neutral",
+                    display=f"{repeat_buyer_rate:.0f}% of buyers order more than once",
+                    empty_message="Not enough order history yet.",
+                    href=reverse("admin:accounts_customuser_changelist") + "?role__exact=buyer",
                 ),
             ],
         },
@@ -323,8 +422,12 @@ def dashboard_callback(request, context):
     context["chart_orders_by_status"] = _orders_by_status_chart()
     context["chart_gmv_by_month"] = _gmv_by_month_chart(now - timedelta(days=30 * GMV_TREND_MONTHS))
     context["chart_categories"] = _category_chart()
+    context["chart_debt_aging"] = _debt_aging_chart(now)
+    context["chart_order_funnel"] = _order_funnel_chart(since)
     context["has_orders"] = Order.objects.exists()
     context["has_products"] = Product.objects.exists()
+    context["has_debt"] = debt_total > 0
+    context["has_funnel_data"] = total_orders_recent > 0
 
     top_sellers = (
         non_cancelled.exclude(seller__isnull=True)

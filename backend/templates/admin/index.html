@@ -176,6 +176,28 @@
         </div>
     </div>
 
+    <div class="section-divider">{% trans "Advanced Analytics" %}</div>
+    <div class="chart-grid">
+        <div class="chart-card">
+            <h3>{% trans "Debt aging" %}</h3>
+            <p class="chart-sub">Outstanding balance by how long it's been open</p>
+            {% if has_debt %}
+                <div class="chart-canvas-wrap"><canvas id="chart-debt-aging"></canvas></div>
+            {% else %}
+                <div class="chart-empty">No outstanding debt right now.</div>
+            {% endif %}
+        </div>
+        <div class="chart-card">
+            <h3>{% trans "Order funnel" %}</h3>
+            <p class="chart-sub">Orders that reached each stage, {{ period_label|lower }}</p>
+            {% if has_funnel_data %}
+                <div class="chart-canvas-wrap"><canvas id="chart-funnel"></canvas></div>
+            {% else %}
+                <div class="chart-empty">No orders placed in this period.</div>
+            {% endif %}
+        </div>
+    </div>
+
     <div class="section-divider">{% trans "Sellers & Approvals" %}</div>
     <div class="panels-grid">
         <div class="panel-card">
@@ -302,6 +324,26 @@ document.addEventListener('DOMContentLoaded', function () {
     renderChart('chart-category', {
         type: 'bar',
         data: {{ chart_categories|safe }},
+        options: {
+            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { x: { beginAtZero: true, grid: baseGrid, ticks: baseTicks }, y: { grid: { display: false }, ticks: baseTicks } },
+        },
+    });
+
+    renderChart('chart-debt-aging', {
+        type: 'bar',
+        data: {{ chart_debt_aging|safe }},
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { x: { grid: { display: false }, ticks: baseTicks }, y: { beginAtZero: true, grid: baseGrid, ticks: baseTicks } },
+        },
+    });
+
+    renderChart('chart-funnel', {
+        type: 'bar',
+        data: {{ chart_order_funnel|safe }},
         options: {
             indexAxis: 'y', responsive: true, maintainAspectRatio: false,
             plugins: { legend: { display: false } },

@@ -19,7 +19,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.models import CustomUser, SellerProfile
-from orders.models import Order
+from orders.models import Order, OrderStatusEvent
 from products.models import Category, Product
 
 # "Users" in every metric on this endpoint means platform members (buyers/
@@ -50,11 +50,63 @@ def _gmv_total(queryset):
 def _period_metrics(since, until):
     orders_in_period = Order.objects.filter(created_at__gte=since, created_at__lt=until)
     non_cancelled = orders_in_period.exclude(status="cancelled")
+    transactions = non_cancelled.count()
+    volume = float(_gmv_total(non_cancelled))
     return {
         "new_users": _members().filter(date_joined__gte=since, date_joined__lt=until).count(),
-        "transactions": non_cancelled.count(),
-        "volume": float(_gmv_total(non_cancelled)),
+        "transactions": transactions,
+        "volume": volume,
+        "avg_order_value": (volume / transactions) if transactions else 0.0,
     }
+
+
+def _repeat_buyer_rate():
+    """% of buyers (with at least one non-cancelled order) who have placed more than one."""
+    buyer_order_counts = (
+        Order.objects.exclude(status="cancelled")
+        .values("buyer")
+        .annotate(count=Count("id"))
+    )
+    total_buyers = len(buyer_order_counts)
+    if not total_buyers:
+        return 0.0
+    repeat_buyers = sum(1 for row in buyer_order_counts if row["count"] > 1)
+    return repeat_buyers / total_buyers * 100
+
+
+DEBT_AGE_BUCKETS = [("0-7 days", 0, 7), ("8-30 days", 8, 30), ("31+ days", 31, None)]
+
+
+def _debt_aging(now):
+    """Outstanding balance bucketed by how long ago the order was placed."""
+    orders = Order.objects.filter(status__in=["locked", "debt_active"])
+    buckets = {label: Decimal("0") for label, _, _ in DEBT_AGE_BUCKETS}
+    for order in orders:
+        balance = order.balance
+        if balance <= 0:
+            continue
+        age_days = (now - order.created_at).days
+        for label, lo, hi in DEBT_AGE_BUCKETS:
+            if age_days >= lo and (hi is None or age_days <= hi):
+                buckets[label] += balance
+                break
+    return [{"label": label, "amount": float(amount)} for label, amount in buckets.items()]
+
+
+FUNNEL_STAGES = [("submitted", "Submitted"), ("sourcing", "Sourcing"), ("locked", "Locked"), ("cleared", "Cleared")]
+
+
+def _order_funnel(since):
+    """How many orders (placed since `since`) ever reached each stage, via
+    OrderStatusEvent rather than the order's current status."""
+    reached = (
+        OrderStatusEvent.objects
+        .filter(order__created_at__gte=since, status__in=[s for s, _ in FUNNEL_STAGES])
+        .values("status")
+        .annotate(order_count=Count("order", distinct=True))
+    )
+    counts = {row["status"]: row["order_count"] for row in reached}
+    return [{"stage": label, "orders": counts.get(stage, 0)} for stage, label in FUNNEL_STAGES]
 
 
 def _user_growth_series(since, now):
@@ -196,4 +248,7 @@ class AdminMetricsView(APIView):
             "gmv_by_month": _gmv_by_month(now - timedelta(days=30 * GMV_TREND_MONTHS)),
             "top_sellers": _top_sellers(float(gmv)),
             "products_by_category": _products_by_category(),
+            "repeat_buyer_rate": _repeat_buyer_rate(),
+            "debt_aging": _debt_aging(now),
+            "order_funnel_30d": _order_funnel(now - timedelta(days=30)),
         })

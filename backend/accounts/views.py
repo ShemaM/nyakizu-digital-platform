@@ -15,6 +15,7 @@ from django.contrib.auth import login, logout
 from .models import CustomUser, BuyerProfile, SellerProfile, BuyerStoreFollow, BuyerSellerRelationship
 from products.models import Product
 from .permissions import is_admin_user, is_verified_buyer, is_approved_seller
+from .notifications import notify_admins_new_signup, notify_seller_new_access_request
 from nyakizu.emailing import send_mail_async
 from .serializers import (
     RegisterSerializer,
@@ -67,8 +68,9 @@ class RegisterView(APIView):
                 recipient_list=[user.email],
             )
 
-            if user.role == "seller":
-                self._notify_admins_new_seller(user)
+            # Notify admins for every new signup, buyer or seller — not just
+            # sellers (who additionally need an approval decision made).
+            notify_admins_new_signup(user, request)
 
             data = UserSerializer(user, context={"request": request}).data
             if settings.DEBUG:
@@ -76,38 +78,6 @@ class RegisterView(APIView):
             return Response(data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def _notify_admins_new_seller(self, user):
-        """Instantly alert every active staff account that a new seller needs review."""
-        staff_emails = list(
-            CustomUser.objects.filter(is_staff=True, is_active=True)
-            .exclude(email="")
-            .values_list("email", flat=True)
-        )
-        if not staff_emails:
-            return
-
-        try:
-            profile = user.seller_profile
-        except Exception:
-            return
-        review_url = f"{getattr(settings, 'FRONTEND_VERIFY_BASE_URL', 'http://localhost:3000')}/admin/verify"
-
-        send_mail_async(
-            subject=f"New seller awaiting approval: {profile.store_name}",
-            message=(
-                f"A new seller has signed up and is waiting for approval.\n\n"
-                f"Store name: {profile.store_name}\n"
-                f"Location:   {profile.location or '—'}\n"
-                f"Categories: {', '.join(profile.categories) or '—'}\n"
-                f"Owner:      {user.get_full_name() or user.username}\n"
-                f"Phone:      {user.phone_number or '—'}\n"
-                f"Email:      {user.email}\n\n"
-                f"Review and approve or reject here:\n{review_url}\n"
-            ),
-            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
-            recipient_list=staff_emails,
-        )
 
 
 
@@ -605,6 +575,8 @@ class RequestSellerAccessView(APIView):
         relationship, created = BuyerSellerRelationship.objects.get_or_create(
             buyer=request.user, seller=seller
         )
+        if created:
+            notify_seller_new_access_request(relationship, request)
         return Response(
             BuyerSellerRelationshipSerializer(relationship).data,
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
@@ -652,6 +624,8 @@ class RelationshipListCreateView(APIView):
         relationship, created = BuyerSellerRelationship.objects.get_or_create(
             buyer=request.user, seller=seller
         )
+        if created:
+            notify_seller_new_access_request(relationship, request)
         return Response(
             BuyerSellerRelationshipSerializer(relationship).data,
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,

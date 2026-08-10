@@ -45,6 +45,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
           signups bypass entirely.
         """
         from .models import BuyerProfile
+        from .notifications import notify_admins_new_signup
 
         user = super().save_user(request, sociallogin, form)
 
@@ -59,6 +60,12 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
             user.save(update_fields=update_fields)
 
         BuyerProfile.objects.get_or_create(user=user)
+
+        # Regular-form signups notify admins from RegisterView — this is
+        # the equivalent hook for the Google sign-up path, which bypasses
+        # RegisterView entirely.
+        notify_admins_new_signup(user, request)
+
         return user
 
     def populate_user(self, request, sociallogin, data):

@@ -234,13 +234,10 @@ export function LandingFooter() {
           <FooterColumn title="Legal" links={LEGAL_LINKS} />
         </div>
 
-        <div className="mt-12 pt-8 border-t border-dark-accent flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-base text-text-muted">
+        <div className="mt-12 pt-8 border-t border-dark-accent">
+          <p className="text-base text-text-muted text-center sm:text-left">
             &copy; {new Date().getFullYear()} Nyakizu Digital Platform. All rights reserved.
           </p>
-          <div className="flex items-center gap-6">
-            <span className="text-sm text-text-muted">Made with care for the Banyamulenge community</span>
-          </div>
         </div>
       </div>
     </footer>

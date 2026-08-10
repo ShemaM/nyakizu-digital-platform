@@ -41,15 +41,6 @@ const INITIAL_FORM_STATE: RegisterFormState = {
   shopName: "",
 };
 
-const PANEL_HEADLINE = (
-  <>
-    Join the traders going
-    <br />
-    <span className="text-brand-gold">digital.</span>
-  </>
-);
-const PANEL_SUBTITLE = "Orders, payments and debts — managed with clarity, free forever.";
-
 function buildRegisterPayload(form: RegisterFormState): RegisterPayload {
   const base = {
     full_name: form.fullName,
@@ -83,11 +74,9 @@ export function RegisterContent() {
       fallback={
         <AuthLayout
           title="Join Nyakizu"
-          subtitle="Create your account in a few small steps."
-          alternate
-          footnote="Your data stays private"
-          panelHeadline={PANEL_HEADLINE}
-          panelSubtitle={PANEL_SUBTITLE}
+          subtitle="Make an account in a few easy steps."
+          footnote="Your information is safe with us"
+          hidePanel
         >
           {null}
         </AuthLayout>
@@ -137,11 +126,11 @@ function RegisterForm() {
 
   const continueFromDetails = () => {
     if (!form.fullName || !form.username || !form.email || !form.phone) {
-      setError("Please fill in your name, username, email and phone number.");
+      setError("Please fill in every box.");
       return;
     }
     if (!/^[\w.@+-]+$/.test(form.username)) {
-      setError("Username can only contain letters, numbers and @/./+/-/_ characters.");
+      setError("Username can only have letters, numbers, and . _ - @ +");
       return;
     }
     setError("");
@@ -173,7 +162,7 @@ function RegisterForm() {
       }
 
       if (form.password.length < MIN_PASSWORD_LENGTH) {
-        setError(`Your password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+        setError(`Your password must have at least ${MIN_PASSWORD_LENGTH} letters or numbers.`);
         return;
       }
 
@@ -182,10 +171,10 @@ function RegisterForm() {
       try {
         const payload = buildRegisterPayload(form);
         await auth.register(payload);
-        setSuccess("Your account is ready! Check your email and click the link to verify it before signing in.");
+        setSuccess("Your account is ready! Open your email and tap the link. Then sign in.");
         setLoading(false);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "We could not create your account. Please try again.");
+        setError(err instanceof Error ? err.message : "We could not make your account. Please try again.");
         setLoading(false);
       }
     },
@@ -203,17 +192,15 @@ function RegisterForm() {
     return (
       <AuthLayout
         title="Join Nyakizu"
-        subtitle="Create your account in a few small steps."
-        alternate
-        panelHeadline={PANEL_HEADLINE}
-        panelSubtitle={PANEL_SUBTITLE}
+        subtitle="Make an account in a few easy steps."
+        hidePanel
       >
         <Alert variant="success" role="status">
-          <AlertTitle>You&apos;re almost in</AlertTitle>
+          <AlertTitle>Almost done!</AlertTitle>
           <AlertDescription>{success}</AlertDescription>
         </Alert>
         <Button className="w-full mt-4" size="lg" asChild>
-          <Link href="/login">Continue to sign in</Link>
+          <Link href="/login">Go to sign in</Link>
         </Button>
       </AuthLayout>
     );
@@ -222,10 +209,8 @@ function RegisterForm() {
   return (
     <AuthLayout
       title="Join Nyakizu"
-      subtitle="Create your account in a few small steps."
-      alternate
-      panelHeadline={PANEL_HEADLINE}
-      panelSubtitle={PANEL_SUBTITLE}
+      subtitle="Make an account in a few easy steps."
+      hidePanel
     >
       {/* Progress bar + step label */}
       <div className="space-y-2">
@@ -252,7 +237,7 @@ function RegisterForm() {
       {step === 1 && (
         <div className="space-y-4">
           <div className="rounded-xl border border-brand-gold/20 bg-brand-gold-subtle p-4 text-sm text-text-secondary">
-            First, tell us who you are. This helps us give you the right tools.
+            First, tell us who you are.
           </div>
 
           <button
@@ -268,7 +253,7 @@ function RegisterForm() {
               </span>
             </div>
             <p className="text-sm text-text-secondary leading-relaxed">
-              I buy items to sell in my own shop or to my customers. I want to make orders easily.
+              I buy things to sell in my own shop.
             </p>
           </button>
 
@@ -285,7 +270,7 @@ function RegisterForm() {
               </span>
             </div>
             <p className="text-sm text-text-secondary leading-relaxed">
-              I sell items in bulk to buyers. I want to manage my orders, stock and debts.
+              I sell many things to buyers. I track my orders and my money.
             </p>
           </button>
 
@@ -301,7 +286,7 @@ function RegisterForm() {
           <div className="space-y-2">
             <GoogleButton label="Sign up with Google" />
             <p className="text-center text-xs text-text-muted">
-              Google sign-up creates a buyer account. Want to sell? Use the seller option above.
+              Google sign up makes a buyer account. To sell, tap &quot;I am a Seller&quot; above.
             </p>
           </div>
         </div>
@@ -310,7 +295,7 @@ function RegisterForm() {
       {/* Step 2 — your details (both roles) */}
       {step === 2 && (
         <div className="space-y-4">
-          <p className="text-sm text-text-secondary">Tell us your name and how we can reach you.</p>
+          <p className="text-sm text-text-secondary">Tell us about you.</p>
 
           <Input
             label="Full Name"
@@ -392,7 +377,7 @@ function RegisterForm() {
             type="text"
             autoComplete="address-level2"
             endAdornment={<MapPin className="w-4 h-4" />}
-            placeholder="e.g. Kigali, Shop B12"
+            placeholder="e.g. Nairobi, Shop B12"
             value={form.location}
             onChange={(e) => updateField("location", e.target.value)}
             className="h-12 bg-dark-secondary border-dark-accent text-base"
@@ -419,7 +404,7 @@ function RegisterForm() {
       {((step === 3 && form.role === "buyer") || (step === 4 && form.role === "seller")) && (
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <p className="text-sm text-text-secondary">
-            {form.role === "buyer" ? "A little about your business, then set a password." : "Last step — set a password to protect your account."}
+            {form.role === "buyer" ? "Tell us about your business. Then make a password." : "Last step. Make a password to keep your account safe."}
           </p>
 
           {form.role === "buyer" && (
@@ -429,7 +414,7 @@ function RegisterForm() {
                 type="text"
                 autoComplete="address-level2"
                 endAdornment={<MapPin className="w-4 h-4" />}
-                placeholder="e.g. Kigali"
+                placeholder="e.g. Nairobi"
                 value={form.location}
                 onChange={(e) => updateField("location", e.target.value)}
                 className="h-12 bg-dark-secondary border-dark-accent text-base"
@@ -462,7 +447,7 @@ function RegisterForm() {
                 {showPassword ? "Hide" : "Show"}
               </button>
             }
-            placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
+            placeholder={`At least ${MIN_PASSWORD_LENGTH} letters or numbers`}
             value={form.password}
             onChange={(e) => updateField("password", e.target.value)}
             className="h-12 bg-dark-secondary border-dark-accent text-base"
@@ -482,7 +467,7 @@ function RegisterForm() {
                 {showConfirmPassword ? "Hide" : "Show"}
               </button>
             }
-            placeholder="Re-enter your password"
+            placeholder="Type your password again"
             value={form.confirmPassword}
             onChange={(e) => updateField("confirmPassword", e.target.value)}
             className="h-12 bg-dark-secondary border-dark-accent text-base"

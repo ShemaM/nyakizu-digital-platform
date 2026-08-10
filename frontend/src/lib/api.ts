@@ -1,20 +1,28 @@
-// Same-origin on purpose — see next.config.ts's rewrites(), which proxies
-// this to the real Django backend. Browsers (Brave/Safari especially)
-// increasingly block cookies between two different top-level domains even
-// when marked SameSite=None; Secure, treating a separate frontend/backend
-// domain pair as tracking-like behavior. Routing through one origin makes
-// the session/CSRF cookies genuinely first-party instead of fighting that.
-export const API_BASE_URL = "/api";
-
-// The real backend origin still matters for things that intentionally
-// bypass the proxy — Django admin is a separate surface entirely, and
-// Google OAuth's redirect flow is a top-level navigation (not an XHR), so
-// it was never subject to the cross-site cookie blocking above.
-// Exported for the rare server-side (not-in-a-browser) call that needs the
-// real backend directly — e.g. app/sitemap.ts, which runs in a Node context
-// with no page origin for a relative API_BASE_URL to resolve against.
+// The real backend origin — needed as-is for things that intentionally
+// bypass the same-origin proxy below (Django admin is a separate surface
+// entirely, and Google OAuth's redirect flow is a top-level navigation, so
+// it was never subject to the cross-site cookie blocking that motivates the
+// proxy), and also as the base for API_BASE_URL itself when there's no
+// browser origin for a relative path to resolve against (see below).
 export const BACKEND_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/api\/?$/, "");
 export const DJANGO_ADMIN_URL = new URL("/admin/", BACKEND_ORIGIN).toString();
+
+// Same-origin on purpose in the browser — see next.config.ts's rewrites(),
+// which proxies this to the real Django backend. Browsers (Brave/Safari
+// especially) increasingly block cookies between two different top-level
+// domains even when marked SameSite=None; Secure, treating a separate
+// frontend/backend domain pair as tracking-like behavior. Routing through
+// one origin makes the session/CSRF cookies genuinely first-party instead
+// of fighting that.
+//
+// Server Components / route handlers run in Node, not a browser — there's
+// no page origin for a relative "/api" fetch to resolve against there, so
+// this falls back to the real backend origin outside the browser. This
+// matters for any shared API-client method (e.g. `products.list()`,
+// `sellers.list()`) that also gets called during server-side rendering,
+// not just from client components — a plain relative-URL fetch() throws in
+// that context instead of hitting the proxy.
+export const API_BASE_URL = typeof window === "undefined" ? `${BACKEND_ORIGIN}/api` : "/api";
 
 /**
  * Reads a cookie by name. In production the session/CSRF cookies are

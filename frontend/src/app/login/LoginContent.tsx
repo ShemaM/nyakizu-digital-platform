@@ -16,7 +16,7 @@ export function LoginContent() {
   return (
     <Suspense
       fallback={
-        <AuthLayout title="Welcome back" subtitle="Sign in to manage your trades." footnote="Secure sign in · Your data stays private">
+        <AuthLayout title="Welcome back" subtitle="Sign in to buy and sell." footnote="Your information is safe with us" hidePanel>
           {null}
         </AuthLayout>
       }
@@ -41,7 +41,7 @@ function LoginForm() {
   // Set when the Google callback page couldn't find a signed-in session.
   useEffect(() => {
     if (searchParams.get("error") === "google") {
-      setError("Google sign-in did not finish. Please try again.");
+      setError("Google sign in did not work. Please try again.");
     }
   }, [searchParams]);
 
@@ -76,13 +76,13 @@ function LoginForm() {
       // keeping the button in its loading state avoids a flash of "Sign In"
       // re-enabling for the moment before the next route finishes rendering.
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed. Please try again.");
+      setError(err instanceof Error ? err.message : "Sign in did not work. Please try again.");
       setLoading(false);
     }
   };
 
   return (
-    <AuthLayout title="Welcome back" subtitle="Sign in to manage your trades." footnote="Secure sign in · Your data stays private">
+    <AuthLayout title="Welcome back" subtitle="Sign in to manage your trades." footnote="Secure sign in · Your data stays private" hidePanel>
       <form onSubmit={handleSubmit} className="space-y-5">
         {error && (
           <Alert variant="error">
@@ -178,7 +178,7 @@ function LoginForm() {
       </Button>
 
       <p className="text-center text-sm text-text-muted">
-        Trouble signing in?{" "}
+        Need help?{" "}
         <Link href="/help" className="font-semibold text-brand-gold-dark hover:text-brand-gold underline underline-offset-4 decoration-dotted">
           Get help
         </Link>

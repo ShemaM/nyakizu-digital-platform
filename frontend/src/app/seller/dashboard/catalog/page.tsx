@@ -23,7 +23,6 @@ export default function SellerCatalogPage() {
   const [productList, setProductList] = useState<ApiProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filterStatus, setFilterStatus] = useState<string>("all");
 
   useEffect(() => {
     loadCatalog();
@@ -43,11 +42,6 @@ export default function SellerCatalogPage() {
     }
   };
 
-  const filteredProducts = productList.filter((product) => {
-    if (filterStatus === "all") return true;
-    return product.status === filterStatus;
-  });
-
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case "available": return "success";
@@ -59,16 +53,28 @@ export default function SellerCatalogPage() {
 
   const STATUS_LABELS: Record<string, string> = {
     available: "In stock",
-    draft: "Hidden draft",
+    draft: "Hidden",
     out_of_stock: "Sold out",
   };
 
-  const FILTERS: { value: string; label: string }[] = [
-    { value: "all", label: "All" },
-    { value: "available", label: "In stock" },
-    { value: "draft", label: "Hidden draft" },
-    { value: "out_of_stock", label: "Sold out" },
-  ];
+  const UNCATEGORIZED = "Uncategorized";
+
+  // Group products by category name so the page reads like a real catalog
+  // instead of one long flat grid — status stays visible as a badge per
+  // card rather than as a top-level filter.
+  const categoryGroups = productList.reduce<Map<string, ApiProduct[]>>((groups, product) => {
+    const key = product.category_name || UNCATEGORIZED;
+    const existing = groups.get(key);
+    if (existing) existing.push(product);
+    else groups.set(key, [product]);
+    return groups;
+  }, new Map());
+
+  const sortedCategoryNames = [...categoryGroups.keys()].sort((a, b) => {
+    if (a === UNCATEGORIZED) return 1;
+    if (b === UNCATEGORIZED) return -1;
+    return a.localeCompare(b);
+  });
 
   if (isLoading) {
     return (
@@ -97,7 +103,7 @@ export default function SellerCatalogPage() {
             className="w-full flex items-center justify-between gap-4 bg-blue-600 text-white rounded-2xl px-5 py-4 text-left hover:bg-blue-500 transition-colors cursor-pointer"
           >
             <div className="min-w-0">
-              <p className="text-xs font-bold uppercase tracking-wide text-blue-100">Your shop link — share it with buyers</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-blue-100">Your shop link. Share it with buyers.</p>
               <p className="text-body sm:text-body-lg font-semibold truncate mt-0.5">{storeLink}</p>
             </div>
             <span className="shrink-0 flex items-center gap-2 bg-white/15 rounded-xl px-3 py-2 text-sm font-bold">
@@ -107,14 +113,14 @@ export default function SellerCatalogPage() {
 
           <SectionHeading
             eyebrow="Products"
-            title="What you're selling"
+            title="What you sell"
             description={
               productList.length > 0
-                ? `${productList.length} product${productList.length !== 1 ? "s" : ""} listed for buyers to see.`
-                : "Add your first product so buyers can see what you sell."
+                ? `${productList.length} product${productList.length !== 1 ? "s" : ""}. Buyers can see them.`
+                : "Add your first product. Then buyers can see it."
             }
             action={
-              <Button onClick={() => router.push("/seller/dashboard/catalog/new")} variant="role" size="lg" className="gap-2">
+              <Button onClick={() => router.push("/seller/dashboard/catalog/new")} variant="role" size="lg" className="gap-2 w-full sm:w-auto">
                 <Plus size={18} /> Add a Product
               </Button>
             }
@@ -124,28 +130,10 @@ export default function SellerCatalogPage() {
             <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">
               <ImagePlus size={20} className="text-amber-600 shrink-0" />
               <p className="text-body text-amber-800">
-                <strong>{productsWithoutPhoto}</strong> product{productsWithoutPhoto !== 1 ? "s" : ""} still {productsWithoutPhoto !== 1 ? "have" : "has"} no photo. Buyers trust items with a real photo more — tap a product below to add one.
+                <strong>{productsWithoutPhoto}</strong> product{productsWithoutPhoto !== 1 ? "s" : ""} still {productsWithoutPhoto !== 1 ? "have" : "has"} no photo. Add a photo so buyers trust you more.
               </p>
             </div>
           )}
-
-          {/* Filters */}
-          <div className="flex items-center gap-2.5 overflow-x-auto pb-1 no-scrollbar">
-            {FILTERS.map(({ value, label }) => (
-              <button
-                key={value}
-                onClick={() => setFilterStatus(value)}
-                aria-pressed={filterStatus === value}
-                className={`px-5 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wider border transition-all shrink-0 ${
-                  filterStatus === value
-                    ? "bg-slate-900 text-white border-slate-900 shadow"
-                    : "bg-white text-text-muted border-slate-200 hover:text-text-secondary"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
 
           {error && (
             <div className="bg-rose-50 border border-rose-200 text-rose-600 rounded-xl p-4 text-caption font-semibold flex items-center gap-2">
@@ -153,90 +141,121 @@ export default function SellerCatalogPage() {
             </div>
           )}
 
-          {/* Product Grid */}
-          {filteredProducts.length === 0 ? (
+          {/* Products, grouped by category */}
+          {productList.length === 0 ? (
             <div className="bg-white border border-slate-100 rounded-2xl p-12 text-center text-text-muted flex flex-col items-center justify-center min-h-[300px]">
               <Package size={40} className="text-slate-300 mb-3" />
               <p className="text-body font-bold text-text-secondary">Nothing here yet</p>
-              <p className="text-caption text-text-muted mt-1">Try a different tab above, or add a new product.</p>
+              <p className="text-caption text-text-muted mt-1">Add your first product to start.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
-              {filteredProducts.map((product) => (
-                <div
-                  key={product.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => router.push(`/seller/dashboard/catalog/new?id=${product.id}`)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      router.push(`/seller/dashboard/catalog/new?id=${product.id}`);
-                    }
-                  }}
-                  className="text-left bg-white border border-slate-100 shadow-sm rounded-2xl overflow-hidden flex flex-col hover:border-slate-200 hover:shadow-lg transition-all group cursor-pointer"
-                >
-                  {/* Photo */}
-                  <div className="relative aspect-square bg-dark-secondary overflow-hidden">
-                    {product.image_url ? (
-                      <Image
-                        src={product.image_url}
-                        alt={product.name}
-                        fill
-                        unoptimized
-                        className="object-cover group-hover:scale-105 transition-transform"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-text-muted">
-                        <ImagePlus size={26} className="group-hover:text-role transition-colors" />
-                        <span className="text-xs font-bold">Add a photo</span>
-                      </div>
-                    )}
-                    <span className="absolute top-2.5 left-2.5">
-                      <Badge variant={getStatusBadgeVariant(product.status)}>
-                        {STATUS_LABELS[product.status] ?? product.status}
-                      </Badge>
-                    </span>
-                  </div>
-
-                  {/* Info */}
-                  <div className="p-3.5 flex-1 flex flex-col gap-2">
-                    <h3 className="text-body font-bold text-text-primary line-clamp-2 leading-snug group-hover:text-role transition-colors">
-                      {product.name}
-                    </h3>
-
-                    <div className="mt-auto flex items-center justify-between gap-2 pt-2.5 border-t border-slate-100">
-                      <span className="text-body-lg font-black text-role">
-                        {fmtKES(product.price)}
+            <div className="space-y-8">
+              {sortedCategoryNames.map((categoryName) => {
+                const categoryProducts = categoryGroups.get(categoryName)!;
+                return (
+                  <div key={categoryName}>
+                    <div className="flex items-baseline gap-2.5 mb-3.5">
+                      <h3 className="text-lg font-black text-text-primary">{categoryName}</h3>
+                      <span className="text-caption font-bold text-text-muted">
+                        {categoryProducts.length} item{categoryProducts.length !== 1 ? "s" : ""}
                       </span>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(storePath, "_blank");
-                          }}
-                          className="p-2 bg-dark-secondary hover:bg-slate-200 border border-slate-200 text-text-secondary rounded-lg transition-colors cursor-pointer"
-                          title="See how buyers see your shop"
-                          aria-label="See how buyers see your shop"
-                        >
-                          <Eye size={14} />
-                        </button>
-                        <span
-                          className="p-2 bg-dark-secondary border border-slate-200 text-text-secondary rounded-lg"
-                          aria-hidden="true"
-                        >
-                          <Edit2 size={14} />
-                        </span>
-                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+                      {categoryProducts.map((product) => (
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          storePath={storePath}
+                          statusVariant={getStatusBadgeVariant(product.status)}
+                          statusLabel={STATUS_LABELS[product.status] ?? product.status}
+                          onOpen={() => router.push(`/seller/dashboard/catalog/new?id=${product.id}`)}
+                        />
+                      ))}
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </Container>
       </Section>
     </AppShell>
+  );
+}
+
+interface ProductCardProps {
+  product: ApiProduct;
+  storePath: string;
+  statusVariant: "success" | "outline" | "error" | "default";
+  statusLabel: string;
+  onOpen: () => void;
+}
+
+function ProductCard({ product, storePath, statusVariant, statusLabel, onOpen }: ProductCardProps) {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+      className="text-left bg-white border border-slate-100 shadow-sm rounded-2xl overflow-hidden flex flex-col hover:border-slate-200 hover:shadow-lg transition-all group cursor-pointer"
+    >
+      {/* Photo */}
+      <div className="relative aspect-square bg-dark-secondary overflow-hidden">
+        {product.image_url ? (
+          <Image
+            src={product.image_url}
+            alt={product.name}
+            fill
+            unoptimized
+            className="object-cover group-hover:scale-105 transition-transform"
+          />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-text-muted">
+            <ImagePlus size={26} className="group-hover:text-role transition-colors" />
+            <span className="text-xs font-bold">Add a photo</span>
+          </div>
+        )}
+        <span className="absolute top-2.5 left-2.5">
+          <Badge variant={statusVariant}>{statusLabel}</Badge>
+        </span>
+      </div>
+
+      {/* Info */}
+      <div className="p-3.5 flex-1 flex flex-col gap-2">
+        <h3 className="text-body font-bold text-text-primary line-clamp-2 leading-snug group-hover:text-role transition-colors">
+          {product.name}
+        </h3>
+
+        <div className="mt-auto flex items-center justify-between gap-2 pt-2.5 border-t border-slate-100">
+          <span className="text-body-lg font-black text-role">{fmtKES(product.price)}</span>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(storePath, "_blank");
+              }}
+              className="p-2 bg-dark-secondary hover:bg-slate-200 border border-slate-200 text-text-secondary rounded-lg transition-colors cursor-pointer"
+              title="See your shop"
+              aria-label="See your shop"
+            >
+              <Eye size={14} />
+            </button>
+            <span
+              className="p-2 bg-dark-secondary border border-slate-200 text-text-secondary rounded-lg"
+              aria-hidden="true"
+            >
+              <Edit2 size={14} />
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

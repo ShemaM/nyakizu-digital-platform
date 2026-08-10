@@ -1,7 +1,8 @@
-import { API_BASE_URL } from "@/lib/api";
+import { BACKEND_ORIGIN } from "@/lib/api";
 
-// The allauth OAuth entry point lives on the Django origin, not under /api.
-const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
+// The allauth OAuth entry point lives on the Django origin, not under /api —
+// API_BASE_URL is deliberately relative ("/api", proxied same-origin), so it
+// can't be used to derive this; BACKEND_ORIGIN is the real backend URL.
 const GOOGLE_LOGIN_URL = `${BACKEND_ORIGIN}/accounts/google/login/`;
 
 /** Official multi-color "G" mark, drawn inline so no external asset is needed. */

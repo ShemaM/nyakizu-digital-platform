@@ -5,7 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/Button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Mail } from "lucide-react";
+import { SUPPORT_EMAIL, TAGLINE } from "@/lib/contact";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -163,12 +164,51 @@ export function LandingHeader() {
   );
 }
 
+interface FooterLink {
+  href: string;
+  label: string;
+}
+
+function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) {
+  return (
+    <div className="space-y-3">
+      <h4 className="text-sm font-bold uppercase tracking-wider text-text-muted">{title}</h4>
+      <ul className="space-y-2.5">
+        {links.map((link) => (
+          <li key={link.href}>
+            <Link href={link.href} className="text-base text-text-secondary hover:text-brand-gold-dark transition-colors">
+              {link.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+const PLATFORM_LINKS: FooterLink[] = [
+  { href: "/#features", label: "Features" },
+  { href: "/register", label: "Sign Up" },
+  { href: "/login", label: "Sign In" },
+  { href: "/help", label: "Help" },
+];
+
+const COMPANY_LINKS: FooterLink[] = [
+  { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact Us" },
+];
+
+const LEGAL_LINKS: FooterLink[] = [
+  { href: "/privacy", label: "Privacy Policy" },
+  { href: "/terms", label: "Terms of Service" },
+];
+
 export function LandingFooter() {
   return (
     <footer className="relative border-t border-dark-accent bg-dark-secondary">
       <span className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-brand-gold/60 to-transparent" aria-hidden="true" />
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10">
           {/* Brand */}
           <div className="sm:col-span-2 space-y-4">
             <Link href="/" className="inline-flex items-center gap-3 hover:opacity-80 transition-opacity">
@@ -177,38 +217,21 @@ export function LandingFooter() {
                 Nyakizu
               </span>
             </Link>
-            <p className="text-base text-text-secondary leading-relaxed max-w-xs">
-              &quot;Nyakizu&quot; means a huge building, in Kinyamulenge — the word traders already
-              use for the busy wholesale hub where this platform began.
+            <p className="text-base font-semibold text-brand-gold-dark max-w-xs">
+              {TAGLINE}
             </p>
+            <a
+              href={`mailto:${SUPPORT_EMAIL}`}
+              className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-brand-gold-dark transition-colors"
+            >
+              <Mail className="w-4 h-4 shrink-0" aria-hidden="true" />
+              {SUPPORT_EMAIL}
+            </a>
           </div>
 
-          {/* Platform */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-bold uppercase tracking-wider text-text-muted">Platform</h4>
-            <ul className="space-y-2.5">
-              <li>
-                <Link href="/#features" className="text-base text-text-secondary hover:text-brand-gold-dark transition-colors">
-                  Features
-                </Link>
-              </li>
-              <li>
-                <Link href="/register" className="text-base text-text-secondary hover:text-brand-gold-dark transition-colors">
-                  Sign Up
-                </Link>
-              </li>
-              <li>
-                <Link href="/login" className="text-base text-text-secondary hover:text-brand-gold-dark transition-colors">
-                  Sign In
-                </Link>
-              </li>
-              <li>
-                <Link href="/help" className="text-base text-text-secondary hover:text-brand-gold-dark transition-colors">
-                  Help
-                </Link>
-              </li>
-            </ul>
-          </div>
+          <FooterColumn title="Platform" links={PLATFORM_LINKS} />
+          <FooterColumn title="Company" links={COMPANY_LINKS} />
+          <FooterColumn title="Legal" links={LEGAL_LINKS} />
         </div>
 
         <div className="mt-12 pt-8 border-t border-dark-accent flex flex-col sm:flex-row items-center justify-between gap-4">

@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Alert, AlertDescription } from "@/components/ui/Alert";
 import { auth, ApiError } from "@/lib/api";
-
-const SUPPORT_EMAIL = "nyakizudigital@gmail.com";
+import { SUPPORT_EMAIL } from "@/lib/contact";
 
 const FAQS = [
   {

@@ -55,26 +55,25 @@ export default function TermsPage() {
             <TermsSection title="3. Buyer approval">
               <p>
                 A buyer must be approved by a specific seller before they can place orders with that
-                seller. Sellers decide who they trade with — Nyakizu does not place buyers with
+                seller. Sellers decide who they trade with. Nyakizu does not place buyers with
                 sellers automatically.
               </p>
             </TermsSection>
 
             <TermsSection title="4. Orders">
               <p>
-                Once a buyer submits an order, it locks and cannot be edited by the buyer — this
-                protects sellers from last-minute changes after they have started fulfilling it. A
-                seller may adjust the final price after sourcing items, and sets the price the buyer is
-                billed.
+                Once a buyer submits an order, it locks and the buyer cannot edit it. This protects
+                sellers from last-minute changes after they have started fulfilling it. A seller may
+                adjust the final price after sourcing items, and sets the price the buyer is billed.
               </p>
             </TermsSection>
 
             <TermsSection title="5. Payments and debts">
               <p>
-                Nyakizu does not process payments. Buyers and sellers arrange payment directly (for
-                example, by M-Pesa), and the seller records what they have received. The credit ledger
-                on the platform is a shared record to help both sides track what is owed — it does not
-                make Nyakizu a party to that debt, and Nyakizu is not responsible for collecting or
+                Nyakizu does not process payments. Buyers and sellers arrange payment directly, for
+                example by M-Pesa, and the seller records what they have received. The credit ledger
+                on the platform is a shared record that helps both sides track what is owed. It does
+                not make Nyakizu a party to that debt. Nyakizu is not responsible for collecting or
                 guaranteeing any payment between users.
               </p>
             </TermsSection>
@@ -105,7 +104,7 @@ export default function TermsPage() {
                 Nyakizu is provided &quot;as is.&quot; We work to keep it reliable, including support for
                 spotty internet connections, but we cannot guarantee it will always be available or
                 error-free. We are not responsible for disputes between buyers and sellers over the
-                quality of goods, delivery, or payment — those remain between the two parties.
+                quality of goods, delivery, or payment. Those stay between the two parties.
               </p>
             </TermsSection>
 

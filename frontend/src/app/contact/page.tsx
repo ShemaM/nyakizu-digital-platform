@@ -7,7 +7,7 @@ import { SUPPORT_EMAIL } from "@/lib/contact";
 
 export const metadata: Metadata = {
   title: "Contact Us",
-  description: "Get in touch with the Nyakizu Digital Market team — questions, account help, or feedback.",
+  description: "Get in touch with the Nyakizu Digital Market team for questions, account help, or feedback.",
   alternates: { canonical: `${SITE_URL}/contact` },
 };
 
@@ -23,7 +23,7 @@ export default function ContactPage() {
               Get in touch
             </h1>
             <p className="mt-3 text-text-secondary text-xl">
-              Questions, trouble with your account, or feedback — we want to hear it.
+              Questions, trouble with your account, or feedback. We want to hear it.
             </p>
           </div>
 
@@ -58,11 +58,11 @@ export default function ContactPage() {
               </div>
               <h3 className="font-bold text-text-primary">Common questions first</h3>
               <p className="mt-1.5 text-text-secondary leading-relaxed">
-                Signing in, verifying your email, or buyer approval — check the{" "}
+                Signing in, verifying your email, or buyer approval. Check the{" "}
                 <Link href="/help" className="font-semibold text-brand-gold-dark underline underline-offset-2">
                   Help page
                 </Link>{" "}
-                first, it may already have your answer.
+                first. It may already have your answer.
               </p>
             </div>
           </div>

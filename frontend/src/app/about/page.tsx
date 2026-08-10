@@ -9,7 +9,7 @@ import { TAGLINE } from "@/lib/contact";
 export const metadata: Metadata = {
   title: "About Us",
   description:
-    "Nyakizu Digital Market digitizes trusted community trade for phone accessories wholesalers and resellers in Nairobi — built by a trader, for traders.",
+    "Nyakizu Digital Market helps phone accessories wholesalers and resellers in Nairobi trade digitally. Built by a trader, for traders.",
   alternates: { canonical: `${SITE_URL}/about` },
 };
 
@@ -27,7 +27,7 @@ const VALUES = [
   {
     icon: Users,
     title: "Made with traders, not just for them",
-    body: "Every feature came from watching real wholesalers and resellers work — what slows them down, and what they actually need.",
+    body: "Every feature came from watching real wholesalers and resellers work. We saw what slows them down and what they actually need.",
   },
   {
     icon: Heart,
@@ -50,7 +50,7 @@ export default function AboutPage() {
             </h1>
             <p className="mt-4 text-text-secondary text-xl leading-relaxed max-w-2xl mx-auto">
               Nyakizu Digital Market helps phone accessories wholesalers and resellers in Nairobi
-              run their business without giving up the trust they already built with each other.
+              run their business. They keep the trust they already built with each other.
             </p>
           </div>
 
@@ -63,15 +63,15 @@ export default function AboutPage() {
               of them.
             </p>
             <p className="text-text-secondary leading-relaxed">
-              Big e-commerce platforms don&apos;t fit either — they are built for open competition and
-              show everyone exactly what is in stock. For traders who rely on private relationships
-              and careful sourcing, that is the opposite of what they need.
+              Big e-commerce platforms don&apos;t fit either. They are built for open competition, and
+              they show everyone exactly what is in stock. Traders rely on private relationships and
+              careful sourcing, so that is the opposite of what they need.
             </p>
             <p className="text-text-secondary leading-relaxed">
               Nyakizu was built by someone who has worked this trade directly, as both a wholesaler
-              and a reseller. It exists to fix the real problems traders described — losing track of
-              orders and debts, awkward last-minute changes, exposing stock to competitors — without
-              asking anyone to trade away their privacy or their relationships to get it.
+              and a reseller. It fixes the real problems traders described, like losing track of
+              orders and debts, awkward last-minute changes, and exposing stock to competitors. It
+              does this without asking anyone to trade away their privacy or their relationships.
             </p>
           </div>
 

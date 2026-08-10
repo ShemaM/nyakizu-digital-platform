@@ -55,8 +55,8 @@ export default function PrivacyPage() {
               </ul>
               <p>
                 As you use the platform, we also store the orders, products, and payment records you
-                or the people you trade with create — this is the core record-keeping the platform
-                exists to provide.
+                and the people you trade with create. This is the core record-keeping the platform
+                is built to provide.
               </p>
             </PolicySection>
 
@@ -64,7 +64,7 @@ export default function PrivacyPage() {
               <ul className="list-disc pl-5 space-y-1.5">
                 <li>To create and secure your account, including verifying your email address</li>
                 <li>To let buyers and sellers place, track, and fulfil orders with each other</li>
-                <li>To send you emails about your account and your orders — verification links, order status updates, and approval decisions</li>
+                <li>To send you emails about your account and your orders, like verification links, order status updates, and approval decisions</li>
                 <li>To keep the platform safe, including reviewing new seller accounts before they go live</li>
               </ul>
               <p>We do not sell your information to anyone, for any reason.</p>
@@ -73,9 +73,9 @@ export default function PrivacyPage() {
             <PolicySection title="4. Who can see your information">
               <p>
                 A buyer only sees a seller&apos;s product catalog and prices after that seller approves
-                their request to order — sellers control who they trade with. Exact stock quantities
-                are never shown to buyers, only whether an item is available; this is a deliberate
-                design choice to protect sellers&apos; sourcing.
+                their request to order. Sellers control who they trade with. Exact stock quantities
+                are never shown to buyers, only whether an item is available. This is on purpose, to
+                protect how sellers source their stock.
               </p>
               <p>
                 Order and payment details are visible only to the buyer and seller involved in that
@@ -94,7 +94,7 @@ export default function PrivacyPage() {
             </PolicySection>
 
             <PolicySection title="6. Third-party services">
-              <p>A few outside services help run the platform, and only ever handle what's needed for their job:</p>
+              <p>A few outside services help run the platform. They only handle what they need for their job:</p>
               <ul className="list-disc pl-5 space-y-1.5">
                 <li>Cloud hosting providers, to run the website and store its database</li>
                 <li>An email delivery service, to send verification links and order notifications</li>

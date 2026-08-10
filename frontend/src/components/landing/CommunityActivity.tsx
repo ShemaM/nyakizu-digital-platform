@@ -58,7 +58,7 @@ export default function CommunityActivity() {
     { icon: Store, label: "Registered Stores", value: data?.stats.stores },
     { icon: Package, label: "Products Listed", value: data?.stats.products },
     { icon: MapPin, label: "Towns Represented", value: data?.stats.cities },
-  ];
+  ].filter((stat) => (stat.value ?? 0) > 0); // zero is not shown
 
   const isEmpty = !isLoading && (!data || (data.stats.members === 0 && data.stats.stores === 0));
 

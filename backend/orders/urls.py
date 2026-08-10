@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     OrderListCreateView, SellerOrderListView, OrderDetailView,
     CancelOrderView, SellerLedgerView, BuyerDebtsView, RecordPaymentView,
-    AdminOrderListView, FlagOrderView, UnflagOrderView,
+    AdminOrderListView, FlagOrderView, UnflagOrderView, ToggleItemPackedView,
 )
 
 urlpatterns = [
@@ -16,4 +16,5 @@ urlpatterns = [
     path("<int:pk>/pay/",     RecordPaymentView.as_view(),     name="order-pay"),
     path("<int:pk>/flag/",    FlagOrderView.as_view(),         name="order-flag"),
     path("<int:pk>/unflag/",  UnflagOrderView.as_view(),       name="order-unflag"),
+    path("<int:order_id>/items/<int:item_id>/toggle-packed/", ToggleItemPackedView.as_view(), name="order-item-toggle-packed"),
 ]

@@ -235,12 +235,14 @@ export interface ApiRelationship {
 }
 
 export interface ApiOrderItem {
+  id: number;
   product_id?: number;
   product_name?: string;
   quantity: number;
   unit_price: string | number;
   subtotal: string | number;
   is_sourcing?: boolean;
+  is_packed?: boolean;
 }
 
 export interface ApiOrderStatusEvent {
@@ -500,6 +502,17 @@ class OrdersAPI {
   async buyerDebts(): Promise<ApiOrder[]> {
     const response = await fetchWithSession(`${API_BASE_URL}/orders/debts/`);
     return response.ok ? response.json() : [];
+  }
+
+  async toggleItemPacked(orderId: number, itemId: number): Promise<ApiOrder> {
+    const response = await fetchWithSession(`${API_BASE_URL}/orders/${orderId}/items/${itemId}/toggle-packed/`, {
+      method: "POST",
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new ApiError(extractApiErrorMessage(error, "Failed to update packing status"), response.status);
+    }
+    return response.json();
   }
 
   async recordPayment(orderId: number, paymentData: any): Promise<any> {

@@ -128,7 +128,7 @@ export default function BuyerSuppliersPage() {
 
         <section className="space-y-3">
           <h2 className="text-label">
-            Other Suppliers ({otherSuppliers.length})
+            Other Suppliers{otherSuppliers.length > 0 ? ` (${otherSuppliers.length})` : ""}
           </h2>
 
           {otherSuppliers.length === 0 ? (

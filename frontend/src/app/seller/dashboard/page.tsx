@@ -2,25 +2,27 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { RefreshCw, ArrowRight } from "lucide-react";
+import { RefreshCw, ArrowRight, ShoppingBag, Wallet, Layers } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Container, Section } from "@/components/layouts";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { PageSkeleton } from "@/components/ui/LoadingState";
-import { orders, products, relationships, ApiError, parsePrice } from "@/lib/api";
+import { orders, products, relationships, type ApiOrder, type ApiProduct, type ApiRelationship, ApiError, fmtKES, parsePrice } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
 import { SellerHeader } from "@/components/seller-dashboard/SellerHeader";
 import { ShopStats } from "@/components/seller-dashboard/ShopStats";
+import { MetricCard } from "@/components/seller-dashboard/MetricCard";
 import { QuickActions } from "@/components/seller-dashboard/QuickActions";
 import { RecentOrders } from "@/components/seller-dashboard/RecentOrders";
+import { SalesInsights } from "@/components/seller-dashboard/SalesInsights";
 import { ProductSummary } from "@/components/seller-dashboard/ProductSummary";
 
 export default function SellerDashboardPage() {
   const { user } = useAuth();
-  const [orderList, setOrderList] = useState<any[]>([]);
-  const [productList, setProductList] = useState<any[]>([]);
-  const [relationshipList, setRelationshipList] = useState<any[]>([]);
+  const [orderList, setOrderList] = useState<ApiOrder[]>([]);
+  const [productList, setProductList] = useState<ApiProduct[]>([]);
+  const [relationshipList, setRelationshipList] = useState<ApiRelationship[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,15 +82,13 @@ export default function SellerDashboardPage() {
   const draftProducts = productList.filter((p) => p.status === "draft").length;
 
   const newOrders = orderList.filter((o) => o.status === "submitted").length;
+  const ordersPending = orderList.filter((o) => ["submitted", "sourcing"].includes(o.status)).length;
 
   const moneyOwed = orderList
     .filter((o) => o.status === "debt_active")
-    .reduce((sum, o) => {
-      const balance = o.balance != null
-        ? parsePrice(o.balance)
-        : parsePrice(o.final_total ?? o.total_price) - parsePrice(o.amount_paid ?? 0);
-      return sum + balance;
-    }, 0);
+    .reduce((sum, o) => sum + parsePrice(o.balance ?? parsePrice(o.final_total ?? o.total_price) - parsePrice(o.amount_paid ?? 0)), 0);
+
+  const totalRevenue = orderList.reduce((sum, o) => sum + parsePrice(o.amount_paid ?? 0), 0);
 
   const newBuyerRequests = relationshipList.filter((r) => r.status === "pending").length;
 
@@ -109,15 +109,33 @@ export default function SellerDashboardPage() {
             avatarUrl={user?.avatar_url}
           />
 
-          {/* What needs your attention */}
-          <div>
-            <SectionHeading
-              eyebrow="Overview"
-              title="What needs your attention"
-              description="New orders, buyer requests, and money owed — all in one place."
-            />
-            <ShopStats newOrders={newOrders} newBuyerRequests={newBuyerRequests} moneyOwed={moneyOwed} />
-          </div>
+          {/* Key metrics — "how's business", separate from the action cards below.
+              Zero is not shown — an empty/zero metric is noise, not signal. */}
+          {(ordersPending > 0 || totalRevenue > 0 || activeProducts > 0) && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {ordersPending > 0 && (
+                <MetricCard Icon={ShoppingBag} label="Orders Pending" value={String(ordersPending)} hint="Submitted or being packed" />
+              )}
+              {totalRevenue > 0 && (
+                <MetricCard Icon={Wallet} label="Revenue" value={fmtKES(totalRevenue)} hint="Total collected, all time" tone="success" />
+              )}
+              {activeProducts > 0 && (
+                <MetricCard Icon={Layers} label="Active Listings" value={String(activeProducts)} hint={`${totalProducts} total, ${draftProducts} draft`} />
+              )}
+            </div>
+          )}
+
+          {/* What needs your attention — hidden entirely once there's nothing pending */}
+          {(newOrders > 0 || newBuyerRequests > 0 || moneyOwed > 0) && (
+            <div>
+              <SectionHeading
+                eyebrow="Overview"
+                title="What needs your attention"
+                description="New orders, buyer requests, and money owed — all in one place."
+              />
+              <ShopStats newOrders={newOrders} newBuyerRequests={newBuyerRequests} moneyOwed={moneyOwed} />
+            </div>
+          )}
 
           {/* Shortcuts */}
           <div>
@@ -133,14 +151,20 @@ export default function SellerDashboardPage() {
           <div>
             <SectionHeading
               title="Recent orders"
-              description="Your last 5 orders, newest first."
+              description="Your last 5 orders, newest first — tap one to open it, or the receipt icon for its invoice."
               action={
                 <Link href="/seller/dashboard/orders" className="inline-flex items-center gap-1 text-sm font-bold text-role hover:opacity-80">
-                  See all <ArrowRight size={14} />
+                  View all orders <ArrowRight size={14} />
                 </Link>
               }
             />
             <RecentOrders orders={recentOrders} />
+          </div>
+
+          {/* Sales insights */}
+          <div>
+            <SectionHeading title="Insights" description="Sales trend, top products, and top buyers." />
+            <SalesInsights orders={orderList} />
           </div>
 
           {/* Catalog snapshot */}

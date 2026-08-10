@@ -102,10 +102,10 @@ export default function SellerLedger() {
   }
 
   const STAT_CARDS = [
-    { label: "Total received", value: fmtKES(totalReceived), Icon: TrendingUp, color: "text-success", bg: "bg-success/12" },
-    { label: "Still owed to you", value: fmtKES(totalOwed), Icon: AlertCircle, color: "text-error", bg: "bg-error/12" },
-    { label: "Total orders", value: String(ledgerOrders.length), Icon: Wallet, color: "text-role", bg: "bg-role-soft" },
-  ];
+    { label: "Total received", value: fmtKES(totalReceived), raw: totalReceived, Icon: TrendingUp, color: "text-success", bg: "bg-success/12" },
+    { label: "Still owed to you", value: fmtKES(totalOwed), raw: totalOwed, Icon: AlertCircle, color: "text-error", bg: "bg-error/12" },
+    { label: "Total orders", value: String(ledgerOrders.length), raw: ledgerOrders.length, Icon: Wallet, color: "text-role", bg: "bg-role-soft" },
+  ].filter((card) => card.raw > 0); // zero is not shown
 
   return (
     <AppShell title="Payments">
@@ -123,21 +123,23 @@ export default function SellerLedger() {
           />
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {STAT_CARDS.map(({ label, value, Icon, color, bg }) => (
-              <Card key={label}>
-                <CardContent className="p-5 sm:p-6 flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${bg}`}>
-                    <Icon className={`w-6 h-6 ${color}`} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className={`text-xl sm:text-2xl font-black truncate ${color}`}>{value}</p>
-                    <p className="text-xs sm:text-sm font-semibold text-text-muted">{label}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {STAT_CARDS.length > 0 && (
+            <div className={`grid gap-4 ${STAT_CARDS.length === 1 ? "grid-cols-1" : STAT_CARDS.length === 2 ? "grid-cols-2" : "sm:grid-cols-3"}`}>
+              {STAT_CARDS.map(({ label, value, Icon, color, bg }) => (
+                <Card key={label}>
+                  <CardContent className="p-5 sm:p-6 flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${bg}`}>
+                      <Icon className={`w-6 h-6 ${color}`} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className={`text-xl sm:text-2xl font-black truncate ${color}`}>{value}</p>
+                      <p className="text-xs sm:text-sm font-semibold text-text-muted">{label}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
 
           {/* Transactions */}
           <div>
@@ -164,14 +166,11 @@ export default function SellerLedger() {
                         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                           <div className="space-y-1.5 flex-1 min-w-0">
                             <div className="flex items-center gap-3 flex-wrap">
-                              <h3 className="text-body font-bold text-text-primary">Order #{order.id}</h3>
+                              <h3 className="text-body font-bold text-text-primary">{order.buyer_username || "Unknown buyer"}</h3>
                               <Badge variant={isCleared ? "success" : order.status === "debt_active" ? "error" : "warning"}>
                                 {isCleared ? "Paid" : order.status === "debt_active" ? "Debt" : "Partial"}
                               </Badge>
                             </div>
-                            <p className="text-body text-text-secondary">
-                              {order.buyer_username || "Unknown buyer"}
-                            </p>
                             {!isCleared && <ProgressBar percent={progress} tone="warning" className="max-w-xs mt-2" />}
                             <div className="flex items-center gap-4 text-caption text-text-muted mt-2">
                               <span>Total: {fmtKES(total)}</span>
@@ -211,8 +210,8 @@ export default function SellerLedger() {
       {payOrder && (
         <Dialog
           open={payOpen}
-          title={`Record Payment — Order #${payOrder.id}`}
-          message={`Record a payment received from ${payOrder.buyer_username || "buyer"}.`}
+          title={`Record Payment — ${payOrder.buyer_username || "Unknown buyer"}`}
+          message="Log what they sent you. The balance owed updates automatically."
           confirmLabel={paySaving ? "Saving..." : "Record Payment"}
           onConfirm={handlePay}
           onCancel={() => setPayOpen(false)}

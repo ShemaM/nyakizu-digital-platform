@@ -112,11 +112,11 @@ export default function BuyerDashboard() {
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
   const stats = [
-    { icon: ShoppingCart, label: "Active Orders", value: String(activeOrders.length) },
-    { icon: Package, label: "Completed", value: String(completedOrders.length) },
-    { icon: TrendingUp, label: "Total Spent", value: fmtKES(totalSpent) },
-    { icon: Store, label: "Suppliers", value: String(approvedSuppliers.length) },
-  ];
+    { icon: ShoppingCart, label: "Active Orders", value: String(activeOrders.length), raw: activeOrders.length },
+    { icon: Package, label: "Completed", value: String(completedOrders.length), raw: completedOrders.length },
+    { icon: TrendingUp, label: "Total Spent", value: fmtKES(totalSpent), raw: totalSpent },
+    { icon: Store, label: "Suppliers", value: String(approvedSuppliers.length), raw: approvedSuppliers.length },
+  ].filter((stat) => stat.raw > 0); // zero is not shown
 
   return (
     <DashboardLayout title="Dashboard">
@@ -149,21 +149,23 @@ export default function BuyerDashboard() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
-            {stats.map(({ icon: Icon, label, value }) => (
-              <Card key={label}>
-                <CardContent className="p-4 sm:p-5 flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-xl bg-role-soft flex items-center justify-center shrink-0">
-                    <Icon className="w-5 h-5 text-role" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xl sm:text-2xl font-bold text-text-primary leading-tight truncate">{value}</p>
-                    <p className="text-xs text-text-muted font-medium truncate">{label}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {stats.length > 0 && (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
+              {stats.map(({ icon: Icon, label, value }) => (
+                <Card key={label}>
+                  <CardContent className="p-4 sm:p-5 flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-xl bg-role-soft flex items-center justify-center shrink-0">
+                      <Icon className="w-5 h-5 text-role" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xl sm:text-2xl font-bold text-text-primary leading-tight truncate">{value}</p>
+                      <p className="text-xs text-text-muted font-medium truncate">{label}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
 
           {/* Suppliers strip */}
           {approvedSuppliers.length > 0 && (

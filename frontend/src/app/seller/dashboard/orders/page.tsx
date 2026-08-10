@@ -90,14 +90,11 @@ export default function SellerOrdersPage() {
                     <Avatar name={order.buyer_username || "?"} size="lg" className="shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-body font-black text-text-primary">Order #{order.id}</span>
+                        <span className="text-body font-black text-text-primary truncate">{order.buyer_username || "Unknown buyer"}</span>
                         <Badge variant={getStatusVariant(order.status)}>
                           {getStatusLabel(order.status)}
                         </Badge>
                       </div>
-                      <p className="text-caption text-text-muted mt-1">
-                        Buyer: <span className="text-text-secondary font-semibold">{order.buyer_username || "Buyer"}</span>
-                      </p>
                       <div className="flex items-center gap-1.5 mt-1 text-xs text-text-muted">
                         <MapPin size={12} className="text-role shrink-0" />
                         <span className="truncate">{order.delivery_address || "No location provided"}</span>

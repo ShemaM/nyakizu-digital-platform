@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { MapPin, MessageSquare, Package, AlertCircle, CheckCircle2, Wallet } from "lucide-react";
+import { MapPin, MessageSquare, Package, AlertCircle, CheckCircle2, Wallet, AlertTriangle } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardSection } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -13,6 +13,7 @@ import { InlineBanner } from "@/components/ui/InlineBanner";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Timeline } from "@/components/ui/Timeline";
 import { PageSkeleton } from "@/components/ui/LoadingState";
+import { PackingChecklist } from "@/components/seller-dashboard/PackingChecklist";
 import { useToast } from "@/components/ui/Toast";
 import { orders, type ApiOrder, fmtKES, parsePrice, ApiError } from "@/lib/api";
 import { getStatusVariant, getStatusLabel, orderTimelineSteps } from "@/lib/order-status";
@@ -40,6 +41,7 @@ export default function FulfillOrderPage() {
   const [payRef, setPayRef] = useState("");
   const [payMethod, setPayMethod] = useState("mpesa");
   const [isPaySaving, setIsPaySaving] = useState(false);
+  const [payTouched, setPayTouched] = useState(false);
 
   // ── Data Fetching ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -110,16 +112,26 @@ export default function FulfillOrderPage() {
     setPayAmount(bal > 0 ? String(bal) : "");
     setPayRef("");
     setPayMethod("mpesa");
+    setPayTouched(false);
     setPayOpen(true);
   };
 
+  const payAmountNumber = parseFloat(payAmount);
+  const payAmountError =
+    !payAmount.trim() ? "Enter how much was received."
+    : isNaN(payAmountNumber) || payAmountNumber <= 0 ? "Amount must be a number greater than 0."
+    : null;
+  const payRefError = !payRef.trim() ? "Enter the M-Pesa code or a reference for this payment." : null;
+  const payFormInvalid = !!payAmountError || !!payRefError;
+
   const handleRecordPayment = async () => {
-    if (!order) return;
+    setPayTouched(true);
+    if (!order || payFormInvalid) return;
     setIsPaySaving(true);
     try {
       const updatedOrder = await orders.recordPayment(order.id, {
-        amount: parseFloat(payAmount),
-        payment_reference: payRef,
+        amount: payAmountNumber,
+        payment_reference: payRef.trim(),
         payment_method: payMethod,
       });
       setOrder(updatedOrder);
@@ -159,14 +171,21 @@ export default function FulfillOrderPage() {
   const isLocked = ["locked", "debt_active", "cleared"].includes(order.status);
   const canTakePayment = order.status === "locked" || order.status === "debt_active";
   const isCleared = order.status === "cleared";
+  const isPacking = order.status === "sourcing";
 
   const displayTotal = parsePrice(order.final_total ?? order.total_price);
   const amountPaid = parsePrice(order.amount_paid ?? 0);
   const balance = parsePrice(order.balance ?? displayTotal - amountPaid);
   const paidProgress = displayTotal > 0 ? (amountPaid / displayTotal) * 100 : 0;
 
+  const items = order.items ?? [];
+  const packedCount = items.filter((i) => i.is_packed).length;
+  const allPacked = items.length > 0 && packedCount === items.length;
+  const knownItemsSubtotal = items.filter((i) => !i.is_sourcing).reduce((sum, i) => sum + parsePrice(i.subtotal), 0);
+  const sourcingCount = items.filter((i) => i.is_sourcing).length;
+
   return (
-    <AppShell title={`Order #${order.id.toString().slice(0, 6)}`}>
+    <AppShell title={order.buyer_username || "Unknown buyer"}>
 
       {/* ── Fulfillment Timeline ──────────────────────────────────────── */}
       <Card className="mb-4 animate-fade-in-up">
@@ -180,8 +199,9 @@ export default function FulfillOrderPage() {
       <Card className="animate-fade-in-up delay-75">
         <CardSection className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-sm font-black text-text-primary">{order.buyer_username || "Unknown Buyer"}</p>
-            <div className="flex items-center gap-1.5 text-xs text-text-muted mt-1 font-medium">
+            {/* Buyer name is already the page title above — this line is just the reference number, for support/lookup purposes. */}
+            <p className="text-xs font-bold text-text-muted uppercase tracking-wide">Order #{order.id}</p>
+            <div className="flex items-center gap-1.5 text-xs text-text-muted mt-1.5 font-medium">
               <MapPin size={12} className="text-role shrink-0" />
               <span>{order.delivery_address || "No location provided"}</span>
             </div>
@@ -205,36 +225,18 @@ export default function FulfillOrderPage() {
         </CardSection>
       </Card>
 
-      {/* ── Items List ────────────────────────────────────────────────────── */}
+      {/* ── Items List / Packing Checklist ──────────────────────────────────── */}
       <Card className="mt-3 animate-fade-in-up delay-100">
         <CardSection>
           <p className="text-xs font-black text-text-muted uppercase tracking-widest mb-4 flex items-center gap-2">
-            <Package size={12} /> Items Ordered
+            <Package size={12} /> {order.status === "submitted" ? "Items Ordered" : "Packing Checklist"}
           </p>
-          <div className="space-y-4">
-            {order.items?.map((item, i) => (
-              <div key={i} className="flex justify-between items-start gap-3">
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm font-bold text-text-primary leading-snug">{item.product_name || `Product #${item.product_id}`}</span>
-                  {item.is_sourcing && (
-                    <Badge variant="warning" className="ml-2 align-middle">
-                      Getting this item
-                    </Badge>
-                  )}
-                </div>
-                <div className="text-right shrink-0">
-                  {item.is_sourcing ? (
-                    <Badge variant="warning">Price not set yet</Badge>
-                  ) : (
-                    <>
-                      <p className="text-sm font-black text-text-primary">× {item.quantity}</p>
-                      <p className="text-xs text-text-muted font-bold">{fmtKES(item.unit_price)} ea</p>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+          <PackingChecklist
+            orderId={order.id}
+            items={items}
+            interactive={isPacking}
+            onOrderUpdated={setOrder}
+          />
         </CardSection>
 
         <CardSection className="border-t border-slate-100 bg-slate-50/50">
@@ -349,13 +351,21 @@ export default function FulfillOrderPage() {
         )}
 
         {order.status === "sourcing" && (
-          <Button
-            variant="dark"
-            className="w-full rounded-xl font-black text-sm py-4 h-auto"
-            onClick={() => setConfirmLock(true)}
-          >
-            Lock Price & Alert Buyer
-          </Button>
+          <>
+            {!allPacked && (
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-text-muted justify-center pb-1">
+                <AlertTriangle size={12} className="text-warning shrink-0" />
+                {packedCount} of {items.length} items packed — you can still lock the price now if you're ready.
+              </p>
+            )}
+            <Button
+              variant="dark"
+              className="w-full rounded-xl font-black text-sm py-4 h-auto"
+              onClick={() => setConfirmLock(true)}
+            >
+              Lock Price & Alert Buyer
+            </Button>
+          </>
         )}
       </div>
 
@@ -363,11 +373,37 @@ export default function FulfillOrderPage() {
       <Dialog
         open={confirmLock}
         title="Lock Final Price?"
-        message={`The buyer will be billed a final total of ${fmtKES(Number(finalTotal))}. This cannot be undone.`}
         confirmLabel={isSaving ? "Locking..." : "Yes, Lock Price"}
         onConfirm={handleLock}
         onCancel={() => !isSaving && setConfirmLock(false)}
-      />
+      >
+        <div className="space-y-3">
+          <p className="text-body leading-relaxed text-text-secondary">
+            The buyer will be billed this total. This cannot be undone.
+          </p>
+          <div className="rounded-xl border border-slate-100 divide-y divide-slate-100 overflow-hidden">
+            {items.filter((i) => !i.is_sourcing).map((item) => (
+              <div key={item.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+                <span className="text-text-primary truncate">{item.quantity}× {item.product_name || "Item"}</span>
+                <span className="text-text-secondary font-semibold shrink-0">{fmtKES(item.subtotal)}</span>
+              </div>
+            ))}
+            {sourcingCount > 0 && (
+              <div className="flex items-center justify-between gap-3 px-3 py-2 text-sm bg-warning/5">
+                <span className="text-text-muted">{sourcingCount} sourced item{sourcingCount !== 1 ? "s" : ""} (priced below)</span>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-between items-baseline text-sm text-text-muted">
+            <span>Known items subtotal</span>
+            <span className="font-semibold text-text-secondary">{fmtKES(knownItemsSubtotal)}</span>
+          </div>
+          <div className="flex justify-between items-baseline pt-1 border-t border-slate-100">
+            <span className="text-body font-bold text-text-primary">Final total to bill</span>
+            <span className="text-title font-bold text-role">{fmtKES(Number(finalTotal) || 0)}</span>
+          </div>
+        </div>
+      </Dialog>
 
       <Dialog
         open={confirmCancel}
@@ -382,25 +418,37 @@ export default function FulfillOrderPage() {
       {/* ── Record Payment Dialog ────────────────────────────────────────── */}
       <Dialog
         open={payOpen}
-        title={`Record Payment — Order #${order.id}`}
-        message={`Log what ${order.buyer_username || "the buyer"} sent you via M-Pesa. The balance owed updates automatically.`}
+        title={`Record Payment — ${order.buyer_username || "Unknown buyer"}`}
+        message="Log what they sent you via M-Pesa. The balance owed updates automatically."
         confirmLabel={isPaySaving ? "Saving..." : "Record Payment"}
+        confirmDisabled={isPaySaving}
         onConfirm={handleRecordPayment}
         onCancel={() => !isPaySaving && setPayOpen(false)}
       >
         <div className="space-y-3 mt-3">
-          <Input
-            label="Amount Received (KES)"
-            type="number"
-            value={payAmount}
-            onChange={(e) => setPayAmount(e.target.value)}
-          />
+          <div>
+            <Input
+              label="Amount Received (KES)"
+              type="number"
+              value={payAmount}
+              onChange={(e) => setPayAmount(e.target.value)}
+              onBlur={() => setPayTouched(true)}
+              error={payTouched ? payAmountError ?? undefined : undefined}
+            />
+            {!payAmountError && payAmountNumber > balance && balance > 0 && (
+              <p className="text-xs text-warning font-semibold mt-1.5">
+                That's more than the {fmtKES(balance)} still owed — double check before saving.
+              </p>
+            )}
+          </div>
           <Input
             label="Payment Reference (e.g. M-Pesa code)"
             type="text"
             value={payRef}
             onChange={(e) => setPayRef(e.target.value)}
+            onBlur={() => setPayTouched(true)}
             placeholder="SAB2XYZ123"
+            error={payTouched ? payRefError ?? undefined : undefined}
           />
           <div className="space-y-1">
             <label className="text-label">Payment Method</label>

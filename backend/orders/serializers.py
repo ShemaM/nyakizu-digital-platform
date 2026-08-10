@@ -22,8 +22,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OrderItem
-        fields = ('id', 'product', 'product_name', 'quantity', 'unit_price', 'subtotal', 'is_sourcing')
-        read_only_fields = ('id', 'unit_price', 'is_sourcing')   # set automatically at creation
+        fields = ('id', 'product', 'product_name', 'quantity', 'unit_price', 'subtotal', 'is_sourcing', 'is_packed')
+        read_only_fields = ('id', 'unit_price', 'is_sourcing', 'is_packed')   # is_packed flips via the dedicated toggle endpoint
 
     def get_subtotal(self, obj):
         return obj.subtotal()

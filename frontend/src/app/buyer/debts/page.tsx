@@ -68,24 +68,24 @@ export default function BuyerDebts() {
   return (
     <DashboardLayout title="What You Owe">
       <div className="space-y-6 p-4 sm:p-6">
-        {/* Total Debt Summary */}
-        <Card className="border-warning/20 bg-warning/5">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3 mb-3">
-              <AlertCircle className="w-6 h-6 text-warning" />
-              <h2 className="text-lg font-bold text-text-primary">Total You Owe</h2>
-            </div>
-            <p className="text-3xl font-bold text-warning">{fmtKES(totalDebt)}</p>
-            <p className="text-sm text-text-secondary mt-2">
-              Across {debtOrders.length} order{debtOrders.length !== 1 ? "s" : ""} • {fmtKES(totalPaid)} paid so far
-            </p>
-            {totalDebt > 0 && (
+        {/* Total Debt Summary — hidden when there's nothing owed; the empty state below already covers that */}
+        {totalDebt > 0 && (
+          <Card className="border-warning/20 bg-warning/5">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3 mb-3">
+                <AlertCircle className="w-6 h-6 text-warning" />
+                <h2 className="text-lg font-bold text-text-primary">Total You Owe</h2>
+              </div>
+              <p className="text-3xl font-bold text-warning">{fmtKES(totalDebt)}</p>
+              <p className="text-sm text-text-secondary mt-2">
+                Across {debtOrders.length} order{debtOrders.length !== 1 ? "s" : ""} • {fmtKES(totalPaid)} paid so far
+              </p>
               <p className="text-caption text-text-muted mt-3 pt-3 border-t border-warning/15">
                 Pay your seller via M-Pesa, then they record it here.
               </p>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Debt List */}
         <div className="space-y-4">

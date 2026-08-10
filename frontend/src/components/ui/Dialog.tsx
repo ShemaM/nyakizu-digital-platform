@@ -13,6 +13,8 @@ interface DialogProps {
   onConfirm: () => void;
   onCancel: () => void;
   children?: ReactNode;
+  /** Disables the confirm button — for inline-validated forms inside `children`. */
+  confirmDisabled?: boolean;
 }
 
 const FOCUSABLE_SELECTOR =
@@ -28,6 +30,7 @@ export function Dialog({
   onConfirm,
   onCancel,
   children,
+  confirmDisabled = false,
 }: DialogProps) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -104,7 +107,12 @@ export function Dialog({
           <Button variant="secondary" className="flex-1" onClick={onCancel}>
             {cancelLabel}
           </Button>
-          <Button variant={variant === "primary" ? "default" : variant === "danger" ? "destructive" : variant} className="flex-1" onClick={onConfirm}>
+          <Button
+            variant={variant === "primary" ? "default" : variant === "danger" ? "destructive" : variant}
+            className="flex-1"
+            onClick={onConfirm}
+            disabled={confirmDisabled}
+          >
             {confirmLabel}
           </Button>
         </div>

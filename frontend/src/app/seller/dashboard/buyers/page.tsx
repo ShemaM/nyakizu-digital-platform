@@ -82,7 +82,7 @@ export default function SellerBuyersPage() {
     { label: "Approved", value: approved.length, Icon: Users, color: "text-role", bg: "bg-role-soft" },
     { label: "Pending", value: pending.length, Icon: Clock, color: "text-warning", bg: "bg-warning/12" },
     { label: "Denied", value: denied.length, Icon: XCircle, color: "text-error", bg: "bg-error/12" },
-  ];
+  ].filter((card) => card.value > 0); // zero is not shown
 
   return (
     <AppShell title="My Buyers">
@@ -100,19 +100,21 @@ export default function SellerBuyersPage() {
           />
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-4">
-            {STAT_CARDS.map(({ label, value, Icon, color, bg }) => (
-              <Card key={label}>
-                <CardContent className="p-4 sm:p-6 flex flex-col items-center text-center gap-2">
-                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${bg}`}>
-                    <Icon className={`w-5 h-5 ${color}`} />
-                  </div>
-                  <p className="text-2xl sm:text-3xl font-black text-text-primary">{value}</p>
-                  <p className="text-xs sm:text-sm font-semibold text-text-muted">{label}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {STAT_CARDS.length > 0 && (
+            <div className={`grid gap-4 ${STAT_CARDS.length === 1 ? "grid-cols-1" : STAT_CARDS.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+              {STAT_CARDS.map(({ label, value, Icon, color, bg }) => (
+                <Card key={label}>
+                  <CardContent className="p-4 sm:p-6 flex flex-col items-center text-center gap-2">
+                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${bg}`}>
+                      <Icon className={`w-5 h-5 ${color}`} />
+                    </div>
+                    <p className="text-2xl sm:text-3xl font-black text-text-primary">{value}</p>
+                    <p className="text-xs sm:text-sm font-semibold text-text-muted">{label}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
 
           {/* Pending */}
           {pending.length > 0 && (

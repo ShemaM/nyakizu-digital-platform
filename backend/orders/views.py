@@ -117,6 +117,36 @@ class OrderDetailView(generics.RetrieveUpdateAPIView):
             record_status_event(order, order.status)
 
 
+class ToggleItemPackedView(APIView):
+    """
+    POST /api/orders/<order_id>/items/<item_id>/toggle-packed/
+    Seller-only. Flips is_packed on one line item — the packing checklist
+    on the fulfill screen. Returns the whole order so the frontend can just
+    replace its state in one shot.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, order_id, item_id):
+        if not is_approved_seller(request.user):
+            return Response(
+                {"error": "Only approved sellers can update packing status."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            item = OrderItem.objects.select_related("order").get(
+                pk=item_id, order_id=order_id, order__seller=request.user
+            )
+        except OrderItem.DoesNotExist:
+            return Response({"error": "Order item not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        item.is_packed = not item.is_packed
+        item.save(update_fields=["is_packed"])
+
+        order = _orders_for_serialization(Order.objects.filter(pk=order_id)).get()
+        return Response(OrderSerializer(order).data)
+
+
 class CancelOrderView(APIView):
     """
     POST /api/orders/<id>/cancel/ — the buyer or the fulfilling seller

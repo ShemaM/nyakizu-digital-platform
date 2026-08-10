@@ -108,7 +108,11 @@ export default function SellerCatalogPage() {
           <SectionHeading
             eyebrow="Products"
             title="What you're selling"
-            description={`${productList.length} product${productList.length !== 1 ? "s" : ""} listed for buyers to see.`}
+            description={
+              productList.length > 0
+                ? `${productList.length} product${productList.length !== 1 ? "s" : ""} listed for buyers to see.`
+                : "Add your first product so buyers can see what you sell."
+            }
             action={
               <Button onClick={() => router.push("/seller/dashboard/catalog/new")} variant="role" size="lg" className="gap-2">
                 <Plus size={18} /> Add a Product

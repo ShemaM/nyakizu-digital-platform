@@ -143,6 +143,11 @@ class OrderItem(models.Model):
     # shelf stock, and may revise the final invoice total accordingly.
     is_sourcing = models.BooleanField(default=False)
 
+    # Seller-side packing checklist — toggled from the fulfill screen while
+    # an order is in "sourcing" status. Purely operational bookkeeping for
+    # the seller; doesn't drive any order-status transition on its own.
+    is_packed = models.BooleanField(default=False)
+
     def subtotal(self):
         """Returns quantity × unit_price for this line item."""
         return self.quantity * self.unit_price

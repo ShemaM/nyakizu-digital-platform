@@ -13,6 +13,30 @@ function availabilityFor(product: ApiProduct): { variant: "success" | "warning" 
   return { variant: "error", label: "Not available" };
 }
 
+/** Falls back to the placeholder icon on a broken URL instead of the browser's alt-text-over-broken-icon default. */
+function ProductImage({ src, alt }: { src?: string; alt: string }) {
+  const [failed, setFailed] = useState(false);
+
+  if (!src || failed) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center">
+        <Package size={24} className="text-slate-300" />
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      fill
+      unoptimized
+      className="object-cover transition-transform duration-300 group-hover:scale-105"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 interface Props { products: ApiProduct[]; }
 
 export function StoreProducts({ products }: Props) {
@@ -73,22 +97,10 @@ export function StoreProducts({ products }: Props) {
               return (
                 <div
                   key={p.id}
-                  className="app-panel overflow-hidden rounded-lg transition hover:border-slate-300 hover:shadow-md"
+                  className="app-panel group overflow-hidden rounded-lg transition hover:border-slate-300 hover:shadow-md"
                 >
-                  <div className="relative aspect-square bg-slate-100">
-                    {p.image_url ? (
-                      <Image
-                        src={p.image_url}
-                        alt={p.name}
-                        fill
-                        unoptimized
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Package size={24} className="text-slate-300" />
-                      </div>
-                    )}
+                  <div className="relative aspect-square overflow-hidden bg-slate-100">
+                    <ProductImage src={p.image_url} alt={p.name} />
                     <span className="absolute top-2 left-2">
                       <Badge variant={availability.variant}>{availability.label}</Badge>
                     </span>

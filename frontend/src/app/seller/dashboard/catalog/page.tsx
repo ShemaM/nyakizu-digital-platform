@@ -192,6 +192,8 @@ interface ProductCardProps {
 }
 
 function ProductCard({ product, storePath, statusVariant, statusLabel, onOpen }: ProductCardProps) {
+  const [imageFailed, setImageFailed] = useState(false);
+
   return (
     <div
       role="button"
@@ -207,13 +209,14 @@ function ProductCard({ product, storePath, statusVariant, statusLabel, onOpen }:
     >
       {/* Photo */}
       <div className="relative aspect-square bg-dark-secondary overflow-hidden">
-        {product.image_url ? (
+        {product.image_url && !imageFailed ? (
           <Image
             src={product.image_url}
             alt={product.name}
             fill
             unoptimized
             className="object-cover group-hover:scale-105 transition-transform"
+            onError={() => setImageFailed(true)}
           />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-text-muted">

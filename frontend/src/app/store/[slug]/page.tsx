@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Copy, MapPin, ShoppingBag, Store } from "lucide-react";
+import { ArrowRight, MapPin, ShoppingBag, Store } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { StoreMark } from "@/components/ui/StoreMark";
 import { sellers, products } from "@/lib/api";
 import { SITE_URL } from "@/lib/seo";
 import { StoreProducts } from "./StoreProducts";
+import { CopyStoreLink } from "./CopyStoreLink";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -87,24 +89,35 @@ export default async function PublicStorePage({ params }: { params: Promise<{ sl
 
       <section className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <div className="app-panel overflow-hidden rounded-lg">
-          <div className="bg-slate-950 p-6 text-white sm:p-8">
-            <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-              <div>
-                <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-caption font-bold text-slate-200">
-                  <Store size={14} />
-                  Approved wholesaler
+          <div className="relative overflow-hidden bg-slate-950 p-6 text-white sm:p-8">
+            <div
+              className="pointer-events-none absolute inset-0"
+              aria-hidden="true"
+              style={{
+                background:
+                  "radial-gradient(ellipse 600px 400px at 90% -10%, rgba(200,134,10,0.18), transparent 60%)",
+              }}
+            />
+            <div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+              <div className="flex gap-4">
+                <StoreMark name={seller.store_name || "Store"} size="xl" className="hidden sm:flex" />
+                <div>
+                  <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-caption font-bold text-slate-200">
+                    <Store size={14} />
+                    Approved wholesaler
+                  </div>
+                  <h1 className="text-display font-black tracking-normal">{seller.store_name}</h1>
+                  <div className="mt-3 flex items-center gap-1 text-body font-semibold text-slate-300">
+                    <MapPin size={14} />
+                    <span>{seller.location}</span>
+                  </div>
+                  {seller.store_description && (
+                    <p className="mt-3 max-w-2xl text-body leading-6 text-slate-300">{seller.store_description}</p>
+                  )}
+                  <p className="mt-2 text-caption font-bold text-slate-500">Trading since {joinedDate}</p>
                 </div>
-                <h1 className="text-display font-black tracking-normal">{seller.store_name}</h1>
-                <div className="mt-3 flex items-center gap-1 text-body font-semibold text-slate-300">
-                  <MapPin size={14} />
-                  <span>{seller.location}</span>
-                </div>
-                {seller.store_description && (
-                  <p className="mt-3 max-w-2xl text-body leading-6 text-slate-300">{seller.store_description}</p>
-                )}
-                <p className="mt-2 text-caption font-bold text-slate-500">Trading since {joinedDate}</p>
               </div>
-              <div className="grid gap-2 sm:min-w-64">
+              <div className="relative grid gap-2 sm:min-w-64">
                 <Link href="/login" className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-body font-black text-white transition hover:bg-blue-700">
                   Sign in to order
                   <ArrowRight size={16} />
@@ -116,13 +129,10 @@ export default async function PublicStorePage({ params }: { params: Promise<{ sl
             </div>
           </div>
 
-          <div className="border-t border-slate-200 bg-white p-4">
-            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-              <p className="min-w-0 flex-1 truncate font-mono text-caption text-slate-500">{storeUrl}</p>
-              <Copy size={14} className="shrink-0 text-slate-400" />
-            </div>
-            <p className="mt-2 text-center text-caption text-slate-500">
-              You need an approved buyer account before placing orders with this seller.
+          <div className="flex flex-col gap-2 border-t border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <CopyStoreLink url={storeUrl} />
+            <p className="shrink-0 text-center text-caption text-slate-500 sm:text-right">
+              Sign in as an approved buyer to order.
             </p>
           </div>
         </div>

@@ -6,6 +6,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.html import format_html
 from unfold.admin import ModelAdmin
+from .identifier_fixes import fix_blank_store_names, fix_blank_usernames
 from .models import (
     CustomUser, BuyerProfile, SellerProfile, BuyerStoreFollow,
     BuyerSellerRelationship,
@@ -35,7 +36,7 @@ class CustomUserAdmin(ModelAdmin, UserAdmin):
         }),
     )
 
-    actions = ['verify_emails_action']
+    actions = ['verify_emails_action', 'fix_blank_usernames_action']
 
     @admin.display(description='Name')
     def full_name_display(self, obj):
@@ -68,6 +69,17 @@ class CustomUserAdmin(ModelAdmin, UserAdmin):
         updated = queryset.update(is_email_verified=True, email_verify_token='')
         self.message_user(request, f'{updated} user(s) marked as email-verified.')
 
+    # Ignores the selected rows on purpose — checks every user, since the
+    # point is a whole-table audit, not a per-row action. Select any one row
+    # to enable the action dropdown, then run it.
+    @admin.action(description='🔧 Fix blank usernames (checks ALL users, not just selected)')
+    def fix_blank_usernames_action(self, request, queryset):
+        report = fix_blank_usernames(apply=True)
+        if report:
+            self.message_user(request, f'Fixed {len(report)} account(s): ' + '; '.join(report))
+        else:
+            self.message_user(request, 'Nothing to fix — every user already has a username.')
+
 
 # ── Seller approval actions ───────────────────────────────────────────────────
 
@@ -92,6 +104,18 @@ def reject_stores(modeladmin, request, queryset):
     modeladmin.message_user(request, f'{count} store(s) rejected.')
 
 
+# Ignores the selected rows on purpose — checks every seller, since the
+# point is a whole-table audit, not a per-row action. Select any one row
+# to enable the action dropdown, then run it.
+@admin.action(description='🔧 Fix blank store names (checks ALL sellers, not just selected)')
+def fix_blank_store_names_action(modeladmin, request, queryset):
+    report = fix_blank_store_names(apply=True)
+    if report:
+        modeladmin.message_user(request, f'Fixed {len(report)} store(s): ' + '; '.join(report))
+    else:
+        modeladmin.message_user(request, 'Nothing to fix — every seller already has a store name.')
+
+
 # ── SellerProfile ─────────────────────────────────────────────────────────────
 
 @admin.register(SellerProfile)
@@ -101,7 +125,7 @@ class SellerProfileAdmin(ModelAdmin):
     list_filter    = ('approval_status',)
     search_fields  = ('store_name', 'user__first_name', 'user__last_name',
                       'user__phone_number', 'user__email', 'location')
-    actions        = [approve_stores, reject_stores]
+    actions        = [approve_stores, reject_stores, fix_blank_store_names_action]
     ordering       = ('approval_status', '-created_at')
     readonly_fields = ('created_at', 'updated_at', 'approved_at', 'is_live')
     list_select_related = ('user',)

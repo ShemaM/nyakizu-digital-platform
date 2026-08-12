@@ -11,22 +11,15 @@ a row created directly via the Django admin/shell).
 Usage:
     python manage.py fix_user_identifiers            # report only, no writes
     python manage.py fix_user_identifiers --apply     # write the backfilled values
+
+Same fix logic is also available as admin actions ("Fix blank usernames" /
+"Fix blank store names" on the Users / Seller stores admin pages) for
+anyone who can reach /admin/ but not a shell or the database directly.
 """
 
-import re
-
 from django.core.management.base import BaseCommand
-from django.db import transaction
-from django.db.models import Q
 
-
-def _slug_base(*candidates: str) -> str:
-    """First non-empty candidate, lowercased and squashed to [a-z0-9_]."""
-    for candidate in candidates:
-        cleaned = re.sub(r"[^a-z0-9]+", "_", (candidate or "").lower()).strip("_")
-        if cleaned:
-            return cleaned
-    return "user"
+from accounts.identifier_fixes import fix_blank_store_names, fix_blank_usernames
 
 
 class Command(BaseCommand):
@@ -40,49 +33,23 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        from accounts.models import CustomUser, SellerProfile
-
         apply = options["apply"]
         mode = "APPLYING" if apply else "DRY RUN (pass --apply to write changes)"
         self.stdout.write(self.style.MIGRATE_HEADING(f"\n=== fix_user_identifiers — {mode} ===\n"))
 
-        taken_usernames = set(
-            CustomUser.objects.exclude(username="").values_list("username", flat=True)
-        )
+        user_report = fix_blank_usernames(apply)
+        self.stdout.write(f"Users with a blank username: {len(user_report)}")
+        for line in user_report:
+            self.stdout.write(f"  {line}")
 
-        broken_users = CustomUser.objects.filter(Q(username__isnull=True) | Q(username=""))
-        self.stdout.write(f"Users with a blank username: {broken_users.count()}")
-        for user in broken_users:
-            base = _slug_base(user.email.split("@")[0] if user.email else "", user.get_full_name())
-            candidate = base
-            n = 1
-            while candidate in taken_usernames:
-                n += 1
-                candidate = f"{base}_{n}"
-            taken_usernames.add(candidate)
+        seller_report = fix_blank_store_names(apply)
+        self.stdout.write(f"\nSellers with a blank store name: {len(seller_report)}")
+        for line in seller_report:
+            self.stdout.write(f"  {line}")
 
-            self.stdout.write(f"  user #{user.id} ({user.email or 'no email'}) -> username {candidate!r}")
-            if apply:
-                with transaction.atomic():
-                    user.username = candidate
-                    user.save(update_fields=["username"])
-
-        broken_sellers = SellerProfile.objects.filter(Q(store_name__isnull=True) | Q(store_name="")).select_related("user")
-        self.stdout.write(f"\nSellers with a blank store name: {broken_sellers.count()}")
-        for seller in broken_sellers:
-            owner = seller.user
-            name = owner.get_full_name() or owner.username or "Nyakizu Seller"
-            candidate = f"{name}'s Store"
-
-            self.stdout.write(f"  seller #{seller.id} (user: {owner.username}) -> store_name {candidate!r}")
-            if apply:
-                with transaction.atomic():
-                    seller.store_name = candidate
-                    seller.save(update_fields=["store_name"])
-
-        if not apply and (broken_users.exists() or broken_sellers.exists()):
+        if not apply and (user_report or seller_report):
             self.stdout.write(self.style.WARNING("\nNo changes written. Re-run with --apply to fix the accounts above."))
-        elif not broken_users.exists() and not broken_sellers.exists():
+        elif not user_report and not seller_report:
             self.stdout.write(self.style.SUCCESS("\nNothing to fix — every account already has a usable username and store name."))
         else:
             self.stdout.write(self.style.SUCCESS("\nDone."))

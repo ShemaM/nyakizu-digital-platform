@@ -130,6 +130,7 @@ USE_TZ        = True
 # ── Static files ──────────────────────────────────────────────────────────────
 STATIC_URL  = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'   # `manage.py collectstatic` target; whitenoise serves from here
+STATICFILES_DIRS = [BASE_DIR / 'static']  # project-level assets (e.g. the admin favicon)
 
 # ── Media (user-uploaded files) ─────────────────────────────────────────────
 # Local disk (FileSystemStorage) unless R2_BUCKET_NAME is set — most
@@ -187,6 +188,10 @@ UNFOLD = {
     "SITE_SUBHEADER": "Platform Management",
     "SHOW_HISTORY": True,
     "SHOW_VIEW_ON_SITE": True,
+    "SITE_FAVICONS": [
+        {"rel": "icon", "href": "nyakizu.admin_dashboard.favicon_ico_url", "type": "image/x-icon"},
+        {"rel": "icon", "href": "nyakizu.admin_dashboard.favicon_png_url", "type": "image/png", "sizes": "192x192"},
+    ],
     # Forces light mode always. Without this, unfold defaults to "auto" —
     # it reads the OS/browser's prefers-color-scheme and silently renders
     # the whole admin dark on any machine set to dark mode, regardless of

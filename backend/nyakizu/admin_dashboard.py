@@ -19,12 +19,24 @@ from decimal import Decimal
 
 from django.db.models import Count, DecimalField, Sum
 from django.db.models.functions import Coalesce, TruncDate, TruncMonth
+from django.templatetags.static import static
 from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import CustomUser, SellerProfile
 from orders.models import Order, OrderStatusEvent
 from products.models import Category, Product
+
+
+def favicon_ico_url(request=None):
+    """UNFOLD["SITE_FAVICONS"] href — resolved via `static()` (not a hardcoded
+    path) so it still works once collectstatic hashes the filename in prod."""
+    return static("admin/favicon.ico")
+
+
+def favicon_png_url(request=None):
+    return static("admin/favicon-192.png")
+
 
 GROWTH_DAYS = 90
 GMV_TREND_MONTHS = 6

@@ -114,8 +114,8 @@ export default function SellerDashboardPage() {
               doesn't shift depending on data. */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <MetricCard Icon={ShoppingBag} label="Orders Pending" value={String(ordersPending)} hint="Submitted or being packed" />
-            <MetricCard Icon={Wallet} label="Revenue" value={fmtKES(totalRevenue)} hint="Total collected, all time" tone="success" />
-            <MetricCard Icon={Layers} label="Active Listings" value={String(activeProducts)} hint={`${totalProducts} total, ${draftProducts} draft`} />
+            <MetricCard Icon={Wallet} label="Money Made" value={fmtKES(totalRevenue)} hint="Collected so far, all time" tone="success" />
+            <MetricCard Icon={Layers} label="Products Live" value={String(activeProducts)} hint={`${totalProducts} total, ${draftProducts} hidden`} />
           </div>
 
           {/* What needs your attention */}
@@ -133,7 +133,7 @@ export default function SellerDashboardPage() {
             <SectionHeading
               eyebrow="Shortcuts"
               title="Manage your shop"
-              description="Jump straight to the tools you use most."
+              description="Quick links to what you use most."
             />
             <QuickActions />
           </div>
@@ -154,7 +154,7 @@ export default function SellerDashboardPage() {
 
           {/* Sales insights */}
           <div>
-            <SectionHeading title="Insights" description="Sales trend, top products, and top buyers." />
+            <SectionHeading title="Sales" description="How sales look by day, and who's buying." />
             <SalesInsights orders={orderList} />
           </div>
 

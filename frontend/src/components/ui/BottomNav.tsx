@@ -15,7 +15,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Primary"
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-100 bg-white/95 shadow-[0_-8px_24px_-4px_rgba(20,18,14,0.10)] backdrop-blur-xl lg:hidden"
+      className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-100 bg-white/95 shadow-[0_-8px_24px_-4px_rgba(20,18,14,0.10)] lg:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="mx-auto flex max-w-lg px-1 py-1">

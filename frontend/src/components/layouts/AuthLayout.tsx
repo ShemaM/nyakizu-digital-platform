@@ -4,6 +4,7 @@ import { ReactNode } from "react";
 import { Check } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
+import { Logo } from "@/components/Logo";
 
 export interface AuthLayoutProps {
   children: ReactNode;
@@ -55,9 +56,7 @@ export function AuthLayout({
           />
 
           <Link href="/" className="relative inline-flex items-center gap-2.5 w-fit hover:opacity-80 transition-opacity">
-            <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-brand-gold text-text-primary font-black text-lg shrink-0">
-              N
-            </span>
+            <Logo size={40} inverted className="shrink-0" />
             <span className="text-lg font-bold text-white tracking-tight">Nyakizu Market</span>
           </Link>
 

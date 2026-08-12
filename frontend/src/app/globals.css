@@ -46,11 +46,23 @@
 html {
   color-scheme: light;
   scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
 body {
   @apply min-h-screen bg-dark-primary text-text-primary antialiased;
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
+}
+
+/* Momentum scrolling for any scrollable panel (modals, sticky lists, the
+   AppShell's main region) — without this, nested overflow containers can
+   feel stuttery/step-y on iOS instead of the native inertial glide. */
+.overflow-y-auto,
+.overflow-auto,
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
 }
 
 /*

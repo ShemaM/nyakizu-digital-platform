@@ -1,6 +1,5 @@
 "use client";
 
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { fmtKES, parsePrice, type ApiOrder } from "@/lib/api";
 
 interface SalesInsightsProps {
@@ -8,7 +7,6 @@ interface SalesInsightsProps {
 }
 
 const TREND_DAYS = 14;
-const ROLE_COLOR = "rgb(var(--role, 124 58 237))";
 
 function buildDailyTrend(orders: ApiOrder[]) {
   const days: { key: string; label: string; value: number }[] = [];
@@ -78,12 +76,14 @@ function RankedList({ title, rows, unit }: { title: string; rows: { key: string;
 }
 
 /**
- * Sales trend + top products/buyers — all computed client-side from the
+ * Sales by day + top products/buyers — all computed client-side from the
  * seller's own order list (no new backend endpoint). "Sales" here means
  * order value placed per day, not cash collected — that's the ledger's job.
+ * Plain tables, not charts — easier to read at a glance than a graph.
  */
 export function SalesInsights({ orders }: SalesInsightsProps) {
   const trend = buildDailyTrend(orders);
+  const recentTrend = [...trend].reverse();
   const hasAnyOrders = orders.some((o) => o.status !== "cancelled");
 
   const topProducts = topBy(orders, (order) =>
@@ -99,51 +99,39 @@ export function SalesInsights({ orders }: SalesInsightsProps) {
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6 space-y-8">
       <div>
-        <p className="text-xs font-bold uppercase tracking-wider text-text-muted mb-1">Sales trend</p>
-        <p className="text-sm text-text-muted mb-4">Order value placed per day, last {TREND_DAYS} days.</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-text-muted mb-1">Sales by day</p>
+        <p className="text-sm text-text-muted mb-4">What buyers ordered each day, last {TREND_DAYS} days.</p>
         {hasAnyOrders ? (
-          <div className="h-48 -ml-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trend} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="salesFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={ROLE_COLOR} stopOpacity={0.25} />
-                    <stop offset="100%" stopColor={ROLE_COLOR} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid vertical={false} stroke="#F1F5F9" />
-                <XAxis
-                  dataKey="label"
-                  tick={{ fontSize: 11, fill: "#6B6459" }}
-                  axisLine={false}
-                  tickLine={false}
-                  interval={2}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: "#6B6459" }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={40}
-                  tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(v))}
-                />
-                <Tooltip
-                  formatter={(value) => [fmtKES(Number(value) || 0), "Order value"]}
-                  contentStyle={{ borderRadius: 12, border: "1px solid #F1F5F9", fontSize: 12 }}
-                />
-                <Area type="monotone" dataKey="value" stroke={ROLE_COLOR} strokeWidth={2} fill="url(#salesFill)" />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="max-h-64 overflow-y-auto rounded-xl border border-slate-100">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-slate-50">
+                <tr>
+                  <th className="text-left font-bold text-text-muted px-3 py-2">Day</th>
+                  <th className="text-right font-bold text-text-muted px-3 py-2">Order value</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {recentTrend.map((day) => (
+                  <tr key={day.key}>
+                    <td className="px-3 py-2 text-text-primary font-semibold">{day.label}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-text-primary">
+                      {day.value > 0 ? fmtKES(day.value) : <span className="text-text-muted">—</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : (
           <div className="h-32 flex items-center justify-center text-sm text-text-muted">
-            No orders yet — the trend will appear once buyers start ordering.
+            No orders yet — this will fill in once buyers start ordering.
           </div>
         )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2 border-t border-slate-100">
-        <RankedList title="Top products (by units ordered)" rows={topProducts} unit="count" />
-        <RankedList title="Top buyers (by order count)" rows={topBuyers} unit="count" />
+        <RankedList title="Best-selling products" rows={topProducts} unit="count" />
+        <RankedList title="Buyers who order the most" rows={topBuyers} unit="count" />
       </div>
     </div>
   );

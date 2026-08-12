@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import { Package } from "lucide-react";
 import { CategoryFilter } from "@/components/CategoryFilter";
 import { Badge } from "@/components/ui/Badge";
@@ -66,30 +67,40 @@ export function StoreProducts({ products }: Props) {
             </span>
           </div>
 
-          {groupProducts.map((p) => {
-            const availability = availabilityFor(p);
-            return (
-              <div key={p.id} className="app-panel rounded-lg p-3">
-                <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
-                    <Package size={16} className="text-slate-500" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            {groupProducts.map((p) => {
+              const availability = availabilityFor(p);
+              return (
+                <div
+                  key={p.id}
+                  className="app-panel overflow-hidden rounded-lg transition hover:border-slate-300 hover:shadow-md"
+                >
+                  <div className="relative aspect-square bg-slate-100">
+                    {p.image_url ? (
+                      <Image
+                        src={p.image_url}
+                        alt={p.name}
+                        fill
+                        unoptimized
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Package size={24} className="text-slate-300" />
+                      </div>
+                    )}
+                    <span className="absolute top-2 left-2">
+                      <Badge variant={availability.variant}>{availability.label}</Badge>
+                    </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-body text-slate-950 leading-snug">{p.name}</p>
-                    {p.description && <p className="text-caption text-slate-500 mt-0.5">{p.description}</p>}
-                    <div className="flex items-center justify-between mt-2 flex-wrap gap-1">
-                      <span className="text-body font-bold text-gray-900">{fmtKES(p.price)}</span>
-                    </div>
-                    <div className="mt-1.5">
-                      <Badge variant={availability.variant}>
-                        {availability.label}
-                      </Badge>
-                    </div>
+                  <div className="p-3">
+                    <p className="font-bold text-body text-slate-950 leading-snug line-clamp-2">{p.name}</p>
+                    <p className="mt-1.5 text-body font-black text-slate-950">{fmtKES(p.price)}</p>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </section>
       ))}
     </div>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShoppingBag, Users, Wallet, ArrowRight, CheckCircle2, type LucideIcon } from "lucide-react";
+import { ShoppingBag, Users, Wallet, type LucideIcon } from "lucide-react";
 import { fmtKES } from "@/lib/api";
 import { cn } from "@/lib/cn";
 
@@ -9,90 +9,81 @@ interface ShopStatsProps {
   moneyOwed: number;
 }
 
-interface AttentionCard {
+interface Tile {
   href: string;
   Icon: LucideIcon;
-  active: boolean;
   value: string;
   label: string;
-  description: string;
-  cta: string;
+  tint: string;
 }
 
 /**
- * Actionable "needs your attention" cards — new orders, buyer requests,
- * money owed. Always renders all three, at a stable position, so the
- * dashboard's layout doesn't shift depending on data — an "all clear"
- * card (checkmark, muted styling) still tells the seller their inbox is
- * empty instead of leaving a gap they might mistake for a loading glitch.
+ * The "what needs your attention" strip — two compact tiles (new orders,
+ * buyer requests) plus a full-width money-owed banner. Deliberately no
+ * section heading above it: it's the first thing under the greeting, so
+ * position alone tells the seller this is the stuff to act on first.
  */
 export const ShopStats: React.FC<ShopStatsProps> = ({ newOrders, newBuyerRequests, moneyOwed }) => {
-  const cards: AttentionCard[] = [
+  const tiles: Tile[] = [
     {
       href: "/seller/dashboard/orders",
       Icon: ShoppingBag,
-      active: newOrders > 0,
       value: String(newOrders),
-      label: newOrders === 1 ? "New order" : "New orders",
-      description: newOrders > 0 ? "Waiting for you to start packing." : "No new orders right now.",
-      cta: "View Orders",
+      label: newOrders === 1 ? "New Order" : "New Orders",
+      tint: "bg-orange-100 text-orange-600",
     },
     {
       href: "/seller/dashboard/buyers",
       Icon: Users,
-      active: newBuyerRequests > 0,
       value: String(newBuyerRequests),
-      label: newBuyerRequests === 1 ? "Buyer request" : "Buyer requests",
-      // Workflow explainer: a buyer request is not the same as a buyer — it's
-      // access a buyer has to ask for before they can order, and it sits
-      // pending until you act on it.
-      description: newBuyerRequests > 0 ? "Buyers who asked to order from you, waiting on your approval." : "No pending buyer requests.",
-      cta: "View Requests",
-    },
-    {
-      href: "/seller/dashboard/ledger",
-      Icon: Wallet,
-      active: moneyOwed > 0,
-      value: fmtKES(moneyOwed),
-      label: "Money owed",
-      description: moneyOwed > 0 ? "Still owed to you by buyers." : "You're fully paid up.",
-      cta: "View Ledger",
+      label: newBuyerRequests === 1 ? "Buyer Request" : "Buyer Requests",
+      tint: "bg-blue-100 text-blue-600",
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      {cards.map((card) => (
-        <Link
-          key={card.label}
-          href={card.href}
+    <div className="space-y-3 sm:space-y-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        {tiles.map((tile) => (
+          <Link
+            key={tile.label}
+            href={tile.href}
+            className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4 sm:p-5 transition-all hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <div className={cn("w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center mb-3", tile.tint)}>
+              <tile.Icon className="w-5 h-5" />
+            </div>
+            <p className="text-2xl sm:text-3xl font-black text-text-primary leading-tight tabular-nums">{tile.value}</p>
+            <p className="text-xs sm:text-sm font-semibold text-text-muted mt-0.5 truncate">{tile.label}</p>
+          </Link>
+        ))}
+      </div>
+
+      <Link
+        href="/seller/dashboard/ledger"
+        className={cn(
+          "relative overflow-hidden flex items-center gap-4 rounded-2xl p-4 sm:p-5 transition-all hover:-translate-y-0.5 hover:shadow-md",
+          moneyOwed > 0
+            ? "bg-red-50 border border-red-100 shadow-sm"
+            : "bg-white border border-slate-100 shadow-sm"
+        )}
+      >
+        <span className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-red-100/50" aria-hidden="true" />
+        <div
           className={cn(
-            "group flex items-start gap-4 rounded-2xl border p-5 sm:p-6 transition-all hover:-translate-y-0.5",
-            card.active
-              ? "bg-white border-role/20 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-8px_rgba(15,23,42,0.08)] hover:shadow-[0_4px_8px_rgba(15,23,42,0.06),0_20px_48px_-8px_rgba(15,23,42,0.18)]"
-              : "bg-slate-50 border-slate-100"
+            "relative w-11 h-11 rounded-full flex items-center justify-center shrink-0",
+            moneyOwed > 0 ? "bg-red-100 text-red-600" : "bg-success/10 text-success"
           )}
         >
-          <div
-            className={cn(
-              "w-12 h-12 rounded-xl flex items-center justify-center shrink-0",
-              card.active ? "bg-role-soft text-role" : "bg-white text-success border border-slate-100"
-            )}
-          >
-            {card.active ? <card.Icon className="w-6 h-6" /> : <CheckCircle2 className="w-6 h-6" />}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className={cn("text-2xl font-black leading-tight", card.active ? "text-text-primary" : "text-text-secondary")}>
-              {card.value}
-            </p>
-            <p className="text-sm font-bold text-text-secondary mt-0.5">{card.label}</p>
-            <p className="text-xs text-text-muted mt-1 leading-relaxed">{card.description}</p>
-            <span className={cn("inline-flex items-center gap-1 text-xs font-bold mt-3", card.active ? "text-role" : "text-text-muted")}>
-              {card.cta} <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
-            </span>
-          </div>
-        </Link>
-      ))}
+          <Wallet className="w-5 h-5" />
+        </div>
+        <div className="relative min-w-0">
+          <p className={cn("text-xl sm:text-2xl font-black leading-tight tabular-nums", moneyOwed > 0 ? "text-red-600" : "text-text-primary")}>
+            {moneyOwed > 0 ? fmtKES(moneyOwed) : "All paid up"}
+          </p>
+          <p className="text-xs sm:text-sm font-semibold text-text-muted mt-0.5">Money Owed</p>
+        </div>
+      </Link>
     </div>
   );
 };

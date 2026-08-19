@@ -116,7 +116,7 @@ PASSWORD_RESET_TIMEOUT = config('PASSWORD_RESET_TIMEOUT', default=60 * 30, cast=
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-     'OPTIONS': {'min_length': 6}},
+     'OPTIONS': {'min_length': 8}},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
@@ -140,6 +140,19 @@ STATICFILES_DIRS = [BASE_DIR / 'static']  # project-level assets (e.g. the admin
 # free) via django-storages; any other S3-compatible provider works too,
 # just point R2_ENDPOINT_URL at it.
 R2_BUCKET_NAME = config('R2_BUCKET_NAME', default='')
+
+# Without this, forgetting R2_BUCKET_NAME on a production deploy fails
+# silently: uploads (avatars, product photos) "work" by landing on that
+# instance's local disk, then vanish on the next deploy/restart, or are
+# simply invisible to any other instance behind a load balancer — with
+# no error anywhere to say why. Same pattern as the SECRET_KEY check above.
+if not DEBUG and not R2_BUCKET_NAME:
+    raise ValueError(
+        'R2_BUCKET_NAME is not set with DEBUG=False. Uploaded files would be '
+        'written to local disk and lost on the next deploy. Set R2_BUCKET_NAME '
+        '(and R2_ENDPOINT_URL / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / '
+        'R2_PUBLIC_URL) before running in production.'
+    )
 
 if R2_BUCKET_NAME:
     STORAGES = {
@@ -529,3 +542,13 @@ if SENTRY_DSN:
         traces_sample_rate=config('SENTRY_TRACES_SAMPLE_RATE', default=0.0, cast=float),
         send_default_pii=False,
     )
+
+# ── Web Push (optional) ──────────────────────────────────────────────────────
+# Inactive until VAPID_PRIVATE_KEY is set — see nyakizu/push.py, which no-ops
+# rather than erroring when it's unset, same pattern as email above. The
+# matching public key must also be set as NEXT_PUBLIC_VAPID_PUBLIC_KEY on the
+# frontend (safe to expose — that's the point of the public/private split).
+# Generate a pair with: python -c "from py_vapid import Vapid02; v=Vapid02(); v.generate_keys(); ..."
+VAPID_PRIVATE_KEY = config('VAPID_PRIVATE_KEY', default='')
+VAPID_PUBLIC_KEY  = config('VAPID_PUBLIC_KEY', default='')
+VAPID_CLAIMS_EMAIL = config('VAPID_CLAIMS_EMAIL', default='mailto:support@nyakizu.app')

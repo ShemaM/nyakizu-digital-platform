@@ -10,6 +10,8 @@ interface AvatarProps {
   className?: string;
   showInitials?: boolean;
   imageUrl?: string | null;
+  /** Overrides the deterministic per-name palette color with a fixed background class (e.g. "bg-role") — for lists that want one consistent identity color instead of one-per-person. */
+  colorClassName?: string;
 }
 
 const SIZE_CLASSES = {
@@ -26,6 +28,7 @@ export function Avatar({
   className,
   showInitials = true,
   imageUrl,
+  colorClassName,
 }: AvatarProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const sizeClass = SIZE_CLASSES[size];
@@ -56,7 +59,7 @@ export function Avatar({
     <div
       className={cn(
         "rounded-full flex items-center justify-center shrink-0 text-white font-bold",
-        avatarColor(name),
+        colorClassName ?? avatarColor(name),
         sizeClass,
         className
       )}

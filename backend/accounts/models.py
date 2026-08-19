@@ -93,6 +93,15 @@ class SellerProfile(models.Model):
     location          = models.CharField(max_length=150, blank=True)
     categories        = models.JSONField(default=list, blank=True)
 
+    # M-Pesa payment details — how buyers should send this seller money.
+    # All optional and independent: a seller may have some, all, or none set,
+    # and the buyer-facing UI only shows whichever ones are filled in.
+    mpesa_till_number       = models.CharField(max_length=20, blank=True, help_text="Buy Goods & Services till number")
+    mpesa_pochi_number      = models.CharField(max_length=20, blank=True, help_text="Pochi la Biashara number")
+    mpesa_paybill_number    = models.CharField(max_length=20, blank=True)
+    mpesa_paybill_account   = models.CharField(max_length=50, blank=True, help_text="Account number/name buyers enter with the paybill")
+    mpesa_send_money_number = models.CharField(max_length=20, blank=True, help_text="Phone number for a plain Send Money payment")
+
     # Approval flow
     approval_status        = models.CharField(max_length=12, choices=APPROVAL_CHOICES, default='pending', db_index=True)
     approval_note          = models.TextField(blank=True, help_text="Admin note shown to seller on rejection or needs_info")
@@ -212,3 +221,21 @@ class BuyerStoreFollow(models.Model):
 
     def __str__(self):
         return f"{self.buyer} follows {self.seller.store_name}"
+
+
+class PushSubscription(models.Model):
+    """
+    One browser/device's Web Push endpoint for a user. A user can have
+    several (phone + desktop, or after reinstalling the PWA), so this is a
+    plain list, not a one-to-one — nyakizu/push.py sends to every row for a
+    user and prunes ones the browser reports as gone (410/404 from the push
+    service means that endpoint will never accept another push).
+    """
+    user       = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='push_subscriptions')
+    endpoint   = models.URLField(max_length=500, unique=True)
+    p256dh_key = models.CharField(max_length=255)
+    auth_key   = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Push subscription for {self.user.username}"

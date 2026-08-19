@@ -3,7 +3,6 @@
 import { ReactNode, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Logo } from "@/components/Logo";
 import { BottomNav } from "@/components/ui/BottomNav";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 import { ProfileMenu } from "@/components/ui/ProfileMenu";
@@ -32,16 +31,29 @@ export function AppShell({
   // shared device, a link typed by hand — used to just hit the backend's
   // role check and surface a raw "Only approved sellers can..." error.
   // Bounce them to their own dashboard instead of letting that happen.
+  //
+  // The backend already rejects the wrong role on every endpoint, so this
+  // was never an actual data leak — but `children` (the page, with its own
+  // data-fetching effects) used to mount and start fetching in the same
+  // tick as this redirect, before router.replace() resolved. `roleMismatch`
+  // is computed during render, not inside the effect, specifically so we
+  // can withhold `children` from the tree below until it clears — the
+  // mismatched page's effects then never get a chance to fire at all.
+  const inSellerSection = pathname.startsWith("/seller");
+  const inBuyerSection = pathname.startsWith("/buyer");
+  const roleMismatch =
+    !isLoading &&
+    !!user &&
+    ((inSellerSection && user.role !== "seller") || (inBuyerSection && user.role !== "buyer"));
+
   useEffect(() => {
-    if (isLoading || !user) return;
-    const inSellerSection = pathname.startsWith("/seller");
-    const inBuyerSection = pathname.startsWith("/buyer");
-    if (inSellerSection && user.role !== "seller") {
+    if (!roleMismatch || !user) return;
+    if (inSellerSection) {
       router.replace(user.role === "buyer" ? "/buyer" : "/login");
-    } else if (inBuyerSection && user.role !== "buyer") {
+    } else if (inBuyerSection) {
       router.replace(user.role === "seller" ? "/seller/dashboard" : "/login");
     }
-  }, [isLoading, user, pathname, router]);
+  }, [roleMismatch, user, inSellerSection, inBuyerSection, router]);
 
   const handleLogout = async () => {
     await logout();
@@ -59,14 +71,8 @@ export function AppShell({
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
         <div className="flex items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
-          <div className="flex items-center gap-4 min-w-0">
-            {/* Always present and always a link — every logged-in page needs
-                an obvious way back to the public site, not just the pages
-                that remembered to opt in. (An admin who lands here straight
-                from Google sign-in, for instance, has no other way out.) */}
-            <Link href="/" className="shrink-0 hover:opacity-80 transition-opacity" aria-label="Nyakizu home">
-              <Logo size="md" />
-            </Link>
+          <div className="flex items-center gap-3 min-w-0">
+            {user && <ProfileMenu user={user} onLogout={handleLogout} />}
             <h1 className="text-title-lg font-bold text-text-primary truncate">{title}</h1>
           </div>
 
@@ -100,14 +106,13 @@ export function AppShell({
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {headerRight}
             {user && (user.role === "seller" || user.role === "buyer") && <NotificationBell />}
-            {user && <ProfileMenu user={user} onLogout={handleLogout} />}
           </div>
         </div>
       </header>
 
       {/* Main content — bottom padding clears the fixed BottomNav (shown below lg) */}
       <main className={cn("flex-1 w-full min-w-0 overflow-auto", user && "pb-20 lg:pb-0")}>
-        <div className="min-w-0 w-full">{children}</div>
+        <div className="min-w-0 w-full">{roleMismatch ? null : children}</div>
       </main>
 
       {user && <BottomNav />}

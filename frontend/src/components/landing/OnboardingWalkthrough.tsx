@@ -40,41 +40,29 @@ const SELLER_STEPS: Step[] = [
   { icon: CheckCircle2, title: "List stock, start selling", description: "Add products, approve the buyers you trust, and receive your first order." },
 ];
 
-const ACCENTS = {
-  blue: {
-    text: "text-blue-700",
-    chip: "bg-blue-600",
-    chipLast: "bg-blue-600 ring-4 ring-blue-100",
-    line: "bg-blue-200",
-    lineFill: "bg-blue-600",
-    header: "from-blue-600 to-blue-500",
-    glow: "hover:shadow-glow-blue",
-  },
-  violet: {
-    text: "text-violet-700",
-    chip: "bg-violet-600",
-    chipLast: "bg-violet-600 ring-4 ring-violet-100",
-    line: "bg-violet-200",
-    lineFill: "bg-violet-600",
-    header: "from-violet-600 to-violet-500",
-    glow: "hover:shadow-glow-violet",
-  },
+// One accent for both columns — buyer and seller share the same brand gold
+// throughout the real app now, so the walkthrough shouldn't invent a
+// blue/violet split that doesn't exist anywhere past the sign-up form.
+const GOLD_ACCENT = {
+  chip: "bg-brand-gold",
+  chipLast: "bg-brand-gold ring-4 ring-brand-gold/20",
+  line: "bg-brand-gold/25",
+  lineFill: "bg-brand-gold",
+  header: "from-brand-gold to-brand-gold-light",
 } as const;
 
 function StepColumn({
   role,
   tagline,
-  accent,
   steps,
   fromSide,
 }: {
   role: string;
   tagline: string;
-  accent: "blue" | "violet";
   steps: Step[];
   fromSide: "left" | "right";
 }) {
-  const a = ACCENTS[accent];
+  const a = GOLD_ACCENT;
 
   return (
     <motion.div
@@ -83,7 +71,7 @@ function StepColumn({
       viewport={{ once: true, margin: "-60px" }}
       transition={{ duration: 0.5, ease: "easeOut" }}
       whileHover={{ y: -4 }}
-      className={`rounded-3xl border border-slate-200 bg-white overflow-hidden flex flex-col transition-shadow duration-300 shadow-sm ${a.glow}`}
+      className="rounded-3xl border border-slate-200 bg-white overflow-hidden flex flex-col transition-shadow duration-300 shadow-sm hover:shadow-glow-gold"
     >
       {/* Colored header banner */}
       <div className={`bg-gradient-to-br ${a.header} px-6 sm:px-8 py-5`}>
@@ -133,8 +121,8 @@ function StepColumn({
 export default function OnboardingWalkthrough() {
   return (
     <div className="grid md:grid-cols-2 gap-6 items-stretch">
-      <StepColumn role="Buyer" tagline="Order from trusted sellers" accent="blue" steps={BUYER_STEPS} fromSide="left" />
-      <StepColumn role="Seller" tagline="Run your shop from your phone" accent="violet" steps={SELLER_STEPS} fromSide="right" />
+      <StepColumn role="Buyer" tagline="Order from trusted sellers" steps={BUYER_STEPS} fromSide="left" />
+      <StepColumn role="Seller" tagline="Run your shop from your phone" steps={SELLER_STEPS} fromSide="right" />
     </div>
   );
 }

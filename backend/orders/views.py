@@ -11,8 +11,9 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 from accounts.permissions import is_approved_seller, is_verified_buyer, is_admin_user
-from .models import Order, OrderItem
-from .notifications import record_status_event
+from nyakizu.pagination import LargeResultsSetPagination
+from .models import Order, OrderItem, PaymentClaim
+from .notifications import record_status_event, send_payment_claim_seller_email, send_payment_reminder_email
 from .serializers import OrderSerializer, OrderCreateSerializer
 
 
@@ -20,10 +21,11 @@ def _orders_for_serialization(queryset):
     """
     Attach the select_related/prefetch_related every OrderSerializer listing
     needs — without it, each order re-queries buyer, items, each item's
-    product, and status_events individually (N+1 across the whole page).
+    product, status_events, and payment_claims individually (N+1 across the
+    whole page).
     """
     return queryset.select_related("buyer", "seller").prefetch_related(
-        "items__product", "status_events",
+        "items__product", "status_events", "payment_claims",
     )
 
 
@@ -44,8 +46,10 @@ class OrderListCreateView(APIView):
         orders = _orders_for_serialization(
             Order.objects.filter(buyer=request.user).order_by("-created_at")
         )
-        serializer = OrderSerializer(orders, many=True)
-        return Response(serializer.data)
+        paginator = LargeResultsSetPagination()
+        page = paginator.paginate_queryset(orders, request, view=self)
+        serializer = OrderSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
     def post(self, request):
         if not is_verified_buyer(request.user):
@@ -79,8 +83,10 @@ class SellerOrderListView(APIView):
         orders = _orders_for_serialization(
             Order.objects.filter(seller=request.user).distinct().order_by("-created_at")
         )
-        serializer = OrderSerializer(orders, many=True, context={"request": request})
-        return Response(serializer.data)
+        paginator = LargeResultsSetPagination()
+        page = paginator.paginate_queryset(orders, request, view=self)
+        serializer = OrderSerializer(page, many=True, context={"request": request})
+        return paginator.get_paginated_response(serializer.data)
 
 
 class OrderDetailView(generics.RetrieveUpdateAPIView):
@@ -112,9 +118,24 @@ class OrderDetailView(generics.RetrieveUpdateAPIView):
                 {"status": "Use the cancel endpoint (/orders/<id>/cancel/) to cancel an order."}
             )
 
+        # A payment date only makes sense once there's an actual debt to
+        # promise against — an order with nothing owed yet ("submitted",
+        # "locked") or already settled ("cleared") has no debt to attach one to.
+        if "expected_payment_date" in serializer.validated_data and old_status != "debt_active":
+            raise ValidationError(
+                {"expected_payment_date": "This order isn't in debt right now — there's nothing to set a payment date for."}
+            )
+
         order = serializer.save()
         if order.status != old_status:
             record_status_event(order, order.status)
+
+        if "expected_payment_date" in serializer.validated_data:
+            # A fresh date means any past-due reminder cadence starts over —
+            # don't let the next cron run treat this as still needing the
+            # "overdue" nudge it would have gotten under the old date.
+            order.last_debt_reminder_at = None
+            order.save(update_fields=["last_debt_reminder_at"])
 
 
 class ToggleItemPackedView(APIView):
@@ -142,6 +163,88 @@ class ToggleItemPackedView(APIView):
 
         item.is_packed = not item.is_packed
         item.save(update_fields=["is_packed"])
+
+        order = _orders_for_serialization(Order.objects.filter(pk=order_id)).get()
+        return Response(OrderSerializer(order).data)
+
+
+class ToggleItemNotFoundView(APIView):
+    """
+    POST /api/orders/<order_id>/items/<item_id>/toggle-not-found/
+    Seller-only. Flips not_found on a line item — for a sourcing request
+    the seller tried to get and simply couldn't that day. Un-packs it too,
+    since a not-found item can't also be a packed one.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, order_id, item_id):
+        if not is_approved_seller(request.user):
+            return Response(
+                {"error": "Only approved sellers can update this."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            item = OrderItem.objects.select_related("order").get(
+                pk=item_id, order_id=order_id, order__seller=request.user
+            )
+        except OrderItem.DoesNotExist:
+            return Response({"error": "Order item not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        item.not_found = not item.not_found
+        update_fields = ["not_found"]
+        if item.not_found and item.is_packed:
+            item.is_packed = False
+            update_fields.append("is_packed")
+        item.save(update_fields=update_fields)
+
+        order = _orders_for_serialization(Order.objects.filter(pk=order_id)).get()
+        return Response(OrderSerializer(order).data)
+
+
+class SetItemPriceView(APIView):
+    """
+    POST /api/orders/<order_id>/items/<item_id>/set-price/
+    Body: { unit_price }
+
+    Seller-only. Prices a sourcing line that came in with none — a custom
+    request the buyer asked for, now sourced and given a real cost. Order
+    total recalculates immediately so the "priced items" figure the seller
+    and buyer both see stays accurate as each line gets priced, ahead of
+    the seller actually locking the order.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, order_id, item_id):
+        if not is_approved_seller(request.user):
+            return Response(
+                {"error": "Only approved sellers can set item prices."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            item = OrderItem.objects.select_related("order").get(
+                pk=item_id, order_id=order_id, order__seller=request.user
+            )
+        except OrderItem.DoesNotExist:
+            return Response({"error": "Order item not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if item.order.status in ("locked", "debt_active", "cleared", "cancelled"):
+            return Response(
+                {"error": "This order's price is already locked."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            price = Decimal(str(request.data.get("unit_price")))
+        except (InvalidOperation, TypeError):
+            return Response({"error": "Enter a valid price."}, status=status.HTTP_400_BAD_REQUEST)
+        if price < 0:
+            return Response({"error": "Price can't be negative."}, status=status.HTTP_400_BAD_REQUEST)
+
+        item.unit_price = price
+        item.save(update_fields=["unit_price"])
+        item.order.calculate_total()
 
         order = _orders_for_serialization(Order.objects.filter(pk=order_id)).get()
         return Response(OrderSerializer(order).data)
@@ -226,8 +329,10 @@ class SellerLedgerView(APIView):
             ).order_by("-created_at")
         )
 
-        serializer = OrderSerializer(orders, many=True)
-        return Response(serializer.data)
+        paginator = LargeResultsSetPagination()
+        page = paginator.paginate_queryset(orders, request, view=self)
+        serializer = OrderSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
 
 class BuyerDebtsView(APIView):
@@ -251,15 +356,23 @@ class BuyerDebtsView(APIView):
             ).order_by("-created_at")
         )
 
-        serializer = OrderSerializer(orders, many=True)
-        return Response(serializer.data)
+        paginator = LargeResultsSetPagination()
+        page = paginator.paginate_queryset(orders, request, view=self)
+        serializer = OrderSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
 
 class RecordPaymentView(APIView):
     """
     POST /api/orders/<id>/pay/
-    Record a payment against an order. Seller or buyer can record.
-    Body: { amount, payment_reference, payment_method }
+    Records a real, confirmed payment against an order — seller (or admin)
+    only. This is the source of truth for amount_paid, so a buyer can't
+    call it to mark their own order paid; a buyer's side of this is
+    SubmitPaymentClaimView below, which only tells the seller what to go
+    verify, not the order's actual payment state.
+    Body: { amount, payment_reference, payment_method, claim_id? }
+    claim_id, when given, marks that PaymentClaim resolved — the seller
+    checked their M-Pesa against it and this payment is the confirmation.
     """
     permission_classes = [permissions.IsAuthenticated]
 
@@ -270,9 +383,9 @@ class RecordPaymentView(APIView):
             return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
 
         user = request.user
-        if order.buyer != user and order.seller != user and not is_admin_user(user):
+        if order.seller != user and not is_admin_user(user):
             return Response(
-                {"error": "You do not have permission to record payments on this order."},
+                {"error": "Only the seller can record payments on this order."},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -310,6 +423,10 @@ class RecordPaymentView(APIView):
 
             order.save(update_fields=["amount_paid", "payment_reference", "payment_method", "status", "updated_at"])
 
+            claim_id = request.data.get("claim_id")
+            if claim_id is not None:
+                PaymentClaim.objects.filter(pk=claim_id, order=order, resolved=False).update(resolved=True)
+
         # Every recorded payment is worth telling the buyer about, even if
         # two partial payments both land on "debt_active" — unlike the other
         # transitions this isn't gated on the status label actually changing.
@@ -317,6 +434,81 @@ class RecordPaymentView(APIView):
 
         serializer = OrderSerializer(order)
         return Response(serializer.data)
+
+
+class RequestPaymentView(APIView):
+    """
+    POST /api/orders/<id>/request-payment/
+    Seller (or admin) only. Sends the buyer a reminder email that a balance
+    is still owing on this order. Purely a notification — it does not touch
+    amount_paid or the order status.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
+            return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        user = request.user
+        if order.seller != user and not is_admin_user(user):
+            return Response(
+                {"error": "Only the seller can request payment on this order."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if order.status != "debt_active":
+            return Response(
+                {"error": f"Cannot request payment for order with status '{order.status}'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        send_payment_reminder_email(order)
+        return Response({"ok": True})
+
+
+class SubmitPaymentClaimView(APIView):
+    """
+    POST /api/orders/<id>/payment-claim/
+    Body: { amount, reference }
+
+    Buyer-only (must be this order's buyer). Lets the buyer say "I paid —
+    here's the M-Pesa code" without the two of them having to relay it over
+    WhatsApp or a phone call. Purely informational: it does not touch
+    amount_paid or the order status — the seller still checks their own
+    M-Pesa messages and records the real payment via RecordPaymentView.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk, buyer=request.user)
+        except Order.DoesNotExist:
+            return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if order.status not in ("locked", "debt_active"):
+            return Response(
+                {"error": "This order isn't ready for payment yet."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            amount = Decimal(str(request.data.get("amount")))
+        except (InvalidOperation, TypeError):
+            return Response({"error": "Enter a valid amount."}, status=status.HTTP_400_BAD_REQUEST)
+        if amount <= 0:
+            return Response({"error": "Amount must be more than 0."}, status=status.HTTP_400_BAD_REQUEST)
+
+        reference = (request.data.get("reference") or "").strip()
+        if not reference:
+            return Response({"error": "Enter the M-Pesa code."}, status=status.HTTP_400_BAD_REQUEST)
+
+        claim = PaymentClaim.objects.create(order=order, amount=amount, reference=reference)
+        send_payment_claim_seller_email(order, claim)
+
+        order = _orders_for_serialization(Order.objects.filter(pk=pk)).get()
+        return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
 
 
 class AdminOrderListView(APIView):
@@ -333,8 +525,11 @@ class AdminOrderListView(APIView):
             orders_qs = orders_qs.filter(status=status_filter)
         if request.query_params.get("flagged") == "true":
             orders_qs = orders_qs.filter(is_flagged=True)
-        serializer = OrderSerializer(orders_qs, many=True)
-        return Response(serializer.data)
+
+        paginator = LargeResultsSetPagination()
+        page = paginator.paginate_queryset(orders_qs, request, view=self)
+        serializer = OrderSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
 
 class FlagOrderView(APIView):

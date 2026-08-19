@@ -65,21 +65,33 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Hides the scrollbar on horizontally-scrolling chip/pill rows — the
+   scroll gesture still works, it just doesn't need a visible track on
+   what's meant to read as a swipeable strip, not a document to scroll. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /*
  * Role-accent system: authenticated shells (AppShell) tag their root
  * element with data-role="buyer" | "seller" | "admin". Shared components
  * read the resulting --role/--role-soft custom properties instead of a
- * color prop threaded through every page, so one Button/Badge/etc. variant
- * renders blue on buyer pages and violet on seller pages automatically.
+ * color prop threaded through every page. Buyer and seller both render the
+ * brand gold from the logo (BRAND.accent in Logo.tsx) — one consistent
+ * identity color across the whole logged-in app, not a per-role palette.
  */
 [data-role="buyer"] {
-  --role: 37 99 235; /* blue-600 */
-  --role-soft: 239 246 255; /* blue-50 */
+  --role: 200 134 10; /* brand gold (#C8860A) — matches the logo mark */
+  --role-soft: 248 240 226; /* warm gold-tinted cream */
 }
 
 [data-role="seller"] {
-  --role: 124 58 237; /* violet-600 */
-  --role-soft: 245 243 255; /* violet-50 */
+  --role: 200 134 10; /* brand gold (#C8860A) — matches the logo mark */
+  --role-soft: 248 240 226; /* warm gold-tinted cream */
 }
 
 [data-role="admin"] {
@@ -161,15 +173,11 @@ select {
   }
 }
 
-/* Colored "glow" shadows — used on hover-lift cards instead of a neutral
+/* Colored "glow" shadow — used on hover-lift cards instead of a neutral
    gray shadow, so the lift reads as brand-tinted depth rather than a
    generic elevation change. */
-@utility shadow-glow-blue {
-  box-shadow: 0 12px 28px -8px rgba(37, 99, 235, 0.28);
-}
-
-@utility shadow-glow-violet {
-  box-shadow: 0 12px 28px -8px rgba(124, 58, 237, 0.28);
+@utility shadow-glow-gold {
+  box-shadow: 0 12px 28px -8px rgba(200, 134, 10, 0.32);
 }
 
 /* Accessibility: Reduce motion for users who prefer it */

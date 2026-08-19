@@ -12,15 +12,16 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from django.contrib.auth import login, logout
 
-from .models import CustomUser, BuyerProfile, SellerProfile, BuyerStoreFollow, BuyerSellerRelationship
+from .models import CustomUser, BuyerProfile, SellerProfile, BuyerStoreFollow, BuyerSellerRelationship, PushSubscription
 from products.models import Product
 from .permissions import is_admin_user, is_verified_buyer, is_approved_seller
 from .notifications import notify_admins_new_signup, notify_seller_new_access_request
 from nyakizu.emailing import send_mail_async
+from nyakizu.pagination import LargeResultsSetPagination
 from .serializers import (
     RegisterSerializer,
     UserSerializer,
-    AvatarUploadSerializer,
+    ProfileUpdateSerializer,
     BuyerProfileSerializer,
     SellerProfileSerializer,
     BuyerStoreFollowSerializer,
@@ -304,15 +305,36 @@ class CurrentUserView(APIView):
         return Response(UserSerializer(request.user, context={"request": request}).data)
 
     def patch(self, request):
-        """PATCH /api/accounts/me/ — upload or replace the signed-in user's avatar."""
-        serializer = AvatarUploadSerializer(data=request.data)
+        """PATCH /api/accounts/me/ — update the signed-in user's name, email, phone, and/or avatar. Only fields present in the request are changed."""
+        serializer = ProfileUpdateSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
 
         user = request.user
-        if user.avatar:
-            user.avatar.delete(save=False)
-        user.avatar = serializer.validated_data["avatar"]
-        user.save(update_fields=["avatar"])
+        update_fields = []
+
+        if "full_name" in data:
+            parts = data["full_name"].strip().split(" ", 1)
+            user.first_name = parts[0]
+            user.last_name = parts[1] if len(parts) > 1 else ""
+            update_fields += ["first_name", "last_name"]
+
+        if "email" in data:
+            user.email = data["email"]
+            update_fields.append("email")
+
+        if "phone_number" in data:
+            user.phone_number = data["phone_number"]
+            update_fields.append("phone_number")
+
+        if "avatar" in data:
+            if user.avatar:
+                user.avatar.delete(save=False)
+            user.avatar = data["avatar"]
+            update_fields.append("avatar")
+
+        if update_fields:
+            user.save(update_fields=update_fields)
 
         return Response(UserSerializer(user, context={"request": request}).data)
 
@@ -330,8 +352,11 @@ class UserListView(APIView):
         role = request.query_params.get("role")
         if role:
             users = users.filter(role=role)
-        serializer = UserSerializer(users, many=True, context={"request": request})
-        return Response(serializer.data)
+
+        paginator = LargeResultsSetPagination()
+        page = paginator.paginate_queryset(users, request, view=self)
+        serializer = UserSerializer(page, many=True, context={"request": request})
+        return paginator.get_paginated_response(serializer.data)
 
 
 # ── Seller store views ────────────────────────────────────────────────────────
@@ -721,3 +746,39 @@ class CommunityActivityView(APIView):
             'joined': user.date_joined.date().isoformat(),
             'avatar': None,
         }
+
+
+class PushSubscribeView(APIView):
+    """
+    POST /api/accounts/push-subscribe/
+    Body: { endpoint, keys: { p256dh, auth } } — exactly the shape
+    PushManager.subscribe() returns, JSON.stringify()'d as-is by the frontend.
+    Upserts by endpoint so re-subscribing the same device (e.g. after the
+    browser rotates the endpoint) doesn't create duplicate rows.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        endpoint = request.data.get("endpoint")
+        keys = request.data.get("keys") or {}
+        p256dh = keys.get("p256dh")
+        auth = keys.get("auth")
+        if not endpoint or not p256dh or not auth:
+            return Response({"error": "A valid push subscription is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        PushSubscription.objects.update_or_create(
+            endpoint=endpoint,
+            defaults={"user": request.user, "p256dh_key": p256dh, "auth_key": auth},
+        )
+        return Response({"ok": True}, status=status.HTTP_201_CREATED)
+
+
+class PushUnsubscribeView(APIView):
+    """POST /api/accounts/push-unsubscribe/ — Body: { endpoint }. Best-effort; missing rows are just a no-op."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        endpoint = request.data.get("endpoint")
+        if endpoint:
+            PushSubscription.objects.filter(user=request.user, endpoint=endpoint).delete()
+        return Response({"ok": True})

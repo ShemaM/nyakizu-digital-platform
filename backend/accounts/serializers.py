@@ -20,7 +20,7 @@ class RegisterSerializer(serializers.Serializer):
     full_name = serializers.CharField(max_length=200)
     username  = serializers.CharField(max_length=150, validators=[UnicodeUsernameValidator()])
     email     = serializers.EmailField()
-    phone     = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    phone     = serializers.CharField(max_length=20)
     password  = serializers.CharField(write_only=True, validators=[validate_password])
     role      = serializers.ChoiceField(choices=['buyer', 'seller'])
 
@@ -59,10 +59,7 @@ class RegisterSerializer(serializers.Serializer):
     def validate_phone(self, value):
         value = value.strip()
         if not value:
-            # Blank is allowed (phone is optional) — without this early return,
-            # every blank-phone signup after the first would collide against
-            # each other on an "" == "" match below.
-            return value
+            raise serializers.ValidationError("Enter your phone number.")
         if not PHONE_RE.match(value):
             raise serializers.ValidationError("Enter a valid phone number.")
         if CustomUser.objects.filter(phone_number=value).exists():
@@ -153,6 +150,11 @@ class UserSerializer(serializers.ModelSerializer):
                 "approval_status": profile.approval_status,
                 "approval_note": profile.approval_note,
                 "is_live": profile.is_live,
+                "mpesa_till_number": profile.mpesa_till_number,
+                "mpesa_pochi_number": profile.mpesa_pochi_number,
+                "mpesa_paybill_number": profile.mpesa_paybill_number,
+                "mpesa_paybill_account": profile.mpesa_paybill_account,
+                "mpesa_send_money_number": profile.mpesa_send_money_number,
             }
         except SellerProfile.DoesNotExist:
             return None
@@ -172,14 +174,40 @@ class UserSerializer(serializers.ModelSerializer):
             return None
 
 
-class AvatarUploadSerializer(serializers.Serializer):
+class ProfileUpdateSerializer(serializers.Serializer):
+    """
+    Partial update for the signed-in user's own profile — name, email,
+    phone, and/or avatar. Every field is optional (PATCH semantics): the
+    view only touches fields actually present in `validated_data`, so a
+    buyer fixing just their phone number doesn't have to resend an avatar.
+    """
+
     MAX_AVATAR_BYTES = 5 * 1024 * 1024  # 5MB
 
-    avatar = serializers.ImageField()
+    full_name    = serializers.CharField(max_length=200, required=False, allow_blank=False)
+    email        = serializers.EmailField(required=False)
+    phone_number = serializers.CharField(max_length=20, required=False, allow_blank=False)
+    avatar       = serializers.ImageField(required=False)
 
     def validate_avatar(self, value):
         if value.size > self.MAX_AVATAR_BYTES:
             raise serializers.ValidationError("Image must be smaller than 5MB.")
+        return value
+
+    def validate_email(self, value):
+        value = value.lower()
+        user = self.context["request"].user
+        if CustomUser.objects.exclude(pk=user.pk).filter(email__iexact=value).exists():
+            raise serializers.ValidationError("An account with this email already exists.")
+        return value
+
+    def validate_phone_number(self, value):
+        value = value.strip()
+        if not PHONE_RE.match(value):
+            raise serializers.ValidationError("Enter a valid phone number.")
+        user = self.context["request"].user
+        if CustomUser.objects.exclude(pk=user.pk).filter(phone_number=value).exists():
+            raise serializers.ValidationError("An account with this phone number already exists.")
         return value
 
 
@@ -200,6 +228,8 @@ class SellerProfileSerializer(serializers.ModelSerializer):
         fields = (
             "id", "user", "store_name", "store_description",
             "location", "categories", "approval_status", "is_live", "created_at",
+            "mpesa_till_number", "mpesa_pochi_number",
+            "mpesa_paybill_number", "mpesa_paybill_account", "mpesa_send_money_number",
         )
         read_only_fields = ("id", "approval_status", "is_live", "created_at")
 

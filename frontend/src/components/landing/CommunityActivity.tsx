@@ -11,8 +11,8 @@ import { community, type CommunityActivityData } from "@/lib/api";
 function StatCardSkeleton() {
   return (
     <Card className="animate-pulse">
-      <CardContent className="pt-6 space-y-3">
-        <div className="h-8 w-8 rounded-lg bg-blue-100" />
+      <CardContent className="pt-5 sm:pt-6 space-y-2.5 sm:space-y-3">
+        <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-blue-100" />
         <div className="h-7 w-16 rounded bg-slate-200" />
         <div className="h-4 w-24 rounded bg-slate-100" />
       </CardContent>
@@ -65,13 +65,13 @@ export default function CommunityActivity() {
   return (
     <Section spacing="lg" className="bg-white" id="community">
       <Container size="lg">
-        <div className="text-center space-y-4 mb-6">
+        <div className="text-center space-y-3 sm:space-y-4 mb-6">
           <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-amber-800">
             <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
             Pilot phase
           </span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-text-primary">You would not be the first</h2>
-          <p className="text-text-secondary max-w-2xl mx-auto text-lg">
+          <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-text-primary leading-snug sm:leading-tight">You would not be the first</h2>
+          <p className="text-text-secondary max-w-2xl mx-auto text-base sm:text-lg">
             Real buyers and sellers already building their businesses on Nyakizu.
           </p>
         </div>
@@ -83,7 +83,7 @@ export default function CommunityActivity() {
               <p className="text-slate-600">
                 Nyakizu is just getting started. Join now and help shape the marketplace from day one.
               </p>
-              <Button size="lg" className="bg-brand-gold hover:bg-brand-gold-dark text-text-primary font-bold border-0" asChild>
+              <Button size="lg" className="w-full sm:w-auto rounded-full bg-brand-gold hover:bg-brand-gold-dark text-text-primary font-bold border-0 shadow-brand" asChild>
                 <Link href="/register">Sign Up</Link>
               </Button>
             </CardContent>
@@ -98,12 +98,14 @@ export default function CommunityActivity() {
                 ? Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
                 : stats.map((stat) => (
                     <Card key={stat.label}>
-                      <CardContent className="pt-6 space-y-2">
-                        <stat.icon className="w-8 h-8 text-brand-gold-dark" aria-hidden="true" />
-                        <div className="text-3xl font-black text-text-primary">
+                      <CardContent className="pt-5 sm:pt-6 space-y-2.5 sm:space-y-3">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-brand-gold/10 flex items-center justify-center">
+                          <stat.icon className="w-4 h-4 sm:w-5 sm:h-5 text-brand-gold-dark" aria-hidden="true" />
+                        </div>
+                        <div className="text-2xl sm:text-3xl font-black text-text-primary">
                           {stat.value?.toLocaleString() ?? "—"}
                         </div>
-                        <div className="text-sm text-text-muted">{stat.label}</div>
+                        <div className="text-xs sm:text-sm text-text-muted">{stat.label}</div>
                       </CardContent>
                     </Card>
                   ))}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ClipboardList, AlertCircle, RefreshCw, Clock, MapPin } from "lucide-react";
+import { ClipboardList, AlertCircle, RefreshCw, Clock } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Container, Section } from "@/components/layouts";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -11,7 +11,15 @@ import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { PageSkeleton } from "@/components/ui/LoadingState";
 import { orders, fmtKES, type ApiOrder } from "@/lib/api";
-import { getStatusLabel, getStatusVariant } from "@/lib/order-status";
+import { getStatusLabel, getStatusVariant, buyerDisplayName } from "@/lib/order-status";
+
+/** "Screen Protector, Charger Cable +2 more" — enough to recognize the order at a glance without opening it. */
+function summarizeItems(items?: ApiOrder["items"]): string {
+  if (!items || items.length === 0) return "No items";
+  const names = items.map((i) => i.product_name || i.custom_name || "Unnamed item");
+  if (names.length <= 2) return names.join(", ");
+  return `${names.slice(0, 2).join(", ")} +${names.length - 2} more`;
+}
 
 export default function SellerOrdersPage() {
   const [orderList, setOrderList] = useState<ApiOrder[]>([]);
@@ -87,18 +95,15 @@ export default function SellerOrdersPage() {
                   className="block bg-white border border-slate-100 shadow-sm rounded-2xl p-5 hover:border-role/30 hover:shadow-md transition-all"
                 >
                   <div className="flex items-start gap-4">
-                    <Avatar name={order.buyer_username || "?"} size="lg" className="shrink-0" />
+                    <Avatar name={buyerDisplayName(order)} size="lg" className="shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-body font-black text-text-primary truncate">{order.buyer_username || "Unknown buyer"}</span>
+                        <span className="text-body font-black text-text-primary truncate">{buyerDisplayName(order)}</span>
                         <Badge variant={getStatusVariant(order.status)}>
                           {getStatusLabel(order.status)}
                         </Badge>
                       </div>
-                      <div className="flex items-center gap-1.5 mt-1 text-xs text-text-muted">
-                        <MapPin size={12} className="text-role shrink-0" />
-                        <span className="truncate">{order.delivery_address || "No location provided"}</span>
-                      </div>
+                      <p className="text-xs text-text-muted mt-1 truncate">{summarizeItems(order.items)}</p>
                     </div>
                   </div>
 

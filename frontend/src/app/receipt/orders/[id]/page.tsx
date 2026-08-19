@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
-import { CheckCircle, Clock, Printer } from "lucide-react";
+import { CheckCircle, Clock, Download } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { orders, type ApiOrder, fmtKES, parsePrice, ApiError } from "@/lib/api";
 import { LoadingScreen } from "@/components/LoadingScreen";
@@ -42,6 +42,8 @@ export default function ReceiptPage() {
   const [order, setOrder] = useState<ApiOrder | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const articleRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (!isNaN(orderId)) {
@@ -63,8 +65,24 @@ export default function ReceiptPage() {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handleDownload = async () => {
+    if (!articleRef.current || downloading) return;
+    setDownloading(true);
+    try {
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import("html2canvas-pro"),
+        import("jspdf"),
+      ]);
+      const canvas = await html2canvas(articleRef.current, { scale: 2, backgroundColor: "#ffffff" });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({ unit: "px", format: [canvas.width, canvas.height] });
+      pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
+      pdf.save(`Receipt-Order-${order?.id ?? orderId}.pdf`);
+    } catch (err) {
+      console.error("Could not create the receipt PDF:", err);
+    } finally {
+      setDownloading(false);
+    }
   };
 
   if (isLoading) {
@@ -82,7 +100,7 @@ export default function ReceiptPage() {
           <p className="text-slate-500 mb-4">{error || "Receipt not found."}</p>
           <button
             onClick={loadOrder}
-            className="text-sm text-blue-600 hover:underline cursor-pointer"
+            className="text-sm text-brand-gold-dark hover:underline cursor-pointer"
           >
             Try again
           </button>
@@ -100,19 +118,20 @@ export default function ReceiptPage() {
     <main className="min-h-screen bg-surface px-4 py-8">
       <div className="mx-auto mb-4 flex max-w-md justify-end gap-2 no-print">
         <button
-          onClick={handlePrint}
-          className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50"
+          onClick={handleDownload}
+          disabled={downloading}
+          className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          <Printer size={16} />
-          Print
+          <Download size={16} />
+          {downloading ? "Preparing…" : "Download"}
         </button>
       </div>
 
-      <article className="app-panel mx-auto max-w-md overflow-hidden rounded-lg print:shadow-none">
-        <header className="bg-slate-950 px-6 py-5">
+      <article ref={articleRef} className="app-panel mx-auto max-w-md overflow-hidden rounded-lg print:shadow-none">
+        <header className="bg-brand-gold px-6 py-5">
           <div className="flex items-center justify-between">
-            <Logo size="sm" />
-            <span className="text-xs font-bold uppercase tracking-wide text-white/60">
+            <Logo size="sm" accent="#FFFFFF" inverted />
+            <span className="text-xs font-bold uppercase tracking-wide text-white/80">
               Digital Receipt
             </span>
           </div>
@@ -144,8 +163,8 @@ export default function ReceiptPage() {
         <section className="grid grid-cols-2 gap-4 border-b border-slate-100 px-6 py-4">
           <div>
             <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-400">Buyer</p>
-            <p className="text-sm font-bold text-slate-950">{order.buyer_username || "—"}</p>
-            <p className="text-xs text-slate-500">{order.delivery_address || "No address"}</p>
+            <p className="text-sm font-bold text-slate-950">{order.buyer_full_name || order.buyer_username || "—"}</p>
+            {order.buyer_phone && <p className="text-xs text-slate-500">{order.buyer_phone}</p>}
           </div>
           <div>
             <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-400">Order date</p>
@@ -177,15 +196,26 @@ export default function ReceiptPage() {
             {order.items.map((item, i) => (
               <div key={i} className="flex items-start justify-between gap-3 text-sm">
                 <div className="min-w-0 flex-1">
-                  <span className="leading-snug text-slate-800">
+                  <span className={`leading-snug ${item.not_found ? "text-slate-400 line-through" : "text-slate-800"}`}>
                     {item.product_name || `Product #${item.product_id}`}
                   </span>
+                  {item.not_found && (
+                    <span className="block text-xs font-bold text-error mt-0.5">Not found</span>
+                  )}
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className="text-xs text-slate-400">
-                    {fmtKES(item.unit_price)} × {item.quantity}
-                  </p>
-                  <p className="font-bold text-slate-950">{fmtKES(item.subtotal)}</p>
+                  {item.not_found ? (
+                    <p className="font-bold text-error">—</p>
+                  ) : item.unit_price == null ? (
+                    <p className="font-bold text-brand-gold-dark">To be priced</p>
+                  ) : (
+                    <>
+                      <p className="text-xs text-slate-400">
+                        {fmtKES(item.unit_price)} × {item.quantity}
+                      </p>
+                      <p className="font-bold text-slate-950">{fmtKES(item.subtotal)}</p>
+                    </>
+                  )}
                 </div>
               </div>
             ))}
@@ -199,7 +229,7 @@ export default function ReceiptPage() {
             {order.final_total && (
               <div className="flex justify-between text-sm font-black">
                 <span className="text-slate-800">Final invoice total</span>
-                <span className="text-blue-700">{fmtKES(order.final_total)}</span>
+                <span className="text-brand-gold-dark">{fmtKES(order.final_total)}</span>
               </div>
             )}
           </div>
@@ -235,6 +265,41 @@ export default function ReceiptPage() {
                   {fmtKES(balance)}
                 </span>
               </div>
+            </div>
+          </section>
+        )}
+
+        {balance > 0 && order.seller_payment_info && (
+          <section className="border-b border-slate-100 px-6 py-4">
+            <p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-400">How to pay the balance</p>
+            <div className="space-y-1.5">
+              {order.seller_payment_info.till_number && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Till Number (Buy Goods)</span>
+                  <span className="font-bold text-slate-800">{order.seller_payment_info.till_number}</span>
+                </div>
+              )}
+              {order.seller_payment_info.pochi_number && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Pochi la Biashara</span>
+                  <span className="font-bold text-slate-800">{order.seller_payment_info.pochi_number}</span>
+                </div>
+              )}
+              {order.seller_payment_info.paybill_number && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Paybill</span>
+                  <span className="font-bold text-slate-800">
+                    {order.seller_payment_info.paybill_number}
+                    {order.seller_payment_info.paybill_account && ` · Acc: ${order.seller_payment_info.paybill_account}`}
+                  </span>
+                </div>
+              )}
+              {order.seller_payment_info.send_money_number && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Send Money</span>
+                  <span className="font-bold text-slate-800">{order.seller_payment_info.send_money_number}</span>
+                </div>
+              )}
             </div>
           </section>
         )}

@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Container, Section } from "@/components/layouts";
 import { Button } from "@/components/ui/Button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { DashboardLayout } from "@/components/layouts";
 import { PageSkeleton } from "@/components/ui/LoadingState";
-import { Mail, Phone, LogOut } from "lucide-react";
+import { ProfileEditor } from "@/components/account/ProfileEditor";
+import { PushNotificationToggle } from "@/components/account/PushNotificationToggle";
+import { LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 const PREFS_KEY = "nyakizu.buyer.prefs";
@@ -31,7 +33,7 @@ function loadPrefs(): Prefs {
 
 export default function BuyerAccount() {
   const router = useRouter();
-  const { user, isLoading, logout } = useAuth();
+  const { user, isLoading, logout, setSessionUser } = useAuth();
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -69,36 +71,19 @@ export default function BuyerAccount() {
       <Section spacing="md">
         <Container size="md" className="space-y-8">
           {/* Profile Section */}
+          <div>
+            <p className="text-caption text-text-muted mb-3">Trader since {joined}</p>
+            <ProfileEditor user={user} onUserUpdate={setSessionUser} />
+          </div>
+
+          <PushNotificationToggle />
+
           <Card>
             <CardHeader>
-              <CardTitle>Your Details</CardTitle>
-              <CardDescription>Trader since {joined}</CardDescription>
+              <CardTitle>What do you sell?</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-label">Full Name</label>
-                  <p className="text-text-primary font-semibold mt-1">{user.full_name}</p>
-                </div>
-                <div>
-                  <label className="text-label">What do you sell?</label>
-                  <p className="text-text-primary font-semibold mt-1">{businessType}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-role" />
-                  <div>
-                    <label className="text-label">Email</label>
-                    <p className="text-text-primary text-body mt-1">{user.email}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-role" />
-                  <div>
-                    <label className="text-label">Phone</label>
-                    <p className="text-text-primary text-body mt-1">{user.phone_number}</p>
-                  </div>
-                </div>
-              </div>
+            <CardContent>
+              <p className="text-text-primary font-semibold">{businessType}</p>
             </CardContent>
           </Card>
 

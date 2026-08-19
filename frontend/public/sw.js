@@ -3734,4 +3734,34 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
       );
     }
   });
+  self.addEventListener("push", (event) => {
+    let payload = { title: "Nyakizu", body: "" };
+    try {
+      if (event.data) payload = { ...payload, ...event.data.json() };
+    } catch {
+    }
+    event.waitUntil(
+      self.registration.showNotification(payload.title, {
+        body: payload.body,
+        // Reuse the same PWA icon the manifest already ships (src/app/manifest.ts)
+        // rather than inventing a separate monochrome "badge" asset for now.
+        icon: "/icons/icon-192.png",
+        tag: payload.tag,
+        data: { url: payload.url || "/" }
+      })
+    );
+  });
+  self.addEventListener("notificationclick", (event) => {
+    event.notification.close();
+    const url = event.notification.data?.url || "/";
+    event.waitUntil(
+      self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+        const target = new URL(url, self.location.origin).href;
+        for (const client of clients) {
+          if (client.url === target && "focus" in client) return client.focus();
+        }
+        return self.clients.openWindow(target);
+      })
+    );
+  });
 })();

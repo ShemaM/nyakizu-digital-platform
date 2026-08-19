@@ -116,8 +116,8 @@ export default function BuyerSuppliersPage() {
                       </div>
                       <Badge variant="success">Approved</Badge>
                     </div>
-                    <Button size="sm" className="w-full mt-4" asChild>
-                      <Link href={`/buyer/suppliers/${supplier.id}/storefront`}>See Products</Link>
+                    <Button variant="role" size="sm" className="w-full mt-4" asChild>
+                      <Link href={`/buyer/suppliers/${supplier.id}/storefront`}>Visit Shop</Link>
                     </Button>
                   </CardContent>
                 </Card>

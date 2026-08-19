@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Container, Section } from "@/components/layouts";
@@ -13,10 +14,17 @@ import { ProgressBar } from "@/components/ui/ProgressBar";
 import { PageSkeleton } from "@/components/ui/LoadingState";
 import { orders, type ApiOrder, fmtKES, parsePrice, ApiError } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
-import { RefreshCw, Wallet, CheckCircle, TrendingUp, AlertCircle } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
+import { buyerDisplayName, buyerFirstName } from "@/lib/order-status";
+import { RefreshCw, Wallet, CheckCircle, TrendingUp, AlertCircle, MessageSquareText, Clock, BellRing, Pencil } from "lucide-react";
+
+function formatClaimTime(iso: string): string {
+  return new Date(iso).toLocaleString("en-KE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+}
 
 export default function SellerLedger() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [ledgerOrders, setLedgerOrders] = useState<ApiOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +34,10 @@ export default function SellerLedger() {
   const [payAmount, setPayAmount] = useState("");
   const [payRef, setPayRef] = useState("");
   const [payMethod, setPayMethod] = useState("mpesa");
+  const [payClaimId, setPayClaimId] = useState<number | undefined>(undefined);
   const [paySaving, setPaySaving] = useState(false);
+  const [remindingId, setRemindingId] = useState<number | null>(null);
+  const [openingPayId, setOpeningPayId] = useState<number | null>(null);
 
   useEffect(() => {
     loadLedger();
@@ -46,11 +57,38 @@ export default function SellerLedger() {
     }
   };
 
-  const openPay = (order: ApiOrder) => {
-    const bal = parsePrice(order.balance ?? order.final_total ?? order.total_price);
-    setPayOrder(order);
-    setPayAmount(String(bal));
-    setPayRef("");
+  const openPay = async (order: ApiOrder, prefill?: { amount: number; reference: string; claimId?: number }) => {
+    // The list on screen can go stale — e.g. this same order was just paid
+    // off from the fulfill page in another tab, or a second claim landed
+    // after this page loaded. Re-check the real status before opening the
+    // dialog rather than trusting whatever's already in memory.
+    setOpeningPayId(order.id);
+    let freshOrder = order;
+    try {
+      freshOrder = await orders.get(String(order.id));
+    } catch {
+      // Couldn't refresh — fall back to what we already have rather than blocking the seller.
+    } finally {
+      setOpeningPayId(null);
+    }
+
+    if (!["locked", "debt_active"].includes(freshOrder.status)) {
+      toast("This order was already paid. Refreshing.", "info");
+      await loadLedger();
+      return;
+    }
+
+    setPayOrder(freshOrder);
+    if (prefill) {
+      setPayAmount(String(prefill.amount));
+      setPayRef(prefill.reference);
+      setPayClaimId(prefill.claimId);
+    } else {
+      const bal = parsePrice(freshOrder.balance ?? freshOrder.final_total ?? freshOrder.total_price);
+      setPayAmount(String(bal));
+      setPayRef("");
+      setPayClaimId(undefined);
+    }
     setPayMethod("mpesa");
     setPayOpen(true);
   };
@@ -63,14 +101,34 @@ export default function SellerLedger() {
         amount: parseFloat(payAmount),
         payment_reference: payRef,
         payment_method: payMethod,
+        claim_id: payClaimId,
       });
       setPayOpen(false);
       await loadLedger();
     } catch (err) {
       console.error("Payment failed:", err);
       toast(err instanceof ApiError ? err.message : "Payment failed.", "error");
+      // The order's real status moved out from under us (e.g. already paid
+      // off elsewhere) — resync the list so the stale card doesn't linger.
+      if (err instanceof ApiError && err.status === 400) {
+        setPayOpen(false);
+        await loadLedger();
+      }
     } finally {
       setPaySaving(false);
+    }
+  };
+
+  const handleRemind = async (order: ApiOrder) => {
+    setRemindingId(order.id);
+    try {
+      await orders.requestPayment(order.id);
+      toast("Reminder sent to the buyer.", "success");
+    } catch (err) {
+      console.error("Reminder failed:", err);
+      toast(err instanceof ApiError ? err.message : "We could not send the reminder.", "error");
+    } finally {
+      setRemindingId(null);
     }
   };
 
@@ -81,6 +139,55 @@ export default function SellerLedger() {
   const totalReceived = ledgerOrders
     .filter((o) => o.status === "cleared" || parsePrice(o.amount_paid ?? 0) > 0)
     .reduce((s, o) => s + parsePrice(o.amount_paid ?? 0), 0);
+
+  // "Money expected" — groups open debts by when the buyer said they'd
+  // pay, so the seller can plan around it (e.g. "KES 40,000 due this week"
+  // before committing to a big restock) instead of just seeing one flat
+  // owed total with no sense of timing.
+  const debtOrders = ledgerOrders.filter((o) => o.status === "debt_active");
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const inNDays = (n: number) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + n);
+    return d;
+  };
+  const forecastBuckets: { key: string; label: string; tone: "error" | "warning" | "role" | "default"; orders: ApiOrder[] }[] = [
+    { key: "late", label: "Late", tone: "error", orders: [] },
+    { key: "today", label: "Today", tone: "warning", orders: [] },
+    { key: "week", label: "This week", tone: "role", orders: [] },
+    { key: "later", label: "Later", tone: "default", orders: [] },
+    { key: "none", label: "No date yet", tone: "default", orders: [] },
+  ];
+  for (const order of debtOrders) {
+    if (!order.expected_payment_date) {
+      forecastBuckets[4].orders.push(order);
+      continue;
+    }
+    const due = new Date(order.expected_payment_date + "T00:00:00");
+    if (order.is_payment_late || due < today) forecastBuckets[0].orders.push(order);
+    else if (due.getTime() === today.getTime()) forecastBuckets[1].orders.push(order);
+    else if (due < inNDays(7)) forecastBuckets[2].orders.push(order);
+    else forecastBuckets[3].orders.push(order);
+  }
+  const visibleForecastBuckets = forecastBuckets.filter((b) => b.orders.length > 0);
+  const bucketSum = (bucketOrders: ApiOrder[]) =>
+    bucketOrders.reduce((s, o) => s + parsePrice(o.balance ?? o.final_total ?? o.total_price), 0);
+
+  const sellerProfile = user?.seller_profile;
+  const paymentDetailRows = sellerProfile
+    ? [
+        sellerProfile.mpesa_till_number && { label: "Till Number", value: sellerProfile.mpesa_till_number },
+        sellerProfile.mpesa_pochi_number && { label: "Pochi la Biashara", value: sellerProfile.mpesa_pochi_number },
+        sellerProfile.mpesa_paybill_number && {
+          label: "Paybill",
+          value: sellerProfile.mpesa_paybill_account
+            ? `${sellerProfile.mpesa_paybill_number} · Acc: ${sellerProfile.mpesa_paybill_account}`
+            : sellerProfile.mpesa_paybill_number,
+        },
+        sellerProfile.mpesa_send_money_number && { label: "Send Money", value: sellerProfile.mpesa_send_money_number },
+      ].filter((row): row is { label: string; value: string } => !!row)
+    : [];
 
   if (isLoading) {
     return (
@@ -122,6 +229,43 @@ export default function SellerLedger() {
             }
           />
 
+          {/* Your payment details — pulled straight from Account, so the
+              seller doesn't have to leave this page to check what buyers
+              see when it's time to pay. */}
+          <Card>
+            <CardContent className="p-5 sm:p-6">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <p className="text-xs font-black text-text-muted uppercase tracking-widest flex items-center gap-2">
+                  <Wallet size={12} /> Your Payment Details
+                </p>
+                <Link
+                  href="/seller/dashboard/account"
+                  className="flex items-center gap-1 text-xs font-bold text-role hover:opacity-80 shrink-0"
+                >
+                  <Pencil size={11} /> Edit
+                </Link>
+              </div>
+              {paymentDetailRows.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
+                  {paymentDetailRows.map((row) => (
+                    <div key={row.label} className="flex items-center justify-between gap-3 text-sm">
+                      <span className="text-text-muted">{row.label}</span>
+                      <span className="font-bold text-text-primary">{row.value}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-text-muted">
+                  You haven&apos;t added how buyers should pay you yet.{" "}
+                  <Link href="/seller/dashboard/account" className="font-bold text-role hover:opacity-80">
+                    Add it now
+                  </Link>
+                  .
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {STAT_CARDS.map(({ label, value, Icon, color, bg }) => (
@@ -138,6 +282,31 @@ export default function SellerLedger() {
               </Card>
             ))}
           </div>
+
+          {/* Money expected — when open debts are due, not just how much */}
+          {visibleForecastBuckets.length > 0 && (
+            <div>
+              <SectionHeading
+                title="Money expected"
+                description="What's still owed, grouped by when buyers said they'd pay. Useful before a big restock."
+              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {visibleForecastBuckets.map((bucket) => (
+                  <Card key={bucket.key}>
+                    <CardContent className="p-4 sm:p-5">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <Badge variant={bucket.tone}>{bucket.label}</Badge>
+                        <span className="text-xs font-bold text-text-muted">
+                          {bucket.orders.length} order{bucket.orders.length !== 1 ? "s" : ""}
+                        </span>
+                      </div>
+                      <p className="text-xl font-black text-text-primary tabular-nums">{fmtKES(bucketSum(bucket.orders))}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Transactions */}
           <div>
@@ -157,6 +326,7 @@ export default function SellerLedger() {
                   const bal = parsePrice(order.balance ?? total - paid);
                   const isCleared = order.status === "cleared";
                   const progress = total > 0 ? (paid / total) * 100 : 0;
+                  const pendingClaims = (order.payment_claims ?? []).filter((c) => !c.resolved);
 
                   return (
                     <Card key={order.id}>
@@ -164,7 +334,7 @@ export default function SellerLedger() {
                         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                           <div className="space-y-1.5 flex-1 min-w-0">
                             <div className="flex items-center gap-3 flex-wrap">
-                              <h3 className="text-body font-bold text-text-primary">{order.buyer_username || "Unknown buyer"}</h3>
+                              <h3 className="text-body font-bold text-text-primary">{buyerDisplayName(order)}</h3>
                               <Badge variant={isCleared ? "success" : order.status === "debt_active" ? "error" : "warning"}>
                                 {isCleared ? "Paid" : order.status === "debt_active" ? "Debt" : "Partial"}
                               </Badge>
@@ -180,11 +350,33 @@ export default function SellerLedger() {
                                 Ref: {order.payment_reference}
                               </p>
                             )}
+                            {order.status === "debt_active" && order.expected_payment_date && (
+                              <p className="text-caption text-text-muted flex items-center gap-1.5">
+                                Expected {new Date(order.expected_payment_date + "T00:00:00").toLocaleDateString("en-KE", { day: "numeric", month: "short" })}
+                                {order.is_payment_late && <Badge variant="error">Late</Badge>}
+                              </p>
+                            )}
                           </div>
-                          <div className="shrink-0">
+                          <div className="shrink-0 flex flex-col items-stretch sm:items-end gap-2">
                             {!isCleared && (
-                              <Button size="lg" onClick={() => openPay(order)} className="gap-1.5">
+                              <Button
+                                size="lg"
+                                className="gap-1.5"
+                                loading={openingPayId === order.id}
+                                onClick={() => openPay(order)}
+                              >
                                 <CheckCircle size={16} /> Record Payment
+                              </Button>
+                            )}
+                            {order.status === "debt_active" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1.5"
+                                loading={remindingId === order.id}
+                                onClick={() => handleRemind(order)}
+                              >
+                                <BellRing size={14} /> Remind Buyer
                               </Button>
                             )}
                             {isCleared && (
@@ -194,6 +386,34 @@ export default function SellerLedger() {
                             )}
                           </div>
                         </div>
+
+                        {pendingClaims.length > 0 && (
+                          <div className="mt-4 pt-4 border-t border-slate-100 space-y-2.5">
+                            <p className="text-xs font-black text-warning uppercase tracking-widest flex items-center gap-2">
+                              <MessageSquareText size={12} /> {buyerFirstName(order)} Says They Paid
+                            </p>
+                            {pendingClaims.map((claim) => (
+                              <div key={claim.id} className="rounded-xl border-2 border-warning/30 bg-warning/5 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="text-lg font-black text-text-primary">{fmtKES(claim.amount)}</p>
+                                  <p className="text-sm font-bold text-text-secondary">{claim.reference}</p>
+                                  <p className="text-[11px] text-text-muted flex items-center gap-1 mt-0.5">
+                                    <Clock size={10} /> Sent {formatClaimTime(claim.submitted_at)}
+                                  </p>
+                                </div>
+                                <Button
+                                  variant="role"
+                                  size="sm"
+                                  className="shrink-0"
+                                  loading={openingPayId === order.id}
+                                  onClick={() => openPay(order, { amount: Number(claim.amount), reference: claim.reference, claimId: claim.id })}
+                                >
+                                  Check M-Pesa &amp; Confirm
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   );
@@ -208,8 +428,12 @@ export default function SellerLedger() {
       {payOrder && (
         <Dialog
           open={payOpen}
-          title={`Record Payment — ${payOrder.buyer_username || "Unknown buyer"}`}
-          message="Log what they sent you. The balance owed updates automatically."
+          title={`Record Payment for ${buyerDisplayName(payOrder)}`}
+          message={
+            payClaimId != null
+              ? "Filled in from what the buyer told us. Check your M-Pesa matches, then save."
+              : "Log what they sent you. The balance owed updates automatically."
+          }
           confirmLabel={paySaving ? "Saving..." : "Record Payment"}
           onConfirm={handlePay}
           onCancel={() => setPayOpen(false)}

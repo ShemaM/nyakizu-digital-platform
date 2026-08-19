@@ -124,13 +124,15 @@ function extractApiErrorMessage(body: unknown, fallback: string): string {
   return fallback;
 }
 
-export function fmtKES(amount: number | string): string {
+export function fmtKES(amount: number | string | null | undefined): string {
+  if (amount == null) return "KES 0";
   const num = typeof amount === "string" ? parseFloat(amount) : amount;
   if (isNaN(num)) return "KES 0";
   return `KES ${num.toLocaleString("en-KE")}`;
 }
 
-export function parsePrice(price: number | string): number {
+export function parsePrice(price: number | string | null | undefined): number {
+  if (price == null) return 0;
   if (typeof price === "number") return price;
   const cleaned = price.replace(/[^0-9.]/g, "");
   const val = parseFloat(cleaned);
@@ -156,6 +158,11 @@ export interface User {
     is_verified?: boolean;
     approval_status?: string;
     approval_note?: string;
+    mpesa_till_number?: string;
+    mpesa_pochi_number?: string;
+    mpesa_paybill_number?: string;
+    mpesa_paybill_account?: string;
+    mpesa_send_money_number?: string;
   };
   buyer_profile?: {
     id: number;
@@ -181,9 +188,17 @@ export interface ApiSeller {
   approval_status?: string;
   store_description?: string;
   categories?: string[];
+  mpesa_till_number?: string;
+  mpesa_pochi_number?: string;
+  mpesa_paybill_number?: string;
+  mpesa_paybill_account?: string;
+  mpesa_send_money_number?: string;
   user?: {
     full_name?: string;
     username?: string;
+    phone_number?: string;
+    email?: string;
+    avatar_url?: string | null;
   };
   is_live?: boolean;
 }
@@ -246,11 +261,16 @@ export interface ApiOrderItem {
   id: number;
   product_id?: number;
   product_name?: string;
+  /** Set instead of a linked product when this line is a free-text sourcing request. */
+  custom_name?: string;
   quantity: number;
-  unit_price: string | number;
-  subtotal: string | number;
+  /** Null until the seller sources and prices a custom_name line. */
+  unit_price: string | number | null;
+  subtotal: string | number | null;
   is_sourcing?: boolean;
   is_packed?: boolean;
+  /** The seller tried to source this and couldn't get it that day. */
+  not_found?: boolean;
 }
 
 export interface ApiOrderStatusEvent {
@@ -258,23 +278,50 @@ export interface ApiOrderStatusEvent {
   created_at: string;
 }
 
+export interface ApiPaymentClaim {
+  id: number;
+  amount: string | number;
+  reference: string;
+  submitted_at: string;
+  resolved: boolean;
+}
+
+export interface ApiSellerPaymentInfo {
+  till_number?: string;
+  pochi_number?: string;
+  paybill_number?: string;
+  paybill_account?: string;
+  send_money_number?: string;
+}
+
 export interface ApiOrder {
   id: number;
   status: string;
   buyer_username?: string;
+  buyer_full_name?: string;
+  buyer_phone?: string;
   buyer?: number;
   seller?: number;
+  seller_store_name?: string;
   total_price: string | number;
   final_total?: string | number;
   amount_paid?: string | number;
   balance?: string | number;
   payment_reference?: string;
   payment_method?: string;
+  /** How to pay this order's seller via M-Pesa — null if the seller hasn't filled any of it in. */
+  seller_payment_info?: ApiSellerPaymentInfo | null;
+  /** The date the buyer (or seller, on their behalf) said the remaining balance would be paid — for records, not enforcement. */
+  expected_payment_date?: string | null;
+  /** Server-computed: debt_active, has a date, and that date has passed. Never blocks anything — purely informational. */
+  is_payment_late?: boolean;
   delivery_address?: string;
   buyer_notes?: string;
   sourcing_notes?: string;
   items: ApiOrderItem[];
   status_history?: ApiOrderStatusEvent[];
+  /** Buyer-submitted "I paid — here's the code" claims, newest first. Informational only — see PaymentClaim on the backend. */
+  payment_claims?: ApiPaymentClaim[];
   is_flagged?: boolean;
   flag_reason?: string;
   flagged_at?: string | null;
@@ -335,18 +382,38 @@ class AuthAPI {
     return response.json();
   }
 
-  async updateAvatar(file: File): Promise<User> {
+  /** Partial update of the signed-in user's own profile — pass only what changed. */
+  async updateProfile(data: { full_name?: string; email?: string; phone_number?: string; avatarFile?: File }): Promise<User> {
     const formData = new FormData();
-    formData.append("avatar", file);
+    if (data.full_name !== undefined) formData.append("full_name", data.full_name);
+    if (data.email !== undefined) formData.append("email", data.email);
+    if (data.phone_number !== undefined) formData.append("phone_number", data.phone_number);
+    if (data.avatarFile) formData.append("avatar", data.avatarFile);
+
     const response = await fetchWithSession(`${API_BASE_URL}/accounts/me/`, {
       method: "PATCH",
       body: formData,
     });
     if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new ApiError(extractApiErrorMessage(data, "Could not update your photo."), response.status);
+      const errData = await response.json().catch(() => ({}));
+      throw new ApiError(extractApiErrorMessage(errData, "Could not update your profile."), response.status);
     }
     return response.json();
+  }
+
+  /** Registers this browser's Web Push subscription against the signed-in user. Silently ignores failure — push is a nice-to-have, never something that should block the caller. */
+  async subscribeToPush(subscription: PushSubscriptionJSON): Promise<void> {
+    await fetchWithSession(`${API_BASE_URL}/accounts/push-subscribe/`, {
+      method: "POST",
+      body: JSON.stringify(subscription),
+    }).catch(() => {});
+  }
+
+  async unsubscribeFromPush(endpoint: string): Promise<void> {
+    await fetchWithSession(`${API_BASE_URL}/accounts/push-unsubscribe/`, {
+      method: "POST",
+      body: JSON.stringify({ endpoint }),
+    }).catch(() => {});
   }
 
   async resendVerification(email: string): Promise<string> {
@@ -450,20 +517,30 @@ class ProductsAPI {
 }
 export const products = new ProductsAPI();
 
+// These list endpoints are paginated server-side (nyakizu.pagination.LargeResultsSetPagination,
+// capped at 200) rather than returning every order unbounded. The pages that
+// consume these — dashboard sales insights, the Payments ledger totals, the
+// pending-activity feed — need "everything that currently exists" to stay
+// correct, so we ask for the large capped page up front instead of building
+// infinite-scroll for each of them; a seller/buyer with more than 200
+// matching orders (not yet a real scenario at this stage) would need that
+// built out, or a dedicated server-side summary endpoint.
+const FULL_LIST_PAGE_SIZE = 200;
+
 class OrdersAPI {
   async list(): Promise<ApiOrder[]> {
-    const response = await fetchWithSession(`${API_BASE_URL}/orders/`);
-    return response.ok ? response.json() : [];
+    const response = await fetchWithSession(`${API_BASE_URL}/orders/?page_size=${FULL_LIST_PAGE_SIZE}`);
+    return response.ok ? unwrapList<ApiOrder>(await response.json()) : [];
   }
 
   async sellerList(): Promise<ApiOrder[]> {
-    const response = await fetchWithSession(`${API_BASE_URL}/orders/seller/`);
-    return response.ok ? response.json() : [];
+    const response = await fetchWithSession(`${API_BASE_URL}/orders/seller/?page_size=${FULL_LIST_PAGE_SIZE}`);
+    return response.ok ? unwrapList<ApiOrder>(await response.json()) : [];
   }
 
   async sellerLedger(): Promise<ApiOrder[]> {
-    const response = await fetchWithSession(`${API_BASE_URL}/orders/ledger/seller/`);
-    return response.ok ? response.json() : [];
+    const response = await fetchWithSession(`${API_BASE_URL}/orders/ledger/seller/?page_size=${FULL_LIST_PAGE_SIZE}`);
+    return response.ok ? unwrapList<ApiOrder>(await response.json()) : [];
   }
 
   async get(orderId: string): Promise<ApiOrder> {
@@ -508,8 +585,8 @@ class OrdersAPI {
   }
 
   async buyerDebts(): Promise<ApiOrder[]> {
-    const response = await fetchWithSession(`${API_BASE_URL}/orders/debts/`);
-    return response.ok ? response.json() : [];
+    const response = await fetchWithSession(`${API_BASE_URL}/orders/debts/?page_size=${FULL_LIST_PAGE_SIZE}`);
+    return response.ok ? unwrapList<ApiOrder>(await response.json()) : [];
   }
 
   async toggleItemPacked(orderId: number, itemId: number): Promise<ApiOrder> {
@@ -523,6 +600,31 @@ class OrdersAPI {
     return response.json();
   }
 
+  async toggleItemNotFound(orderId: number, itemId: number): Promise<ApiOrder> {
+    const response = await fetchWithSession(`${API_BASE_URL}/orders/${orderId}/items/${itemId}/toggle-not-found/`, {
+      method: "POST",
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new ApiError(extractApiErrorMessage(error, "Could not update this item"), response.status);
+    }
+    return response.json();
+  }
+
+  /** Prices a sourcing line that came in with none — recalculates the order total. */
+  async setItemPrice(orderId: number, itemId: number, unitPrice: number): Promise<ApiOrder> {
+    const response = await fetchWithSession(`${API_BASE_URL}/orders/${orderId}/items/${itemId}/set-price/`, {
+      method: "POST",
+      body: JSON.stringify({ unit_price: unitPrice }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new ApiError(extractApiErrorMessage(error, "Could not set that price"), response.status);
+    }
+    return response.json();
+  }
+
+
   async recordPayment(orderId: number, paymentData: any): Promise<any> {
     const response = await fetchWithSession(`${API_BASE_URL}/orders/${orderId}/pay/`, {
       method: "POST",
@@ -533,6 +635,30 @@ class OrdersAPI {
       throw new ApiError(extractApiErrorMessage(error, "Failed to record payment"), response.status);
     }
     return response.json();
+  }
+
+  /** Buyer tells the seller "I paid — here's the M-Pesa code". Doesn't mark the order paid by itself; the seller still confirms it. */
+  async submitPaymentClaim(orderId: number, amount: number, reference: string): Promise<ApiOrder> {
+    const response = await fetchWithSession(`${API_BASE_URL}/orders/${orderId}/payment-claim/`, {
+      method: "POST",
+      body: JSON.stringify({ amount, reference }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new ApiError(extractApiErrorMessage(error, "Could not send that payment code"), response.status);
+    }
+    return response.json();
+  }
+
+  /** Seller asks the buyer (by email) to pay the remaining balance on a debt_active order. */
+  async requestPayment(orderId: number): Promise<void> {
+    const response = await fetchWithSession(`${API_BASE_URL}/orders/${orderId}/request-payment/`, {
+      method: "POST",
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new ApiError(extractApiErrorMessage(error, "Could not send the reminder"), response.status);
+    }
   }
 }
 export const orders = new OrdersAPI();
@@ -618,6 +744,19 @@ class SellersAPI {
   async get(id: string): Promise<ApiSeller> {
     const response = await fetchWithSession(`${API_BASE_URL}/accounts/sellers/${id}/`);
     if (!response.ok) throw new ApiError("Failed to fetch seller", response.status);
+    return response.json();
+  }
+
+  /** Partial update of the signed-in seller's own store profile — pass only what changed. */
+  async update(id: number, data: Record<string, unknown>): Promise<ApiSeller> {
+    const response = await fetchWithSession(`${API_BASE_URL}/accounts/sellers/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new ApiError(extractApiErrorMessage(error, "Could not save your changes."), response.status);
+    }
     return response.json();
   }
 }

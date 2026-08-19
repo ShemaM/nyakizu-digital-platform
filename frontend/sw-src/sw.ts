@@ -132,3 +132,49 @@ self.addEventListener("sync", (event: any) => {
     );
   }
 });
+
+// ── Web Push ──────────────────────────────────────────────────────────────
+// Payload shape is whatever nyakizu/push.py sent: { title, body, url?, tag? }.
+interface PushPayload {
+  title: string;
+  body: string;
+  url?: string;
+  tag?: string;
+}
+
+self.addEventListener("push", (event: PushEvent) => {
+  let payload: PushPayload = { title: "Nyakizu", body: "" };
+  try {
+    if (event.data) payload = { ...payload, ...event.data.json() };
+  } catch {
+    // Non-JSON push payload — fall back to the generic title/body above.
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      // Reuse the same PWA icon the manifest already ships (src/app/manifest.ts)
+      // rather than inventing a separate monochrome "badge" asset for now.
+      icon: "/icons/icon-192.png",
+      tag: payload.tag,
+      data: { url: payload.url || "/" },
+    }),
+  );
+});
+
+// Tapping the notification focuses an already-open tab on that URL if one
+// exists, instead of always opening a new one.
+self.addEventListener("notificationclick", (event: NotificationEvent) => {
+  event.notification.close();
+  const url = (event.notification.data as { url?: string } | undefined)?.url || "/";
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients: WindowClient[]) => {
+      const target = new URL(url, self.location.origin).href;
+      for (const client of clients) {
+        if (client.url === target && "focus" in client) return client.focus();
+      }
+      return self.clients.openWindow(target);
+    }),
+  );
+});

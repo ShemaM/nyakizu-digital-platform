@@ -55,14 +55,14 @@ def notify_admins_new_signup(user: CustomUser, request=None) -> None:
         "",
         f"Name:  {display_name}",
         f"Email: {user.email}",
-        f"Phone: {user.phone_number or '—'}",
+        f"Phone: {user.phone_number or 'Not set'}",
     ]
 
     seller_profile = getattr(user, "seller_profile", None)
     if user.role == "seller" and seller_profile is not None:
         lines += [
             f"Store:    {seller_profile.store_name}",
-            f"Location: {seller_profile.location or '—'}",
+            f"Location: {seller_profile.location or 'Not set'}",
             "",
             "This store is waiting for your approval:",
             _admin_url(
@@ -109,7 +109,7 @@ def notify_seller_new_access_request(relationship, request=None) -> None:
         f"{buyer_name} wants to become a buyer at your store, \"{store_name}\".",
         "",
         f"Name:  {buyer_name}",
-        f"Phone: {buyer.phone_number or '—'}",
+        f"Phone: {buyer.phone_number or 'Not set'}",
         f"Email: {buyer.email}",
         "",
         "Approve or deny this request here:",

@@ -13,7 +13,7 @@ import { useSearchParams } from "next/navigation";
 
 type RegisterRole = "buyer" | "seller";
 
-const MIN_PASSWORD_LENGTH = 6;
+const MIN_PASSWORD_LENGTH = 8;
 
 interface RegisterFormState {
   role: RegisterRole | null;

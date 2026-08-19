@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Container, Section, LandingHeader, LandingFooter } from "@/components/layouts";
 import CommunityActivity from "@/components/landing/CommunityActivity";
 import OnboardingWalkthrough from "@/components/landing/OnboardingWalkthrough";
-import { RotatingLaptopMockup } from "@/components/landing/RotatingLaptopMockup";
+import { DualPhoneMockup } from "@/components/landing/DualPhoneMockup";
 
 // Shared entrance choreography — one fade+rise timing/easing everywhere so
 // the whole page feels like a single system, not several one-off animations.
@@ -110,11 +110,11 @@ const FEATURES = [
 
 function SectionKicker({ index, label }: { index: string; label: string }) {
   return (
-    <div className="flex items-center gap-3 mb-5">
-      <span className="flex items-center justify-center w-9 h-9 rounded-md bg-text-primary text-white text-sm font-bold shrink-0" aria-hidden="true">
+    <div className="flex items-center gap-2 mb-4 sm:mb-5">
+      <span className="text-xs sm:text-sm font-extrabold text-brand-gold-dark tabular-nums" aria-hidden="true">
         {index}
       </span>
-      <span className="text-sm font-bold uppercase tracking-widest text-text-muted">{label}</span>
+      <span className="text-xs sm:text-sm font-bold uppercase tracking-widest text-text-muted">{label}</span>
       <span className="flex-1 h-px bg-dark-accent" aria-hidden="true" />
     </div>
   );
@@ -128,7 +128,7 @@ export function HomeContent() {
       {/* Hero — stacked and centered on small screens; side-by-side on large
           screens so the section actually uses the width instead of sitting
           as a small centered column in a sea of white. */}
-      <section className="relative overflow-hidden pt-32 pb-20 sm:pt-40 sm:pb-28">
+      <section className="relative overflow-hidden bg-gradient-hero pt-24 pb-14 sm:pt-40 sm:pb-28">
         <Container size="xl" className="relative z-10">
           <div className="grid lg:grid-cols-2 lg:gap-12 xl:gap-20 items-center">
             <motion.div
@@ -137,50 +137,49 @@ export function HomeContent() {
               animate="show"
               className="max-w-xl mx-auto text-center lg:max-w-none lg:mx-0 lg:text-left"
             >
-              <motion.h1 variants={fadeUp} className="text-5xl sm:text-6xl xl:text-7xl font-extrabold tracking-tight leading-[1.1] text-text-primary">
+              <motion.h1 variants={fadeUp} className="text-4xl sm:text-6xl xl:text-7xl font-extrabold tracking-tight leading-[1.15] sm:leading-[1.1] text-text-primary">
                 The trade you already do.
                 <br />
                 <span className="text-brand-gold">Now digital.</span>
               </motion.h1>
-              <motion.p variants={fadeUp} className="mt-6 text-xl xl:text-2xl text-text-secondary leading-relaxed">
+              <motion.p variants={fadeUp} className="mt-4 sm:mt-6 text-base sm:text-xl xl:text-2xl text-text-secondary leading-relaxed">
                 Nyakizu does not change how you already trade. It just moves your{" "}
                 <span className="font-semibold text-text-primary">orders, stock and debts</span> off
                 notebooks and WhatsApp, onto your phone. Simple to use. Free forever.
               </motion.p>
-              <motion.div variants={fadeUp} className="mt-8 flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-3">
-                <Button size="lg" className="bg-brand-gold hover:bg-brand-gold-dark text-text-primary font-bold shadow-md px-8 text-base h-14" asChild>
+              <motion.div variants={fadeUp} className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3">
+                <Button size="lg" className="w-full sm:w-auto rounded-full bg-brand-gold hover:bg-brand-gold-dark text-text-primary font-bold shadow-brand px-8 text-base h-14" asChild>
                   <Link href="/register">Sign Up</Link>
                 </Button>
                 <Link
                   href="#problem"
-                  className="text-base font-semibold text-text-secondary hover:text-text-primary underline underline-offset-4 decoration-dotted transition-colors sm:h-14 sm:inline-flex sm:items-center"
+                  className="w-full sm:w-auto flex items-center justify-center rounded-full border-2 border-dark-accent px-6 h-14 sm:h-auto sm:rounded-none sm:border-0 sm:justify-start text-base font-semibold text-text-secondary hover:text-text-primary hover:border-text-secondary/40 sm:hover:border-0 sm:underline underline-offset-4 decoration-dotted transition-colors"
                 >
                   See why it matters ↓
                 </Link>
               </motion.div>
-              <motion.div variants={fadeUp} className="mt-6 flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2 text-base text-text-muted">
+              <motion.div variants={fadeUp} className="mt-5 sm:mt-6 flex flex-wrap items-center justify-center lg:justify-start gap-x-4 sm:gap-x-5 gap-y-2 text-sm sm:text-base text-text-muted">
                 <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-5 h-5 text-success" aria-hidden="true" /> Free forever
+                  <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-success" aria-hidden="true" /> Free forever
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-5 h-5 text-success" aria-hidden="true" /> Works offline
+                  <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-success" aria-hidden="true" /> Works offline
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-5 h-5 text-success" aria-hidden="true" /> Any Android phone
+                  <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-success" aria-hidden="true" /> Any Android phone
                 </span>
               </motion.div>
             </motion.div>
 
-            {/* Laptop mockup — a simple screen + keyboard-deck frame that
-                rotates between real screenshots of the live seller and buyer
-                dashboards, not an invented mockup. */}
+            {/* Two phones, one screen each — the seller and buyer apps,
+                both on the gold brand. */}
             <motion.div
               variants={fadeUp}
               initial="hidden"
               animate="show"
-              className="mt-16 lg:mt-0 flex justify-center"
+              className="mt-12 lg:mt-0 flex justify-center"
             >
-              <RotatingLaptopMockup />
+              <DualPhoneMockup />
             </motion.div>
           </div>
         </Container>
@@ -190,11 +189,11 @@ export function HomeContent() {
       <Section spacing="lg" className="bg-dark-secondary border-y border-dark-accent" id="problem">
         <Container size="lg">
           <SectionKicker index="01" label="The Problem" />
-          <div className="max-w-2xl mb-12">
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-text-primary">
+          <div className="max-w-2xl mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-text-primary leading-snug sm:leading-tight">
               The notebook and WhatsApp cannot carry your business anymore
             </h2>
-            <p className="mt-3 text-text-secondary text-xl">
+            <p className="mt-2.5 sm:mt-3 text-text-secondary text-base sm:text-xl">
               When your business grows, small mistakes become big losses.
             </p>
           </div>
@@ -203,19 +202,19 @@ export function HomeContent() {
             initial="hidden"
             whileInView="show"
             viewport={{ once: true, margin: "-80px" }}
-            className="grid sm:grid-cols-2 gap-5"
+            className="grid sm:grid-cols-2 gap-4 sm:gap-5"
           >
             {PROBLEMS.map(({ icon: Icon, tint, title, description }) => (
               <motion.div
                 key={title}
                 variants={fadeUp}
-                className="rounded-2xl border border-dark-accent bg-white p-6"
+                className="rounded-2xl border border-dark-accent/70 bg-white shadow-sm p-5 sm:p-6"
               >
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${tint}`} aria-hidden="true">
-                  <Icon className="w-6 h-6" />
+                <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center mb-3 sm:mb-4 ${tint}`} aria-hidden="true">
+                  <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <h3 className="font-bold text-text-primary text-lg">{title}</h3>
-                <p className="text-base text-text-secondary mt-1.5 leading-relaxed">{description}</p>
+                <h3 className="font-bold text-text-primary text-base sm:text-lg">{title}</h3>
+                <p className="text-sm sm:text-base text-text-secondary mt-1 sm:mt-1.5 leading-relaxed">{description}</p>
               </motion.div>
             ))}
           </motion.div>
@@ -226,11 +225,11 @@ export function HomeContent() {
       <Section spacing="lg" className="bg-white" id="solution">
         <Container size="lg">
           <SectionKicker index="02" label="The Solution" />
-          <div className="max-w-2xl mb-12">
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-text-primary">
+          <div className="max-w-2xl mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-text-primary leading-snug sm:leading-tight">
               Here is exactly how Nyakizu fixes that
             </h2>
-            <p className="mt-3 text-text-secondary text-xl">
+            <p className="mt-2.5 sm:mt-3 text-text-secondary text-base sm:text-xl">
               Four problems above. Four fixes below — in the same order.
             </p>
           </div>
@@ -239,19 +238,21 @@ export function HomeContent() {
             initial="hidden"
             whileInView="show"
             viewport={{ once: true, margin: "-80px" }}
-            className="grid sm:grid-cols-2 gap-5"
+            className="rounded-2xl border border-dark-accent/70 bg-white shadow-sm divide-y divide-dark-accent/70 overflow-hidden sm:rounded-none sm:border-0 sm:shadow-none sm:divide-y-0 sm:bg-transparent sm:grid sm:grid-cols-2 sm:gap-5"
           >
             {SOLUTIONS.map(({ icon: Icon, tint, title, description }) => (
               <motion.div
                 key={title}
                 variants={fadeUp}
-                className="rounded-2xl border border-dark-accent bg-white p-6"
+                className="flex items-start gap-4 p-4 sm:block sm:rounded-2xl sm:border sm:border-dark-accent/70 sm:bg-white sm:shadow-sm sm:p-6"
               >
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${tint}`} aria-hidden="true">
-                  <Icon className="w-6 h-6" />
+                <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 sm:mb-4 ${tint}`} aria-hidden="true">
+                  <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <h3 className="font-bold text-text-primary text-lg">{title}</h3>
-                <p className="text-base text-text-secondary mt-1.5 leading-relaxed">{description}</p>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-text-primary text-base sm:text-lg">{title}</h3>
+                  <p className="text-sm sm:text-base text-text-secondary mt-1 sm:mt-1.5 leading-relaxed">{description}</p>
+                </div>
               </motion.div>
             ))}
           </motion.div>
@@ -264,11 +265,11 @@ export function HomeContent() {
       <Section spacing="lg" className="bg-dark-secondary border-y border-dark-accent" id="how-it-works">
         <Container size="lg">
           <SectionKicker index="03" label="Getting Started" />
-          <div className="max-w-2xl mb-10">
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-text-primary">
+          <div className="max-w-2xl mb-7 sm:mb-10">
+            <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-text-primary leading-snug sm:leading-tight">
               Start in a few minutes
             </h2>
-            <p className="mt-3 text-text-secondary text-xl">
+            <p className="mt-2.5 sm:mt-3 text-text-secondary text-base sm:text-xl">
               Buying or selling, here is exactly what happens, step by step.
             </p>
           </div>
@@ -279,12 +280,12 @@ export function HomeContent() {
       {/* 04 — Built for how you already trade */}
       <Section spacing="lg" className="bg-text-primary" id="features">
         <Container size="lg">
-          <div className="max-w-2xl mb-12">
-            <span className="text-sm font-bold uppercase tracking-widest text-brand-gold">04 &middot; Why Nyakizu</span>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+          <div className="max-w-2xl mb-8 sm:mb-12">
+            <span className="text-xs sm:text-sm font-bold uppercase tracking-widest text-brand-gold">04 &middot; Why Nyakizu</span>
+            <h2 className="mt-2.5 sm:mt-3 text-2xl sm:text-4xl font-extrabold tracking-tight text-white leading-snug sm:leading-tight">
               Built for how you already trade
             </h2>
-            <p className="mt-3 text-white/70 text-xl">
+            <p className="mt-2.5 sm:mt-3 text-white/70 text-base sm:text-xl">
               No new habits to learn. Nyakizu just makes what you already do safer and faster.
             </p>
           </div>
@@ -293,19 +294,19 @@ export function HomeContent() {
             initial="hidden"
             whileInView="show"
             viewport={{ once: true, margin: "-80px" }}
-            className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5"
+            className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5"
           >
             {FEATURES.map(({ icon: Icon, title, description }) => (
               <motion.div
                 key={title}
                 variants={fadeUp}
-                className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 hover:bg-white/[0.07] transition-colors"
+                className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 sm:p-6 hover:bg-white/[0.07] transition-colors"
               >
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-brand-gold/15 text-brand-gold" aria-hidden="true">
-                  <Icon className="w-6 h-6" />
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center mb-3 sm:mb-4 bg-brand-gold/15 text-brand-gold" aria-hidden="true">
+                  <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <h3 className="font-bold text-white text-lg">{title}</h3>
-                <p className="text-base text-white/70 mt-1.5 leading-relaxed">{description}</p>
+                <h3 className="font-bold text-white text-base sm:text-lg">{title}</h3>
+                <p className="text-sm sm:text-base text-white/70 mt-1 sm:mt-1.5 leading-relaxed">{description}</p>
               </motion.div>
             ))}
           </motion.div>
@@ -318,14 +319,14 @@ export function HomeContent() {
       {/* Final call to action */}
       <Section spacing="lg" className="bg-brand-gold-subtle">
         <Container size="sm" className="text-center">
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-text-primary">
+          <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-text-primary leading-snug sm:leading-tight">
             Ready to run your shop from your phone?
           </h2>
-          <p className="mt-3 text-text-secondary text-xl">
+          <p className="mt-2.5 sm:mt-3 text-text-secondary text-base sm:text-xl">
             Join traders already using Nyakizu. It takes about two minutes.
           </p>
-          <div className="mt-8">
-            <Button size="lg" className="bg-brand-gold hover:bg-brand-gold-dark text-text-primary font-bold shadow-md px-8 text-base h-14" asChild>
+          <div className="mt-6 sm:mt-8">
+            <Button size="lg" className="w-full sm:w-auto rounded-full bg-brand-gold hover:bg-brand-gold-dark text-text-primary font-bold shadow-brand px-8 text-base h-14" asChild>
               <Link href="/register">Sign Up</Link>
             </Button>
           </div>

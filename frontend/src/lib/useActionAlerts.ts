@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { orders, relationships, parsePrice } from "@/lib/api";
+import { setAppBadge } from "@/lib/push";
 
 export interface ActionAlert {
   id: string;
@@ -28,6 +29,7 @@ export function useActionAlerts() {
   const refresh = useCallback(async () => {
     if (!user) {
       setAlerts([]);
+      setAppBadge(0);
       return;
     }
 
@@ -40,6 +42,9 @@ export function useActionAlerts() {
 
         const newOrders = orderList.filter((o) => o.status === "submitted");
         const pendingBuyers = relationshipList.filter((r) => r.status === "pending");
+        // "Late" here means past the buyer's own promised date — informational,
+        // never a demand, same tone as the debt-date feature itself.
+        const lateDebts = orderList.filter((o) => o.is_payment_late);
 
         const next: ActionAlert[] = [];
         if (newOrders.length > 0) {
@@ -58,10 +63,20 @@ export function useActionAlerts() {
             href: "/seller/dashboard/buyers",
           });
         }
+        if (lateDebts.length > 0) {
+          next.push({
+            id: "late-debts",
+            count: lateDebts.length,
+            text: lateDebts.length === 1 ? "1 payment date has passed" : `${lateDebts.length} payment dates have passed`,
+            href: "/seller/dashboard/ledger",
+          });
+        }
         setAlerts(next);
+        setAppBadge(next.reduce((s, a) => s + a.count, 0));
       } else if (user.role === "buyer") {
         const debtOrders = await orders.buyerDebts();
         const owing = debtOrders.filter((o) => parsePrice(o.balance ?? 0) > 0);
+        const late = owing.filter((o) => o.is_payment_late);
 
         const next: ActionAlert[] = [];
         if (owing.length > 0) {
@@ -72,9 +87,19 @@ export function useActionAlerts() {
             href: "/buyer/debts",
           });
         }
+        if (late.length > 0) {
+          next.push({
+            id: "late-debts",
+            count: late.length,
+            text: late.length === 1 ? "1 payment date has passed" : `${late.length} payment dates have passed`,
+            href: "/buyer/debts",
+          });
+        }
         setAlerts(next);
+        setAppBadge(next.reduce((s, a) => s + a.count, 0));
       } else {
         setAlerts([]);
+        setAppBadge(0);
       }
     } catch {
       // Best-effort — a failed poll just means the bell stays as it was.

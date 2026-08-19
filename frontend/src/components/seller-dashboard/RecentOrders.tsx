@@ -2,13 +2,13 @@ import Link from 'next/link';
 import { Package, Receipt, Clock } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
-import { getStatusLabel, getStatusVariant } from '@/lib/order-status';
+import { getStatusLabel, getStatusVariant, buyerDisplayName } from '@/lib/order-status';
 import type { ApiOrderItem } from '@/lib/api';
 
 interface OrderItem {
   id: number;
   buyer_username?: string;
-  delivery_address?: string;
+  buyer_full_name?: string;
   total_price: string | number;
   final_total?: string | number;
   status: string;
@@ -35,7 +35,7 @@ function formatTimestamp(iso: string): string {
 /** "Screen Protector, Charger Cable +2 more" — enough to recognize the order at a glance without opening it. */
 function summarizeItems(items?: ApiOrderItem[]): string {
   if (!items || items.length === 0) return "No items";
-  const names = items.map((i) => i.product_name || "Unnamed product");
+  const names = items.map((i) => i.product_name || i.custom_name || "Unnamed product");
   if (names.length <= 2) return names.join(", ");
   return `${names.slice(0, 2).join(", ")} +${names.length - 2} more`;
 }
@@ -61,10 +61,10 @@ export const RecentOrders: React.FC<RecentOrdersProps> = ({ orders }) => {
             href={`/seller/dashboard/orders/${order.id}/fulfill`}
             className="flex items-center gap-4 flex-1 min-w-0"
           >
-            <Avatar name={order.buyer_username || "?"} size="lg" className="shrink-0" />
+            <Avatar name={buyerDisplayName(order)} size="lg" colorClassName="bg-role" className="shrink-0" />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-body font-bold text-text-primary truncate">{order.buyer_username || "Unknown buyer"}</p>
+                <p className="text-body font-bold text-text-primary truncate">{buyerDisplayName(order)}</p>
                 <span className="text-text-muted">·</span>
                 <span className="inline-flex items-center gap-1 text-xs text-text-muted">
                   <Clock size={11} aria-hidden="true" /> {formatTimestamp(order.created_at)}

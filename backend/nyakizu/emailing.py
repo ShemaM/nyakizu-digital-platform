@@ -23,13 +23,20 @@ outcome blocks the site.
 import logging
 import smtplib
 import socket
-import threading
+from concurrent.futures import ThreadPoolExecutor
 
 from django.conf import settings
 from django.core.mail import send_mail
 from django.core.mail.backends.smtp import EmailBackend as DjangoSMTPBackend
 
 logger = logging.getLogger("nyakizu.emailing")
+
+# A bare `threading.Thread(...).start()` per email has no ceiling — a
+# signup burst or an admin notification fan-out could spin up dozens of
+# concurrent threads on the single gunicorn worker this runs behind (see
+# module docstring). A small fixed-size pool bounds that: excess sends
+# queue up and go out a little later instead of piling on more OS threads.
+_EXECUTOR = ThreadPoolExecutor(max_workers=4, thread_name_prefix="email-send")
 
 # Django's test runner forces EMAIL_BACKEND to this in-memory backend so
 # tests can assert against mail.outbox. Sending from a background thread
@@ -104,9 +111,13 @@ def send_mail_async(subject, message, recipient_list, from_email=None):
                 fail_silently=False,
             )
         except Exception:
+            # logger.exception at ERROR level is auto-forwarded to Sentry by
+            # the LoggingIntegration wired in settings.py (once SENTRY_DSN is
+            # set) — a persistently broken SMTP config surfaces as repeated
+            # Sentry events, not just log lines nobody's tailing.
             logger.exception("Failed to send email %r to %r", subject, recipient_list)
 
     if getattr(settings, "EMAIL_BACKEND", "") == _LOCMEM_BACKEND:
         _send()
     else:
-        threading.Thread(target=_send, daemon=True).start()
+        _EXECUTOR.submit(_send)

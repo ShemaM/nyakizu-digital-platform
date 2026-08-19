@@ -52,7 +52,7 @@ export function ProfileMenu({ user, onLogout }: ProfileMenuProps) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-100 bg-white shadow-2xl z-50 overflow-hidden animate-scale-in">
+        <div className="absolute left-0 top-full mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-100 bg-white shadow-2xl z-50 overflow-hidden animate-scale-in">
           <div className="flex items-center gap-3 px-4 py-3.5 border-b border-slate-100">
             <Avatar name={displayName} imageUrl={user.avatar_url} size="xl" />
             <div className="min-w-0">

@@ -57,6 +57,18 @@ class Order(models.Model):
     # Payment tracking
     amount_paid = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     payment_reference = models.CharField(max_length=100, blank=True, help_text="M-Pesa txn code or other ref")
+
+    # Debt recovery — the buyer's own commitment on when they'll clear the
+    # remaining balance (asked as soon as the order first goes into debt).
+    # Either side can set/edit it: the buyer from their order page, or the
+    # seller if it was agreed by phone/WhatsApp instead. send_debt_reminders
+    # (a daily cron-triggered management command) reads this to decide who
+    # gets nudged today — see that command for the actual cadence.
+    expected_payment_date = models.DateField(null=True, blank=True)
+    # The date (not datetime — the cadence is day-granularity) a reminder was
+    # last sent for this debt, so the daily command doesn't re-send the same
+    # day's reminder if it's run more than once.
+    last_debt_reminder_at = models.DateField(null=True, blank=True)
     payment_method = models.CharField(
         max_length=20,
         choices=[
@@ -93,8 +105,8 @@ class Order(models.Model):
         return f"Order #{self.id} by {self.buyer.username} — {self.status}"
 
     def calculate_total(self):
-        """Recalculate total from all OrderItems and save."""
-        total = sum(item.subtotal() for item in self.items.all())
+        """Recalculate total from all OrderItems and save — unpriced (custom_name, not yet sourced) lines don't count until the seller quotes them."""
+        total = sum((item.subtotal() or 0) for item in self.items.all())
         self.total_price = total
         self.save()
 
@@ -108,8 +120,26 @@ class Order(models.Model):
     def is_fully_paid(self):
         return self.balance <= 0
 
+    @property
+    def is_payment_late(self):
+        """Past the buyer's own promised date, with money still owing. Purely informational — never changes what the buyer owes or blocks anything."""
+        if self.status != "debt_active" or not self.expected_payment_date:
+            return False
+        return self.expected_payment_date < timezone.now().date()
+
     class Meta:
         ordering = ['-created_at']   # newest orders first
+        indexes = [
+            # Covers "this seller's/buyer's orders, newest first" — the
+            # exact shape of every list/ledger/debts query below — instead
+            # of forcing a filesort over just the single-column buyer/seller
+            # index once a merchant's order history grows.
+            models.Index(fields=['seller', '-created_at']),
+            models.Index(fields=['buyer', '-created_at']),
+            # Covers the ledger/debts filters: seller-or-buyer + status IN (...).
+            models.Index(fields=['seller', 'status']),
+            models.Index(fields=['buyer', 'status']),
+        ]
 
 
 class OrderItem(models.Model):
@@ -129,18 +159,26 @@ class OrderItem(models.Model):
     product = models.ForeignKey(
         Product,
         on_delete=models.SET_NULL,   # keep the order item even if product is deleted
-        null=True,
+        null=True, blank=True,
         related_name='order_items',
     )
 
+    # Set instead of `product` when the buyer is asking the seller to source
+    # something that isn't in their catalog at all (not just out of stock) —
+    # e.g. typed in from the cart's "Can't find it? Ask us to source it" box.
+    custom_name = models.CharField(max_length=200, blank=True)
+
     quantity = models.PositiveIntegerField(default=1)
 
-    # Snapshot the price at the moment of purchase
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+    # Snapshot the price at the moment of purchase. Null for a freshly-added
+    # custom_name line — there's no catalog price to snapshot until the
+    # seller sources it and quotes one.
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
-    # True when this line was placed against a zero-stock "can be sourced"
-    # product — the seller sources it specially rather than pulling from
-    # shelf stock, and may revise the final invoice total accordingly.
+    # True when this line needs the seller to source it specially rather than
+    # pull from shelf stock — either an existing product with a zero-stock
+    # shortfall, or a custom_name line with no catalog product at all. The
+    # seller may revise the final invoice total once it's priced.
     is_sourcing = models.BooleanField(default=False)
 
     # Seller-side packing checklist — toggled from the fulfill screen while
@@ -148,13 +186,20 @@ class OrderItem(models.Model):
     # the seller; doesn't drive any order-status transition on its own.
     is_packed = models.BooleanField(default=False)
 
+    # A sourcing line the seller tried to get and simply couldn't that day —
+    # distinct from still-in-progress sourcing. Excluded from "all packed"
+    # and shown to the buyer as unavailable rather than "still sourcing".
+    not_found = models.BooleanField(default=False)
+
     def subtotal(self):
-        """Returns quantity × unit_price for this line item."""
+        """Returns quantity × unit_price for this line item, or None if it hasn't been priced yet."""
+        if self.unit_price is None:
+            return None
         return self.quantity * self.unit_price
 
     def __str__(self):
-        product_name = self.product.name if self.product else '(deleted product)'
-        return f"{self.quantity}x {product_name} in Order #{self.order.id}"
+        name = self.product.name if self.product else (self.custom_name or '(deleted product)')
+        return f"{self.quantity}x {name} in Order #{self.order.id}"
 
 
 class OrderStatusEvent(models.Model):
@@ -181,3 +226,29 @@ class OrderStatusEvent(models.Model):
 
     def __str__(self):
         return f"Order #{self.order_id} -> {self.status} at {self.created_at}"
+
+
+class PaymentClaim(models.Model):
+    """
+    A buyer's self-reported proof of payment — the M-Pesa confirmation code
+    they got after paying the seller directly (there's no payment gateway
+    integration here; money always moves phone-to-phone first). This does
+    NOT mark the order as paid on its own — the seller still confirms the
+    real payment via the existing record-payment action. It just gets the
+    buyer's claimed amount and code in front of the seller instead of the
+    two of them having to relay it over WhatsApp or a phone call.
+    """
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='payment_claims')
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    reference = models.CharField(max_length=100, help_text="M-Pesa code the buyer says they used")
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    # Set once the seller has checked their M-Pesa against this claim and
+    # recorded the matching payment — see RecordPaymentView's claim_id param.
+    resolved = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-submitted_at']
+
+    def __str__(self):
+        return f"{self.reference} — KES {self.amount} for Order #{self.order_id}"

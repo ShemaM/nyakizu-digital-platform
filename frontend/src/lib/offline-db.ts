@@ -15,7 +15,7 @@ const STORE_QUEUE = "syncQueue";
 
 interface DraftData {
   sellerId: number;
-  items: { product_id: number; quantity: number }[];
+  items: { product_id?: number; custom_name?: string; quantity: number }[];
   buyer_notes?: string;
   updatedAt: number;
 }
@@ -23,7 +23,7 @@ interface DraftData {
 interface QueuedOrder {
   id: string;
   sellerId: number;
-  items: { product_id: number; quantity: number }[];
+  items: { product_id?: number; custom_name?: string; quantity: number }[];
   buyer_notes?: string;
   createdAt: number;
   status: "pending" | "syncing" | "synced" | "failed";

@@ -21,6 +21,8 @@ from .views import (
     RequestSellerAccessView,
     RelationshipListCreateView,
     RelationshipResolveView,
+    PushSubscribeView,
+    PushUnsubscribeView,
 )
 
 urlpatterns = [
@@ -57,4 +59,8 @@ urlpatterns = [
 
     # Homepage community feed
     path("community/", CommunityActivityView.as_view(), name="community-activity"),
+
+    # Web Push
+    path("push-subscribe/",   PushSubscribeView.as_view(),   name="push-subscribe"),
+    path("push-unsubscribe/", PushUnsubscribeView.as_view(), name="push-unsubscribe"),
 ]

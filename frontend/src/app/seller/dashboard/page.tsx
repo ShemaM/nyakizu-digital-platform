@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth-context";
 
 import { SellerHeader } from "@/components/seller-dashboard/SellerHeader";
 import { ShopStats } from "@/components/seller-dashboard/ShopStats";
+import { PendingActivity } from "@/components/seller-dashboard/PendingActivity";
 import { MetricCard } from "@/components/seller-dashboard/MetricCard";
 import { QuickActions } from "@/components/seller-dashboard/QuickActions";
 import { RecentOrders } from "@/components/seller-dashboard/RecentOrders";
@@ -99,33 +100,27 @@ export default function SellerDashboardPage() {
   return (
     <AppShell title="Dashboard">
       <Section spacing="md">
-        <Container size="xl" className="space-y-10">
-          {/* Greeting hero */}
+        <Container size="xl" className="space-y-8 sm:space-y-10">
+          {/* Greeting — plain text, no card chrome, like a native app's home screen */}
           <SellerHeader
             shopName={user?.seller_profile?.shop_name || user?.seller_profile?.store_name || "Nyakizu Shop"}
             sellerName={user?.full_name || user?.username || "Seller"}
-            location={user?.seller_profile?.location || "Location not set"}
             status={user?.seller_profile?.approval_status || "Approved"}
-            avatarUrl={user?.avatar_url}
+            location={user?.seller_profile?.location}
+            phoneNumber={user?.phone_number}
           />
 
-          {/* Key metrics — "how's business", separate from the action cards below.
-              Always shown, at a stable position, so the dashboard's layout
-              doesn't shift depending on data. */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <MetricCard Icon={ShoppingBag} label="Orders Pending" value={String(ordersPending)} hint="Submitted or being packed" />
-            <MetricCard Icon={Wallet} label="Money Made" value={fmtKES(totalRevenue)} hint="Collected so far, all time" tone="success" />
-            <MetricCard Icon={Layers} label="Products Live" value={String(activeProducts)} hint={`${totalProducts} total, ${draftProducts} hidden`} />
-          </div>
+          {/* What needs your attention — no heading, position alone says "act on this first" */}
+          <ShopStats newOrders={newOrders} newBuyerRequests={newBuyerRequests} moneyOwed={moneyOwed} />
 
-          {/* What needs your attention */}
+          {/* Pending activity — every open order and buyer request, split by
+              who has to act on it next: you, or the buyer. */}
           <div>
             <SectionHeading
-              eyebrow="Overview"
-              title="What needs your attention"
-              description="New orders, buyer requests, and money owed — all in one place."
+              title="Pending activity"
+              description="What's waiting on you, and what's waiting on your buyers."
             />
-            <ShopStats newOrders={newOrders} newBuyerRequests={newBuyerRequests} moneyOwed={moneyOwed} />
+            <PendingActivity orders={orderList} relationships={relationshipList} />
           </div>
 
           {/* Shortcuts */}
@@ -136,6 +131,22 @@ export default function SellerDashboardPage() {
               description="Quick links to what you use most."
             />
             <QuickActions />
+          </div>
+
+          {/* Key metrics — "how's business", further down since it's context
+              rather than something to act on. Always shown, at a stable
+              position, so the dashboard's layout doesn't shift with data. */}
+          <div>
+            <SectionHeading
+              eyebrow="Overview"
+              title="Business overview"
+              description="How orders, money, and stock look right now."
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <MetricCard Icon={ShoppingBag} label="Orders Pending" value={String(ordersPending)} hint="Submitted or being packed" />
+              <MetricCard Icon={Wallet} label="Money Made" value={fmtKES(totalRevenue)} hint="Collected so far, all time" tone="success" />
+              <MetricCard Icon={Layers} label="Products Live" value={String(activeProducts)} hint={`${totalProducts} total, ${draftProducts} hidden`} />
+            </div>
           </div>
 
           {/* Recent orders */}

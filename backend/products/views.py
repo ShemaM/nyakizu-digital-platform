@@ -6,7 +6,7 @@ from django.utils.text import slugify
 from rest_framework import generics, permissions, filters
 from rest_framework.exceptions import PermissionDenied
 from django.db.models import Q
-from accounts.permissions import IsAdminOrReadOnly, is_admin_user, is_approved_seller
+from accounts.permissions import IsAdminOrReadOnly, IsAdminOrApprovedSellerCanCreate, is_admin_user, is_approved_seller
 from .models import Category, Product
 from .serializers import (
     CategorySerializer, ProductSerializer,
@@ -17,7 +17,7 @@ from .serializers import (
 class CategoryListView(generics.ListCreateAPIView):
     queryset           = Category.objects.all()
     serializer_class   = CategorySerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [IsAdminOrApprovedSellerCanCreate]
 
     def perform_create(self, serializer):
         name = serializer.validated_data.get("name", "")
@@ -51,7 +51,9 @@ class ProductListView(generics.ListCreateAPIView):
     search_fields      = ["name", "description", "seller__username"]
 
     def get_queryset(self):
-        qs = Product.objects.select_related("category", "seller").filter(
+        qs = Product.objects.select_related("category", "seller").prefetch_related(
+            "attribute_values__attribute"
+        ).filter(
             status="available",
             seller__seller_profile__approval_status="approved",
         )
@@ -86,7 +88,9 @@ class ProductListView(generics.ListCreateAPIView):
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         user = self.request.user
-        base = Product.objects.select_related("category", "seller")
+        base = Product.objects.select_related("category", "seller").prefetch_related(
+            "attribute_values__attribute"
+        )
 
         if is_admin_user(user):
             return base.all()
@@ -126,4 +130,6 @@ class MyProductsView(generics.ListAPIView):
     def get_queryset(self):
         if self.request.user.role != "seller" and not is_admin_user(self.request.user):
             raise PermissionDenied("Only sellers can view seller inventory.")
-        return Product.objects.select_related("category", "seller").filter(seller=self.request.user)
+        return Product.objects.select_related("category", "seller").prefetch_related(
+            "attribute_values__attribute"
+        ).filter(seller=self.request.user)

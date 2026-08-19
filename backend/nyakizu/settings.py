@@ -155,12 +155,22 @@ if not DEBUG and not R2_BUCKET_NAME:
     )
 
 if R2_BUCKET_NAME:
+    # django-storages' S3Boto3Storage does NOT use Django's own MEDIA_URL to
+    # build file URLs — without 'custom_domain' here, .url() falls back to
+    # generating a presigned URL against 'endpoint_url' (R2's private,
+    # signed-access-only S3 API host), which a plain <img src="..."> can't
+    # load at all. custom_domain is what makes it build a public
+    # https://<custom_domain>/<key> URL instead.
+    _r2_public_url = config('R2_PUBLIC_URL').rstrip('/')
+    _r2_custom_domain = _r2_public_url.removeprefix('https://').removeprefix('http://')
+
     STORAGES = {
         'default': {
             'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage',
             'OPTIONS': {
                 'bucket_name': R2_BUCKET_NAME,
                 'endpoint_url': config('R2_ENDPOINT_URL'),  # https://<account_id>.r2.cloudflarestorage.com
+                'custom_domain': _r2_custom_domain,          # e.g. pub-xxxxxxxx.r2.dev — the public host actually used in file URLs
                 'access_key': config('R2_ACCESS_KEY_ID'),
                 'secret_key': config('R2_SECRET_ACCESS_KEY'),
                 'region_name': 'auto',
@@ -174,9 +184,7 @@ if R2_BUCKET_NAME:
             'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
         },
     }
-    # R2's own public bucket URL (or a custom domain mapped to it) — required
-    # so <img src="..."> tags don't point at the private R2 API endpoint.
-    MEDIA_URL = config('R2_PUBLIC_URL').rstrip('/') + '/'
+    MEDIA_URL = _r2_public_url + '/'
 else:
     STORAGES = {
         'default': {

@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useMemo, useState } from "react";
-import { Receipt, Package, Mail, Phone, MapPin, Briefcase, Store, AtSign } from "lucide-react";
+import { Receipt, Package, Mail, Phone, MapPin, Store, AtSign } from "lucide-react";
 import { AuthLayout } from "@/components/layouts";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -24,7 +24,6 @@ interface RegisterFormState {
   password: string;
   confirmPassword: string;
   location: string;
-  businessType: string;
   shopName: string;
 }
 
@@ -37,7 +36,6 @@ const INITIAL_FORM_STATE: RegisterFormState = {
   password: "",
   confirmPassword: "",
   location: "",
-  businessType: "",
   shopName: "",
 };
 
@@ -55,7 +53,7 @@ function buildRegisterPayload(form: RegisterFormState): RegisterPayload {
   if (form.role === "buyer") {
     return {
       ...base,
-      business_type: form.businessType,
+      business_type: "",
       main_supplier: "",
     };
   }
@@ -151,8 +149,8 @@ function RegisterForm() {
       e.preventDefault();
       setError("");
 
-      if (form.role === "buyer" && (!form.location || !form.businessType)) {
-        setError("Please fill in your location and business type.");
+      if (form.role === "buyer" && !form.location) {
+        setError("Please fill in your location.");
         return;
       }
 
@@ -404,33 +402,21 @@ function RegisterForm() {
       {((step === 3 && form.role === "buyer") || (step === 4 && form.role === "seller")) && (
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <p className="text-sm text-text-secondary">
-            {form.role === "buyer" ? "Tell us about your business. Then make a password." : "Last step. Make a password to keep your account safe."}
+            {form.role === "buyer" ? "Tell us where you are. Then make a password." : "Last step. Make a password to keep your account safe."}
           </p>
 
           {form.role === "buyer" && (
-            <>
-              <Input
-                label="Location"
-                type="text"
-                autoComplete="address-level2"
-                endAdornment={<MapPin className="w-4 h-4" />}
-                placeholder="e.g. Nairobi"
-                value={form.location}
-                onChange={(e) => updateField("location", e.target.value)}
-                className="h-12 bg-dark-secondary border-dark-accent text-base"
-                required
-              />
-              <Input
-                label="Business Type"
-                type="text"
-                endAdornment={<Briefcase className="w-4 h-4" />}
-                placeholder="e.g. Phone accessories reseller"
-                value={form.businessType}
-                onChange={(e) => updateField("businessType", e.target.value)}
-                className="h-12 bg-dark-secondary border-dark-accent text-base"
-                required
-              />
-            </>
+            <Input
+              label="Location"
+              type="text"
+              autoComplete="address-level2"
+              endAdornment={<MapPin className="w-4 h-4" />}
+              placeholder="e.g. Nairobi"
+              value={form.location}
+              onChange={(e) => updateField("location", e.target.value)}
+              className="h-12 bg-dark-secondary border-dark-accent text-base"
+              required
+            />
           )}
 
           <Input

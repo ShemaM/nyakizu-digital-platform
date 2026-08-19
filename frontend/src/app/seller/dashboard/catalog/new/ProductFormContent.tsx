@@ -240,7 +240,11 @@ export function ProductFormContent() {
         await products.create(payload, imageFile);
       }
 
-      // Navigate away smoothly without locking up the server-side cache router
+      // router.refresh() forces Next to drop its router cache for the
+      // catalog route — without it, navigating back can reuse the
+      // page's previous client-side state and keep showing the product
+      // as it looked before this edit (stale photo, price, etc.).
+      router.refresh();
       router.push("/seller/dashboard/catalog");
     } catch (err: any) {
       console.error("Caught form exception:", err);

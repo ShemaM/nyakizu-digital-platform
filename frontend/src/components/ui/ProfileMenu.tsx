@@ -43,7 +43,7 @@ export function ProfileMenu({ user, onLogout }: ProfileMenuProps) {
         aria-expanded={open}
         className="flex items-center gap-1.5 rounded-full pl-1 pr-2 py-1 hover:bg-slate-100 transition-colors cursor-pointer"
       >
-        <Avatar name={displayName} imageUrl={user.avatar_url} size="lg" />
+        <Avatar name={displayName} imageUrl={user.avatar_url} size="xl" />
         <ChevronDown
           size={14}
           className={cn("text-text-muted transition-transform duration-150", open && "rotate-180")}

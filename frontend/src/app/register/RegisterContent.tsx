@@ -6,7 +6,6 @@ import { AuthLayout } from "@/components/layouts";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert";
-import { GoogleButton } from "@/components/ui/GoogleButton";
 import { auth, type RegisterPayload } from "@/lib/api";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -271,22 +270,6 @@ function RegisterForm() {
               I sell many things to buyers. I track my orders and my money.
             </p>
           </button>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-dark-accent" />
-            </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="px-2 bg-white font-bold uppercase tracking-widest text-text-muted">or</span>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <GoogleButton label="Sign up with Google" />
-            <p className="text-center text-xs text-text-muted">
-              Google sign up makes a buyer account. To sell, tap &quot;I am a Seller&quot; above.
-            </p>
-          </div>
         </div>
       )}
 

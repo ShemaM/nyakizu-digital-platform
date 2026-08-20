@@ -118,7 +118,7 @@ function buildActivity(orders: ApiOrder[], relationships: ApiRelationship[]): { 
   return { onYou, onBuyer };
 }
 
-function ActivityList({ items, emptyText }: { items: ActivityItem[]; emptyText: string }) {
+function ActivityList({ items, emptyText, urgent }: { items: ActivityItem[]; emptyText: string; urgent?: boolean }) {
   if (items.length === 0) {
     return (
       <Card>
@@ -131,14 +131,22 @@ function ActivityList({ items, emptyText }: { items: ActivityItem[]; emptyText: 
   }
 
   return (
-    <Card className="overflow-hidden divide-y divide-slate-100">
+    <Card
+      className={`overflow-hidden divide-y ${urgent ? "divide-warning/10 ring-1 ring-warning/25" : "divide-slate-100"}`}
+    >
       {items.map((item) => (
         <Link
           key={item.id}
           href={item.href}
-          className="flex items-center gap-3 px-4 py-3 sm:px-5 hover:bg-slate-50 transition-colors"
+          className={`flex items-center gap-3 px-4 py-3 sm:px-5 transition-colors ${
+            urgent ? "hover:bg-warning/5" : "hover:bg-slate-50"
+          }`}
         >
-          <span className="flex items-center justify-center w-9 h-9 rounded-full bg-role-soft text-role shrink-0">
+          <span
+            className={`flex items-center justify-center w-9 h-9 rounded-full shrink-0 ${
+              urgent ? "bg-warning/15 text-warning" : "bg-role-soft text-role"
+            }`}
+          >
             <item.Icon size={16} />
           </span>
           <div className="flex-1 min-w-0">
@@ -158,10 +166,15 @@ export function PendingActivity({ orders, relationships }: PendingActivityProps)
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div>
-        <p className="text-xs font-black text-text-muted uppercase tracking-widest mb-2 px-1">
-          Waiting On You ({onYou.length})
+        <p className="flex items-center gap-2 mb-2 px-1">
+          <span className="text-xs font-black text-warning uppercase tracking-widest">Waiting On You</span>
+          {onYou.length > 0 && (
+            <span className="flex items-center justify-center min-w-4.5 h-4.5 px-1 rounded-full bg-warning text-white text-[11px] font-bold leading-none">
+              {onYou.length}
+            </span>
+          )}
         </p>
-        <ActivityList items={onYou} emptyText="Nothing needs you right now." />
+        <ActivityList items={onYou} emptyText="Nothing needs you right now." urgent />
       </div>
       <div>
         <p className="text-xs font-black text-text-muted uppercase tracking-widest mb-2 px-1">

@@ -1,5 +1,9 @@
 # Phase 3 — Google Sign-In
 
+## Removed (2026-08-20)
+- Google sign-in/sign-up wasn't working for the user in practice, so the frontend entry points were pulled: no more "Continue with Google" buttons on /login or /register, `/auth/google/done` deleted, privacy policy's Google mention removed.
+- Backend allauth wiring (`GOOGLE_CLIENT_ID`/`SECRET`, `SOCIALACCOUNT_PROVIDERS`, `accounts/google/login/` route) was left in place but is now unreachable from the UI — revisit if Google sign-in is wanted again later, or strip it out fully at that point.
+
 ## Done (code side — fully wired, waiting only on credentials)
 - [x] Backend: allauth Google provider now reads `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` from `backend/.env` (no DB SocialApp row needed); `SOCIALACCOUNT_LOGIN_ON_GET` sends users straight to Google
 - [x] Adapter: first-time Google users get `role=buyer`, `is_email_verified=True` (Google already verified the address — without this the buyer can sign in but not order), and a `BuyerProfile` (normally created by RegisterSerializer, which social signups bypass)

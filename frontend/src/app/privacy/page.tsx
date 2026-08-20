@@ -98,7 +98,6 @@ export default function PrivacyPage() {
               <ul className="list-disc pl-5 space-y-1.5">
                 <li>Cloud hosting providers, to run the website and store its database</li>
                 <li>An email delivery service, to send verification links and order notifications</li>
-                <li>Google, only if you choose to sign in with your Google account</li>
               </ul>
             </PolicySection>
 

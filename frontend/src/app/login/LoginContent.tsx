@@ -6,7 +6,6 @@ import { AuthLayout } from "@/components/layouts";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Alert, AlertDescription } from "@/components/ui/Alert";
-import { GoogleButton } from "@/components/ui/GoogleButton";
 import { auth, DJANGO_ADMIN_URL } from "@/lib/api";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -37,13 +36,6 @@ function LoginForm() {
   const { setSessionUser } = useAuth();
 
   const nextUrl = searchParams.get("next") || "";
-
-  // Set when the Google callback page couldn't find a signed-in session.
-  useEffect(() => {
-    if (searchParams.get("error") === "google") {
-      setError("Google sign in did not work. Please try again.");
-    }
-  }, [searchParams]);
 
   // Warm up the likely post-login destinations so the redirect after a
   // successful sign-in doesn't sit on a fresh route compile/fetch — most of
@@ -148,17 +140,6 @@ function LoginForm() {
           )}
         </Button>
       </form>
-
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-dark-accent" />
-        </div>
-        <div className="relative flex justify-center text-xs">
-          <span className="px-2 bg-white font-bold uppercase tracking-widest text-text-muted">or</span>
-        </div>
-      </div>
-
-      <GoogleButton label="Sign in with Google" />
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center">

@@ -114,11 +114,12 @@ export function CartPanel({
 
       {/* Ask the seller to source something not in their catalog */}
       <div className="pt-4 mt-1 border-t border-dashed border-slate-200">
-        <label className="block text-xs font-bold uppercase tracking-wide text-text-muted mb-2">
+        <label htmlFor="source-item-name" className="block text-xs font-bold uppercase tracking-wide text-text-muted mb-2">
           Can&apos;t find it? Ask us to source it
         </label>
         <div className="flex items-center gap-2">
           <input
+            id="source-item-name"
             type="text"
             value={sourceName}
             onChange={(e) => setSourceName(e.target.value)}
@@ -144,7 +145,7 @@ export function CartPanel({
             onClick={handleAddSourcingItem}
             disabled={!sourceName.trim()}
             aria-label="Add to order"
-            className="shrink-0 flex items-center justify-center w-11 h-11 rounded-xl bg-role-soft text-role disabled:opacity-40 disabled:pointer-events-none transition-opacity"
+            className="shrink-0 flex items-center justify-center w-11 h-11 rounded-xl bg-role-soft text-role-dark disabled:opacity-40 disabled:pointer-events-none transition-opacity"
           >
             <Plus size={18} />
           </button>

@@ -85,6 +85,7 @@ export function HelpContent() {
                 <Input
                   type="email"
                   autoComplete="email"
+                  aria-label="Email address"
                   placeholder="e.g. amani@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}

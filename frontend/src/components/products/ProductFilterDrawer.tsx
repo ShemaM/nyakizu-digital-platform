@@ -108,7 +108,7 @@ export function ProductFilterDrawer({
                     <span
                       className={cn(
                         "flex items-center justify-center w-5 h-5 rounded-md border-2 shrink-0 transition-colors",
-                        checked ? "bg-role border-role" : "border-slate-300"
+                        checked ? "bg-role-dark border-role-dark" : "border-slate-300"
                       )}
                     >
                       {checked && (
@@ -151,7 +151,7 @@ export function ProductFilterDrawer({
                   type="button"
                   onClick={handleCreateCategory}
                   disabled={!newCategoryName.trim() || creating}
-                  className="shrink-0 flex items-center gap-1 rounded-xl bg-role-soft text-role font-bold text-sm px-3 py-2.5 disabled:opacity-40 disabled:pointer-events-none transition-opacity"
+                  className="shrink-0 flex items-center gap-1 rounded-xl bg-role-soft text-role-dark font-bold text-sm px-3 py-2.5 disabled:opacity-40 disabled:pointer-events-none transition-opacity"
                 >
                   <Plus size={16} /> {creating ? "Adding…" : "Add"}
                 </button>
@@ -171,7 +171,7 @@ export function ProductFilterDrawer({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-full bg-role text-white font-bold text-sm py-3 shadow-md hover:opacity-90 transition-opacity"
+            className="flex-1 rounded-full bg-role-dark text-white font-bold text-sm py-3 shadow-md hover:opacity-90 transition-opacity"
           >
             Apply
           </button>

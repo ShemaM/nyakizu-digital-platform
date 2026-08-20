@@ -144,7 +144,7 @@ function ActivityList({ items, emptyText, urgent }: { items: ActivityItem[]; emp
         >
           <span
             className={`flex items-center justify-center w-9 h-9 rounded-full shrink-0 ${
-              urgent ? "bg-warning/15 text-warning" : "bg-role-soft text-role"
+              urgent ? "bg-warning/15 text-warning" : "bg-role-soft text-role-dark"
             }`}
           >
             <item.Icon size={16} />

@@ -64,21 +64,21 @@ export const ShopStats: React.FC<ShopStatsProps> = ({ newOrders, newBuyerRequest
         className={cn(
           "relative overflow-hidden flex items-center gap-4 rounded-2xl p-4 sm:p-5 transition-all hover:-translate-y-0.5 hover:shadow-md",
           moneyOwed > 0
-            ? "bg-red-50 border border-red-100 shadow-sm"
+            ? "bg-warning/10 border border-warning/20 shadow-sm"
             : "bg-white border border-slate-100 shadow-sm"
         )}
       >
-        <span className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-red-100/50" aria-hidden="true" />
+        <span className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-warning/10" aria-hidden="true" />
         <div
           className={cn(
             "relative w-11 h-11 rounded-full flex items-center justify-center shrink-0",
-            moneyOwed > 0 ? "bg-red-100 text-red-600" : "bg-success/10 text-success"
+            moneyOwed > 0 ? "bg-warning/10 text-warning" : "bg-success/10 text-success"
           )}
         >
           <Wallet className="w-5 h-5" />
         </div>
         <div className="relative min-w-0">
-          <p className={cn("text-xl sm:text-2xl font-black leading-tight tabular-nums", moneyOwed > 0 ? "text-red-600" : "text-text-primary")}>
+          <p className={cn("text-xl sm:text-2xl font-black leading-tight tabular-nums", moneyOwed > 0 ? "text-warning" : "text-text-primary")}>
             {moneyOwed > 0 ? fmtKES(moneyOwed) : "All paid up"}
           </p>
           <p className="text-xs sm:text-sm font-semibold text-text-muted mt-0.5">Money Owed</p>

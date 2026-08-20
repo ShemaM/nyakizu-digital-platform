@@ -44,9 +44,9 @@ export function OrderTracker({ steps, className }: OrderTrackerProps) {
                 className={cn(
                   "flex items-center justify-center w-9 h-9 sm:w-11 sm:h-11 rounded-full shrink-0 transition-colors",
                   step.current
-                    ? "bg-role text-white ring-4 ring-role/20"
+                    ? "bg-role-dark text-white ring-4 ring-role/20"
                     : step.done
-                    ? "bg-role text-white"
+                    ? "bg-role-dark text-white"
                     : "bg-slate-100 text-slate-300"
                 )}
               >

@@ -33,7 +33,7 @@ export function InstallPrompt() {
       role="complementary"
       aria-label="Install Nyakizu"
     >
-      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-role-soft text-role">
+      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-role-soft text-role-dark">
         <Download size={16} aria-hidden="true" />
       </div>
 
@@ -56,7 +56,7 @@ export function InstallPrompt() {
               await promptInstall();
               dismiss();
             }}
-            className="mt-2 rounded-lg bg-role px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+            className="mt-2 rounded-lg bg-role-dark px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
           >
             Add to Home Screen
           </button>

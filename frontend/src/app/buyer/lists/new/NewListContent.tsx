@@ -501,7 +501,7 @@ export function NewListContent() {
               onClick={() => selectOnlyCategory(null)}
               className={cn(
                 "shrink-0 rounded-full px-4 py-2 text-sm font-bold transition-colors",
-                selectedCategoryIds.size === 0 ? "bg-role text-white shadow-sm" : "bg-white border border-slate-200 text-text-secondary"
+                selectedCategoryIds.size === 0 ? "bg-role-dark text-white shadow-sm" : "bg-white border border-slate-200 text-text-secondary"
               )}
             >
               All
@@ -515,7 +515,7 @@ export function NewListContent() {
                   onClick={() => selectOnlyCategory(category.id)}
                   className={cn(
                     "shrink-0 rounded-full px-4 py-2 text-sm font-bold transition-colors",
-                    active ? "bg-role text-white shadow-sm" : "bg-white border border-slate-200 text-text-secondary"
+                    active ? "bg-role-dark text-white shadow-sm" : "bg-white border border-slate-200 text-text-secondary"
                   )}
                 >
                   {category.name} · {categoryCounts.get(category.id) ?? 0}
@@ -559,7 +559,7 @@ export function NewListContent() {
         <button
           type="button"
           onClick={() => setCartOpen(true)}
-          className="lg:hidden fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] left-4 right-4 z-30 flex items-center justify-between gap-3 rounded-2xl bg-role px-5 py-4 shadow-[0_12px_24px_-6px_rgb(var(--role)/0.5)]"
+          className="lg:hidden fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] left-4 right-4 z-30 flex items-center justify-between gap-3 rounded-2xl bg-role-dark px-5 py-4 shadow-[0_12px_24px_-6px_rgb(var(--role)/0.5)]"
         >
           <span className="flex items-center gap-2 text-white font-bold text-sm">
             <ShoppingCart size={18} />

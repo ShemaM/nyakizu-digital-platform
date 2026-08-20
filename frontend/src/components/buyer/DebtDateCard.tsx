@@ -58,7 +58,7 @@ export function DebtDateCard({ order, onOrderUpdated }: DebtDateCardProps) {
       <Card>
         <CardSection className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <span className="flex items-center justify-center w-9 h-9 rounded-full bg-role-soft text-role shrink-0">
+            <span className="flex items-center justify-center w-9 h-9 rounded-full bg-role-soft text-role-dark shrink-0">
               <CalendarClock size={16} />
             </span>
             <div className="min-w-0">
@@ -96,14 +96,15 @@ export function DebtDateCard({ order, onOrderUpdated }: DebtDateCardProps) {
   return (
     <Card>
       <CardSection>
-        <p className="text-label mb-1 flex items-center gap-2">
+        <label htmlFor="debt-pay-date" className="text-label mb-1 flex items-center gap-2">
           <CalendarClock size={14} className="text-role" /> When can you pay the rest?
-        </p>
+        </label>
         <p className="text-xs text-text-muted mb-3">
           This is just so we can keep good records. It is not to rush you. Pick any date that works for you.
         </p>
         <div className="flex items-center gap-2">
           <input
+            id="debt-pay-date"
             type="date"
             value={date}
             min={todayInputValue()}

@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Alert } from "@/components/ui/Alert";
 import { Search, MapPin, Store, UserPlus, Clock } from "lucide-react";
 import { sellers, relationships, type ApiSeller, type ApiRelationship, ApiError } from "@/lib/api";
-import { LoadingScreen } from "@/components/LoadingScreen";
+import { PageSkeleton } from "@/components/ui/LoadingState";
 
 export default function BuyerSuppliersPage() {
   const [supplierList, setSupplierList] = useState<ApiSeller[]>([]);
@@ -72,8 +72,8 @@ export default function BuyerSuppliersPage() {
   if (isLoading) {
     return (
       <DashboardLayout title="Suppliers">
-        <div className="flex items-center justify-center h-[60vh]">
-          <LoadingScreen />
+        <div className="p-4 sm:p-6">
+          <PageSkeleton showKPIs={false} listCount={4} />
         </div>
       </DashboardLayout>
     );
@@ -89,6 +89,7 @@ export default function BuyerSuppliersPage() {
         )}
 
         <Input
+          aria-label="Search suppliers"
           placeholder="Search suppliers..."
           icon={<Search className="w-4 h-4" />}
           value={searchQuery}

@@ -75,7 +75,7 @@ export function ProfileEditor({ user, onUserUpdate }: ProfileEditorProps) {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploadingAvatar}
-            className="absolute -bottom-1 -right-1 flex items-center justify-center w-9 h-9 rounded-full bg-role text-white border-2 border-white shadow-sm hover:opacity-90 disabled:opacity-60"
+            className="absolute -bottom-1 -right-1 flex items-center justify-center w-9 h-9 rounded-full bg-role-dark text-white border-2 border-white shadow-sm hover:opacity-90 disabled:opacity-60"
             aria-label="Change profile photo"
           >
             <Camera size={17} strokeWidth={2.5} />

@@ -40,7 +40,7 @@ export default function SellerAccountPage() {
       <div className="space-y-6 max-w-2xl mx-auto">
         {/* Header segment */}
         <div>
-          <h1 className="text-title font-black text-text-primary tracking-tight">Account</h1>
+          <h2 className="text-title font-black text-text-primary tracking-tight">Account</h2>
           <p className="text-caption text-text-muted mt-1">Your shop details and sign-in info.</p>
         </div>
 

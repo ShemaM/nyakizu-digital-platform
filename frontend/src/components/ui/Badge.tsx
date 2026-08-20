@@ -9,7 +9,7 @@ const badgeVariants = cva(
       variant: {
         default: "bg-slate-100 text-text-secondary",
         primary: "bg-info/12 text-info",
-        role: "bg-role-soft text-role",
+        role: "bg-role-soft text-role-dark",
         success: "bg-success/12 text-success",
         warning: "bg-warning/12 text-warning",
         error: "bg-error/12 text-error",

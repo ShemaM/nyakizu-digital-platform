@@ -87,24 +87,35 @@ body {
 [data-role="buyer"] {
   --role: 200 134 10; /* brand gold (#C8860A) — matches the logo mark */
   --role-soft: 248 240 226; /* warm gold-tinted cream */
+  --role-dark: 169 119 6; /* brand-gold-dark (#A97706) — AA-passing text/fill for white-on-role and role-on-role-soft pairings, which fail at the lighter --role */
 }
 
 [data-role="seller"] {
   --role: 200 134 10; /* brand gold (#C8860A) — matches the logo mark */
   --role-soft: 248 240 226; /* warm gold-tinted cream */
+  --role-dark: 169 119 6; /* brand-gold-dark (#A97706) */
 }
 
 [data-role="admin"] {
   --role: 51 65 85; /* slate-700 */
   --role-soft: 241 245 249; /* slate-100 */
+  --role-dark: 51 65 85; /* slate-700 already passes AA at both weights, so it doesn't need a separate dark value */
 }
 
 .text-role {
   color: rgb(var(--role, 37 99 235));
 }
 
+.text-role-dark {
+  color: rgb(var(--role-dark, 29 78 216));
+}
+
 .bg-role {
   background-color: rgb(var(--role, 37 99 235));
+}
+
+.bg-role-dark {
+  background-color: rgb(var(--role-dark, 29 78 216));
 }
 
 .bg-role-soft {
@@ -115,13 +126,17 @@ body {
   border-color: rgb(var(--role, 37 99 235));
 }
 
+.border-role-dark {
+  border-color: rgb(var(--role-dark, 29 78 216));
+}
+
 .btn-role-primary {
   @apply btn-base text-white active:scale-95 shadow-md hover:shadow-lg;
-  background-color: rgb(var(--role, 37 99 235));
+  background-color: rgb(var(--role-dark, 29 78 216));
 }
 
 .btn-role-primary:hover {
-  background-color: rgb(var(--role, 37 99 235) / 0.9);
+  background-color: rgb(var(--role-dark, 29 78 216) / 0.9);
 }
 
 /* Remove default focus outline; use custom ring-based focus */

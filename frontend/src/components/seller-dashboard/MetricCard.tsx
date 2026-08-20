@@ -10,7 +10,7 @@ interface MetricCardProps {
 }
 
 const TONE_CLASSES: Record<NonNullable<MetricCardProps["tone"]>, string> = {
-  role: "bg-role-soft text-role",
+  role: "bg-role-soft text-role-dark",
   success: "bg-success/12 text-success",
   warning: "bg-warning/12 text-warning",
   error: "bg-error/12 text-error",

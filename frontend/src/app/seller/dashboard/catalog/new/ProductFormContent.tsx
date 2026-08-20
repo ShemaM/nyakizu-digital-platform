@@ -292,9 +292,9 @@ export function ProductFormContent() {
         </button>
 
         <div>
-          <h1 className="text-title font-black text-text-primary tracking-tight">
+          <h2 className="text-title font-black text-text-primary tracking-tight">
             {isEditing ? "Edit Product" : "Add New Product"}
-          </h1>
+          </h2>
           <p className="text-caption text-text-muted mt-1">
             {isEditing ? "Update details for this item, one step at a time." : "Add a new item for buyers to see, one step at a time."}
           </p>
@@ -308,7 +308,7 @@ export function ProductFormContent() {
         </div>
 
         {error && (
-          <div className="bg-rose-50 border border-rose-200 text-rose-600 rounded-xl p-4 text-caption font-semibold flex items-center gap-2">
+          <div className="bg-error/10 border border-error/20 text-error rounded-xl p-4 text-caption font-semibold flex items-center gap-2">
             <AlertCircle size={16} /> <span>{error}</span>
           </div>
         )}
@@ -324,8 +324,9 @@ export function ProductFormContent() {
                 Example: <strong>&ldquo;iPhone 13 Pro Clear Case&rdquo;</strong> or <strong>&ldquo;Rice — 5kg bag&rdquo;</strong>
               </ExampleBox>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Product Name *</label>
+                <label htmlFor="product-name" className="text-xs font-bold text-text-secondary uppercase tracking-wider">Product Name *</label>
                 <input
+                  id="product-name"
                   type="text"
                   autoFocus
                   placeholder="e.g., iPhone 13 Pro Clear Case"
@@ -392,7 +393,7 @@ export function ProductFormContent() {
                           className={cn(
                             "px-3 py-1.5 rounded-full text-caption font-semibold border transition-all",
                             selected
-                              ? "border-role bg-role text-white"
+                              ? "border-role-dark bg-role-dark text-white"
                               : "border-slate-200 text-text-secondary hover:border-slate-300"
                           )}
                         >
@@ -446,11 +447,12 @@ export function ProductFormContent() {
                 <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleUploadChange} />
 
                 <div className="w-full space-y-1.5 pt-1">
-                  <label className="text-xs font-bold text-text-secondary uppercase tracking-wider flex items-center gap-1.5">
+                  <label htmlFor="product-image-link" className="text-xs font-bold text-text-secondary uppercase tracking-wider flex items-center gap-1.5">
                     <Link2 size={12} /> Or paste a link / image (Ctrl+V)
                   </label>
                   <div className="flex gap-2">
                     <input
+                      id="product-image-link"
                       type="text"
                       placeholder="Paste an image link here, or click here and press Ctrl+V"
                       value={linkInput}
@@ -492,8 +494,9 @@ export function ProductFormContent() {
               </ExampleBox>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Price (KES) *</label>
+                  <label htmlFor="product-price" className="text-xs font-bold text-text-secondary uppercase tracking-wider">Price (KES) *</label>
                   <input
+                    id="product-price"
                     type="number"
                     inputMode="decimal"
                     autoFocus
@@ -508,8 +511,9 @@ export function ProductFormContent() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Stock Quantity</label>
+                  <label htmlFor="product-stock" className="text-xs font-bold text-text-secondary uppercase tracking-wider">Stock Quantity</label>
                   <input
+                    id="product-stock"
                     type="number"
                     inputMode="numeric"
                     placeholder="0"
@@ -549,7 +553,7 @@ export function ProductFormContent() {
                       <div
                         className={cn(
                           "shrink-0 w-5 h-5 rounded-full border flex items-center justify-center mt-0.5",
-                          selected ? "border-role bg-role" : "border-slate-300"
+                          selected ? "border-role-dark bg-role-dark" : "border-slate-300"
                         )}
                       >
                         {selected && <Check size={12} className="text-white" strokeWidth={3} />}
@@ -576,8 +580,9 @@ export function ProductFormContent() {
                 Example: <strong>&ldquo;All green, pack of 5, waterproof&rdquo;</strong> or <strong>&ldquo;Available in S, M, L&rdquo;</strong>
               </ExampleBox>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Description</label>
+                <label htmlFor="product-description" className="text-xs font-bold text-text-secondary uppercase tracking-wider">Description</label>
                 <textarea
+                  id="product-description"
                   rows={4}
                   autoFocus
                   placeholder="Pack size, colours, or other details buyers should know..."

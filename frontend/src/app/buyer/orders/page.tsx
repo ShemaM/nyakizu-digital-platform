@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { orders, relationships, type ApiOrder, type ApiRelationship, fmtKES, ApiError } from "@/lib/api";
 import { getStatusLabel, getStatusVariant, orderTimelineSteps } from "@/lib/order-status";
-import { LoadingScreen } from "@/components/LoadingScreen";
+import { PageSkeleton } from "@/components/ui/LoadingState";
 import { cn } from "@/lib/cn";
 
 function MiniProgress({ status }: { status: string }) {
@@ -62,9 +62,7 @@ export default function BuyerOrdersPage() {
   if (isLoading) {
     return (
       <DashboardLayout title="Orders">
-        <div className="flex items-center justify-center h-[60vh]">
-          <LoadingScreen />
-        </div>
+        <PageSkeleton showKPIs={false} listCount={4} />
       </DashboardLayout>
     );
   }

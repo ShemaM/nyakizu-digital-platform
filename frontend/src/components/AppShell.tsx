@@ -91,7 +91,7 @@ export function AppShell({
                     className={cn(
                       "flex items-center gap-2 rounded-lg px-4 py-2.5 text-body-lg font-medium transition-colors duration-150",
                       active
-                        ? "bg-role-soft text-role"
+                        ? "bg-role-soft text-role-dark"
                         : "text-text-muted hover:text-text-primary hover:bg-slate-100"
                     )}
                   >

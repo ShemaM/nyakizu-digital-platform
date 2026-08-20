@@ -357,8 +357,9 @@ export default function FulfillOrderPage() {
             <span className="font-semibold text-text-secondary">{fmtKES(knownItemsSubtotal)}</span>
           </div>
           <div className="space-y-1.5 pt-1 border-t border-slate-100">
-            <label className="text-xs font-bold text-text-primary">Total to charge (KES)</label>
+            <label htmlFor="final-total" className="text-xs font-bold text-text-primary">Total to charge (KES)</label>
             <input
+              id="final-total"
               type="number"
               value={finalTotal}
               onChange={(e) => {
@@ -432,8 +433,9 @@ export default function FulfillOrderPage() {
             error={payTouched ? payRefError ?? undefined : undefined}
           />
           <div className="space-y-1">
-            <label className="text-label">How They Paid</label>
+            <label htmlFor="pay-method" className="text-label">How They Paid</label>
             <select
+              id="pay-method"
               value={payMethod}
               onChange={(e) => setPayMethod(e.target.value)}
               className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-text-primary"

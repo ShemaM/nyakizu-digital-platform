@@ -360,12 +360,13 @@ export default function SellerLedger() {
                           <div className="shrink-0 flex flex-col items-stretch sm:items-end gap-2">
                             {!isCleared && (
                               <Button
-                                size="lg"
+                                variant={pendingClaims.length > 0 ? "outline" : "default"}
+                                size={pendingClaims.length > 0 ? "sm" : "lg"}
                                 className="gap-1.5"
                                 loading={openingPayId === order.id}
                                 onClick={() => openPay(order)}
                               >
-                                <CheckCircle size={16} /> Record Payment
+                                <CheckCircle size={16} /> {pendingClaims.length > 0 ? "Record a different payment" : "Record Payment"}
                               </Button>
                             )}
                             {order.status === "debt_active" && (
@@ -453,8 +454,9 @@ export default function SellerLedger() {
               placeholder="SAB2XYZ123"
             />
             <div className="space-y-1">
-              <label className="text-label">Payment Method</label>
+              <label htmlFor="ledger-pay-method" className="text-label">Payment Method</label>
               <select
+                id="ledger-pay-method"
                 value={payMethod}
                 onChange={(e) => setPayMethod(e.target.value)}
                 className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-text-primary"

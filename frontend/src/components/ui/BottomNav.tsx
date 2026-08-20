@@ -31,7 +31,7 @@ export function BottomNav() {
               <span
                 className={cn(
                   "flex items-center justify-center w-9 h-9 rounded-full transition-colors duration-150",
-                  active ? "bg-role" : ""
+                  active ? "bg-role-dark" : ""
                 )}
               >
                 <Icon size={19} strokeWidth={active ? 2.5 : 1.8} className={active ? "text-white" : "text-white/50"} aria-hidden="true" />

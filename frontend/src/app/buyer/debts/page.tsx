@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { orders, type ApiOrder, fmtKES, parsePrice, ApiError } from "@/lib/api";
-import { LoadingScreen } from "@/components/LoadingScreen";
+import { PageSkeleton } from "@/components/ui/LoadingState";
 import { AlertCircle, RefreshCw, Wallet } from "lucide-react";
 
 export default function BuyerDebts() {
@@ -47,8 +47,8 @@ export default function BuyerDebts() {
   if (isLoading) {
     return (
       <DashboardLayout title="What You Owe">
-        <div className="flex items-center justify-center h-[60vh]">
-          <LoadingScreen />
+        <div className="p-4 sm:p-6">
+          <PageSkeleton showKPIs={false} listCount={3} />
         </div>
       </DashboardLayout>
     );

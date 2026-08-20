@@ -17,7 +17,6 @@ import { MetricCard } from "@/components/seller-dashboard/MetricCard";
 import { QuickActions } from "@/components/seller-dashboard/QuickActions";
 import { RecentOrders } from "@/components/seller-dashboard/RecentOrders";
 import { SalesInsights } from "@/components/seller-dashboard/SalesInsights";
-import { ProductSummary } from "@/components/seller-dashboard/ProductSummary";
 
 export default function SellerDashboardPage() {
   const { user } = useAuth();
@@ -64,11 +63,11 @@ export default function SellerDashboardPage() {
   if (error) {
     return (
       <AppShell title="Dashboard">
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center m-4 sm:m-6">
-          <p className="text-red-700 font-medium mb-3">{error}</p>
+        <div className="bg-error/10 border border-error/20 rounded-2xl p-6 text-center m-4 sm:m-6">
+          <p className="text-error font-medium mb-3">{error}</p>
           <button
             onClick={loadDashboardData}
-            className="flex items-center gap-1.5 text-xs font-semibold text-red-700 hover:text-red-800 cursor-pointer mx-auto bg-red-100 px-4 py-2 rounded-lg"
+            className="flex items-center gap-1.5 text-xs font-semibold text-error hover:text-error/80 cursor-pointer mx-auto bg-error/10 px-4 py-2 rounded-lg"
           >
             <RefreshCw size={14} /> Try Again
           </button>
@@ -125,11 +124,7 @@ export default function SellerDashboardPage() {
 
           {/* Shortcuts */}
           <div>
-            <SectionHeading
-              eyebrow="Shortcuts"
-              title="Manage your shop"
-              description="Quick links to what you use most."
-            />
+            <SectionHeading eyebrow="Shortcuts" title="Manage your shop" />
             <QuickActions />
           </div>
 
@@ -137,13 +132,9 @@ export default function SellerDashboardPage() {
               rather than something to act on. Always shown, at a stable
               position, so the dashboard's layout doesn't shift with data. */}
           <div>
-            <SectionHeading
-              eyebrow="Overview"
-              title="Business overview"
-              description="How orders, money, and stock look right now."
-            />
+            <SectionHeading eyebrow="Overview" title="Business overview" />
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <MetricCard Icon={ShoppingBag} label="Orders Pending" value={String(ordersPending)} hint="Submitted or being packed" />
+              <MetricCard Icon={ShoppingBag} label="In Progress" value={String(ordersPending)} hint="Submitted or being packed" />
               <MetricCard Icon={Wallet} label="Money Made" value={fmtKES(totalRevenue)} hint="Collected so far, all time" tone="success" />
               <MetricCard Icon={Layers} label="Products Live" value={String(activeProducts)} hint={`${totalProducts} total, ${draftProducts} hidden`} />
             </div>
@@ -153,9 +144,8 @@ export default function SellerDashboardPage() {
           <div>
             <SectionHeading
               title="Recent orders"
-              description="Your last 5 orders, newest first — tap one to open it, or the receipt icon for its invoice."
               action={
-                <Link href="/seller/dashboard/orders" className="inline-flex items-center gap-1 text-sm font-bold text-role hover:opacity-80">
+                <Link href="/seller/dashboard/orders" className="inline-flex items-center gap-1 text-sm font-bold text-role-dark hover:opacity-80">
                   View all orders <ArrowRight size={14} />
                 </Link>
               }
@@ -165,14 +155,8 @@ export default function SellerDashboardPage() {
 
           {/* Sales insights */}
           <div>
-            <SectionHeading title="Sales" description="How sales look by day, and who's buying." />
+            <SectionHeading title="Sales" description="Pick a day to see who bought and how much." />
             <SalesInsights orders={orderList} />
-          </div>
-
-          {/* Catalog snapshot */}
-          <div>
-            <SectionHeading title="Your products" description="How your product list looks right now." />
-            <ProductSummary total={totalProducts} active={activeProducts} draft={draftProducts} />
           </div>
         </Container>
       </Section>

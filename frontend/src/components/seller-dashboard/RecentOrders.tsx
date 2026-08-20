@@ -61,7 +61,7 @@ export const RecentOrders: React.FC<RecentOrdersProps> = ({ orders }) => {
             href={`/seller/dashboard/orders/${order.id}/fulfill`}
             className="flex items-center gap-4 flex-1 min-w-0"
           >
-            <Avatar name={buyerDisplayName(order)} size="lg" colorClassName="bg-role" className="shrink-0" />
+            <Avatar name={buyerDisplayName(order)} size="lg" colorClassName="bg-role-dark" className="shrink-0" />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-body font-bold text-text-primary truncate">{buyerDisplayName(order)}</p>

@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { CategoryFilter } from "@/components/CategoryFilter";
 import { sellers, products, categories, relationships, type ApiSeller, type ApiProduct, type ApiCategory, type ApiRelationship, fmtKES, ApiError } from "@/lib/api";
-import { LoadingScreen } from "@/components/LoadingScreen";
+import { CardSkeleton, ListSkeleton } from "@/components/ui/LoadingState";
 import { useToast } from "@/components/ui/Toast";
 
 export default function StorefrontPage() {
@@ -119,8 +119,9 @@ export default function StorefrontPage() {
   if (isLoading) {
     return (
       <AppShell title="Store">
-        <div className="flex items-center justify-center h-[60vh]">
-          <LoadingScreen />
+        <div className="space-y-4 p-4">
+          <CardSkeleton showAvatar lines={2} />
+          <ListSkeleton count={4} showAvatar lines={0} />
         </div>
       </AppShell>
     );
@@ -256,7 +257,7 @@ export default function StorefrontPage() {
           <button
             type="button"
             onClick={() => setShowProducts(true)}
-            className="w-full flex items-center justify-between gap-3 rounded-2xl bg-role px-5 py-4 text-left shadow-[0_8px_20px_-8px_rgb(var(--role)/0.5)] hover:opacity-95 active:scale-[0.99] transition-all"
+            className="w-full flex items-center justify-between gap-3 rounded-2xl bg-role-dark px-5 py-4 text-left shadow-[0_8px_20px_-8px_rgb(var(--role)/0.5)] hover:opacity-95 active:scale-[0.99] transition-all"
           >
             <span className="flex items-center gap-3 min-w-0">
               <span className="shrink-0 w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">

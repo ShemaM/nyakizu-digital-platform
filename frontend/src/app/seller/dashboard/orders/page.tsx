@@ -74,7 +74,7 @@ export default function SellerOrdersPage() {
           />
 
           {error && (
-            <div className="bg-rose-50 border border-rose-200 text-rose-600 rounded-xl p-4 text-caption font-semibold flex items-center gap-2">
+            <div className="bg-error/10 border border-error/20 text-error rounded-xl p-4 text-caption font-semibold flex items-center gap-2">
               <AlertCircle size={16} /> {error}
             </div>
           )}

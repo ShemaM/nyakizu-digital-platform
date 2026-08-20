@@ -36,7 +36,7 @@ export function Timeline({ steps, className }: TimelineProps) {
               className={cn(
                 "relative z-10 flex items-center justify-center w-6 h-6 rounded-full shrink-0",
                 step.current
-                  ? "bg-role text-white ring-4 ring-role/20 animate-pulse"
+                  ? "bg-role-dark text-white ring-4 ring-role/20 animate-pulse"
                   : step.done
                   ? "bg-success text-white"
                   : "bg-slate-100 text-slate-300"

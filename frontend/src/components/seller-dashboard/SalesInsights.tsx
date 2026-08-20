@@ -1,10 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { fmtKES, parsePrice, type ApiOrder } from "@/lib/api";
-import { buyerDisplayName } from "@/lib/order-status";
-import { RecentOrders } from "./RecentOrders";
+import { Avatar } from "@/components/ui/Avatar";
+import { Badge } from "@/components/ui/Badge";
+import { getStatusLabel, getStatusVariant, buyerDisplayName } from "@/lib/order-status";
 
 interface SalesInsightsProps {
   orders: ApiOrder[];
@@ -40,6 +42,24 @@ function topBy(orders: ApiOrder[], extract: (order: ApiOrder) => { key: string; 
     .map(([key, value]) => ({ key, value }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 5);
+}
+
+/** A denser single line per order — used only inside the Sales card, so this day's orders
+    don't visually repeat the full RecentOrders card already shown in the section above. */
+function DayOrderRow({ order }: { order: ApiOrder }) {
+  return (
+    <Link
+      href={`/seller/dashboard/orders/${order.id}/fulfill`}
+      className="flex items-center gap-3 py-2.5 -mx-2 px-2 rounded-lg hover:bg-slate-50 transition-colors"
+    >
+      <Avatar name={buyerDisplayName(order)} size="sm" colorClassName="bg-role-dark" className="shrink-0" />
+      <span className="flex-1 min-w-0 text-sm font-semibold text-text-primary truncate">{buyerDisplayName(order)}</span>
+      <Badge variant={getStatusVariant(order.status)}>{getStatusLabel(order.status)}</Badge>
+      <span className="text-sm font-black text-text-primary tabular-nums shrink-0">
+        {fmtKES(parsePrice(order.final_total ?? order.total_price))}
+      </span>
+    </Link>
+  );
 }
 
 function RankedList({ title, rows, unit }: { title: string; rows: { key: string; value: number }[]; unit: "money" | "count" }) {
@@ -170,7 +190,14 @@ export function SalesInsights({ orders }: SalesInsightsProps) {
         </p>
       ) : (
         <>
-          <RecentOrders orders={dayOrders} />
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-text-muted mb-1">This day&apos;s orders</p>
+            <div className="divide-y divide-slate-100">
+              {dayOrders.map((order) => (
+                <DayOrderRow key={order.id} order={order} />
+              ))}
+            </div>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2 border-t border-slate-100">
             <RankedList title="Best-selling products" rows={topProducts} unit="count" />
             <RankedList title="Buyers who ordered" rows={topBuyers} unit="count" />

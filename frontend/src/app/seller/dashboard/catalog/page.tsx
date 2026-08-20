@@ -203,7 +203,7 @@ export default function SellerCatalogPage() {
                 <button
                   type="button"
                   onClick={copyStoreLink}
-                  className="shrink-0 flex items-center gap-1.5 bg-role text-white text-xs font-bold rounded-lg px-3 py-2 hover:opacity-90 transition-opacity"
+                  className="shrink-0 flex items-center gap-1.5 bg-role-dark text-white text-xs font-bold rounded-lg px-3 py-2 hover:opacity-90 transition-opacity"
                 >
                   <Copy size={13} /> Copy
                 </button>
@@ -218,7 +218,7 @@ export default function SellerCatalogPage() {
               onClick={() => selectOnlyCategory(null)}
               className={cn(
                 "shrink-0 rounded-full px-4 py-2 text-sm font-bold transition-colors",
-                selectedCategoryIds.size === 0 ? "bg-role text-white shadow-sm" : "bg-white border border-slate-200 text-text-secondary"
+                selectedCategoryIds.size === 0 ? "bg-role-dark text-white shadow-sm" : "bg-white border border-slate-200 text-text-secondary"
               )}
             >
               All
@@ -232,7 +232,7 @@ export default function SellerCatalogPage() {
                   onClick={() => selectOnlyCategory(category.id)}
                   className={cn(
                     "shrink-0 rounded-full px-4 py-2 text-sm font-bold transition-colors",
-                    active ? "bg-role text-white shadow-sm" : "bg-white border border-slate-200 text-text-secondary"
+                    active ? "bg-role-dark text-white shadow-sm" : "bg-white border border-slate-200 text-text-secondary"
                   )}
                 >
                   {category.name} · {categoryCounts.get(category.id) ?? 0}
@@ -251,7 +251,7 @@ export default function SellerCatalogPage() {
               <p className="text-2xl font-black text-text-primary mt-1.5 tabular-nums">{productList.length}</p>
             </div>
             <div className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4">
-              <div className="flex items-center gap-1.5 text-amber-600">
+              <div className="flex items-center gap-1.5 text-warning">
                 <AlertTriangle size={14} aria-hidden="true" />
                 <span className="text-xs font-bold uppercase tracking-wider">Low Stock</span>
               </div>
@@ -260,7 +260,7 @@ export default function SellerCatalogPage() {
           </div>
 
           {error && (
-            <div className="bg-rose-50 border border-rose-200 text-rose-600 rounded-xl p-4 text-caption font-semibold flex items-center gap-2">
+            <div className="bg-error/10 border border-error/20 text-error rounded-xl p-4 text-caption font-semibold flex items-center gap-2">
               <AlertCircle size={16} /> {error}
             </div>
           )}
@@ -306,7 +306,7 @@ export default function SellerCatalogPage() {
         type="button"
         onClick={() => router.push("/seller/dashboard/catalog/new")}
         aria-label="Add a product"
-        className="fixed right-5 bottom-24 lg:bottom-8 z-30 w-14 h-14 rounded-full bg-role text-white shadow-[0_12px_24px_-6px_rgb(var(--role)/0.5)] flex items-center justify-center hover:opacity-90 active:scale-95 transition-all"
+        className="fixed right-5 bottom-24 lg:bottom-8 z-30 w-14 h-14 rounded-full bg-role-dark text-white shadow-[0_12px_24px_-6px_rgb(var(--role)/0.5)] flex items-center justify-center hover:opacity-90 active:scale-95 transition-all"
         style={{ marginBottom: "env(safe-area-inset-bottom)" }}
       >
         <Plus size={26} strokeWidth={2.5} />
@@ -360,7 +360,7 @@ function ProductCard({ product, storePath, menuOpen, onOpenMenu, onCloseMenu, on
       : product.status === "draft"
       ? { label: "Hidden", classes: "bg-slate-700 text-white" }
       : lowStock
-      ? { label: "Low Stock", classes: "bg-amber-500 text-white" }
+      ? { label: "Low Stock", classes: "bg-warning text-white" }
       : { label: "In Stock", classes: "bg-success text-white" };
 
   return (
@@ -415,7 +415,7 @@ function ProductCard({ product, storePath, menuOpen, onOpenMenu, onCloseMenu, on
           <button
             type="button"
             onClick={onEdit}
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-role-soft text-role font-bold text-sm py-2.5 hover:opacity-80 transition-opacity"
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-role-soft text-role-dark font-bold text-sm py-2.5 hover:opacity-80 transition-opacity"
           >
             <Edit2 size={14} /> Edit
           </button>
@@ -423,7 +423,7 @@ function ProductCard({ product, storePath, menuOpen, onOpenMenu, onCloseMenu, on
             type="button"
             onClick={menuOpen ? onCloseMenu : onOpenMenu}
             aria-label="More options"
-            className="shrink-0 w-10 h-10 rounded-xl bg-role-soft text-role flex items-center justify-center hover:opacity-80 transition-opacity"
+            className="shrink-0 w-10 h-10 rounded-xl bg-role-soft text-role-dark flex items-center justify-center hover:opacity-80 transition-opacity"
           >
             <MoreVertical size={16} />
           </button>

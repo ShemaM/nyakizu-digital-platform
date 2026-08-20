@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { CheckCircle, Clock, Download } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { orders, type ApiOrder, fmtKES, parsePrice, ApiError } from "@/lib/api";
-import { LoadingScreen } from "@/components/LoadingScreen";
+import { CardSkeleton } from "@/components/ui/LoadingState";
 
 function formatDateTime(iso?: string): string {
   if (!iso) return "—";
@@ -87,8 +87,8 @@ export default function ReceiptPage() {
 
   if (isLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-surface">
-        <LoadingScreen />
+      <main className="min-h-screen bg-surface px-4 py-8">
+        <CardSkeleton className="mx-auto max-w-md" lines={6} showAvatar={false} />
       </main>
     );
   }
@@ -152,7 +152,7 @@ export default function ReceiptPage() {
               </p>
             </div>
             {isCleared && (
-              <span className="flex shrink-0 items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-700">
+              <span className="flex shrink-0 items-center gap-1 rounded-full bg-success/10 px-2.5 py-1 text-xs font-bold text-success">
                 <CheckCircle size={12} />
                 Paid in full
               </span>
@@ -248,20 +248,20 @@ export default function ReceiptPage() {
                     )}
                   </p>
                 </div>
-                <span className="shrink-0 font-black text-green-700">{fmtKES(paid)}</span>
+                <span className="shrink-0 font-black text-success">{fmtKES(paid)}</span>
               </div>
             </div>
 
             <div className="mt-3 space-y-1 border-t border-dashed border-slate-200 pt-3">
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500">Total paid</span>
-                <span className="font-semibold text-green-700">{fmtKES(paid)}</span>
+                <span className="font-semibold text-success">{fmtKES(paid)}</span>
               </div>
               <div className="flex justify-between text-sm font-black">
-                <span className={balance > 0 ? "text-amber-700" : "text-green-700"}>
+                <span className={balance > 0 ? "text-warning" : "text-success"}>
                   {balance > 0 ? "Balance remaining" : "Fully settled"}
                 </span>
-                <span className={balance > 0 ? "text-amber-700" : "text-green-700"}>
+                <span className={balance > 0 ? "text-warning" : "text-success"}>
                   {fmtKES(balance)}
                 </span>
               </div>

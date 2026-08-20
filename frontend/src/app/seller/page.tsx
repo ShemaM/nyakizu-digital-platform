@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 export default function SellerPage() {
   const router = useRouter();
@@ -10,5 +11,5 @@ export default function SellerPage() {
     router.replace("/seller/dashboard");
   }, [router]);
 
-  return null;
+  return <LoadingScreen />;
 }

@@ -171,7 +171,7 @@ export function PackingChecklist({ orderId, items, interactive, onOrderUpdated }
                       className={cn(
                         "flex items-center gap-1 text-[11px] font-bold px-2 py-1.5 rounded-lg transition-colors shrink-0",
                         isNotFound
-                          ? "bg-role-soft text-role hover:opacity-80"
+                          ? "bg-role-soft text-role-dark hover:opacity-80"
                           : "bg-error/10 text-error hover:bg-error/15"
                       )}
                     >
@@ -213,7 +213,7 @@ export function PackingChecklist({ orderId, items, interactive, onOrderUpdated }
                     type="button"
                     onClick={() => handleSetPrice(item)}
                     disabled={isSavingPrice || !priceDrafts[item.id]}
-                    className="shrink-0 rounded-lg bg-role text-white text-xs font-bold px-3 py-2 disabled:opacity-40 disabled:pointer-events-none transition-opacity"
+                    className="shrink-0 rounded-lg bg-role-dark text-white text-xs font-bold px-3 py-2 disabled:opacity-40 disabled:pointer-events-none transition-opacity"
                   >
                     {isSavingPrice ? "Saving…" : "Set price"}
                   </button>

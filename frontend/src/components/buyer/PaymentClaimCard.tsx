@@ -96,8 +96,9 @@ export function PaymentClaimCard({ order, balance, onOrderUpdated }: PaymentClai
 
         <div className="space-y-2.5">
           <div>
-            <label className="text-xs font-bold text-text-primary block mb-1">Amount You Paid (KES)</label>
+            <label htmlFor="claim-amount" className="text-xs font-bold text-text-primary block mb-1">Amount You Paid (KES)</label>
             <input
+              id="claim-amount"
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
@@ -105,8 +106,9 @@ export function PaymentClaimCard({ order, balance, onOrderUpdated }: PaymentClai
             />
           </div>
           <div>
-            <label className="text-xs font-bold text-text-primary block mb-1">M-Pesa Code</label>
+            <label htmlFor="claim-reference" className="text-xs font-bold text-text-primary block mb-1">M-Pesa Code</label>
             <input
+              id="claim-reference"
               type="text"
               value={reference}
               onChange={(e) => setReference(e.target.value.toUpperCase())}

@@ -13,9 +13,9 @@ interface InlineBannerProps {
 const TONE_STYLES: Record<BannerTone, string> = {
   locked: "bg-slate-900 border-slate-900 text-white",
   saved: "bg-amber-50 border-amber-200 text-amber-700",
-  info: "bg-blue-50 border-blue-200 text-blue-700",
-  success: "bg-green-50 border-green-200 text-green-700",
-  warning: "bg-amber-50 border-amber-200 text-amber-700",
+  info: "bg-info/10 border-info/20 text-info",
+  success: "bg-success/10 border-success/20 text-success",
+  warning: "bg-warning/10 border-warning/20 text-warning",
   offline: "bg-slate-100 border-slate-200 text-text-secondary",
 };
 

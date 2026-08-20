@@ -89,7 +89,7 @@ export function DebtStage({ order, items, onOrderUpdated, amountPaid, balance, p
 
           <Link
             href="/seller/dashboard/ledger"
-            className="w-full flex items-center justify-center gap-1.5 rounded-xl font-black text-sm py-3 h-auto mt-4 bg-role text-white hover:opacity-90 transition-opacity"
+            className="w-full flex items-center justify-center gap-1.5 rounded-xl font-black text-sm py-3 h-auto mt-4 bg-role-dark text-white hover:opacity-90 transition-opacity"
           >
             Go to Payments <ArrowRight size={16} />
           </Link>

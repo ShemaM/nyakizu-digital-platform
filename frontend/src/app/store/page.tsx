@@ -81,7 +81,7 @@ export default async function StoreDirectoryPage() {
                 >
                   <div className="flex items-start justify-between">
                     <StoreMark name={storeLabel} size="md" />
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2.5 py-1 text-xs font-bold text-success">
                       <ShieldCheck size={12} aria-hidden="true" />
                       Approved
                     </span>

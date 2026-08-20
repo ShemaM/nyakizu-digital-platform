@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, MapPin, ShoppingBag, Store } from "lucide-react";
+import { ArrowRight, MapPin, Store } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { StoreMark } from "@/components/ui/StoreMark";
 import { sellers, products } from "@/lib/api";
@@ -44,7 +44,7 @@ export default async function PublicStorePage({ params }: { params: Promise<{ sl
           </div>
           <p className="mt-4 text-title font-black text-slate-950">Store not found</p>
           <p className="mt-1 text-body text-slate-500">This store link is not active.</p>
-          <Link href="/" className="mt-5 inline-flex text-body font-bold text-blue-700 hover:underline">
+          <Link href="/" className="mt-5 inline-flex text-body font-bold text-info hover:underline">
             Go back home
           </Link>
         </div>
@@ -118,7 +118,7 @@ export default async function PublicStorePage({ params }: { params: Promise<{ sl
                 </div>
               </div>
               <div className="relative grid gap-2 sm:min-w-64">
-                <Link href="/login" className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-body font-black text-white transition hover:bg-blue-700">
+                <Link href="/login" className="inline-flex items-center justify-center gap-2 rounded-lg bg-info px-4 py-3 text-body font-black text-white transition hover:bg-info/90">
                   Sign in to order
                   <ArrowRight size={16} />
                 </Link>
@@ -137,15 +137,8 @@ export default async function PublicStorePage({ params }: { params: Promise<{ sl
           </div>
         </div>
 
-        <div className="mt-6">
+        <div className="mt-6 mb-8">
           <StoreProducts products={storeProducts} />
-        </div>
-
-        <div className="py-8 text-center">
-          <Link href="/register" className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-body font-black text-white shadow-[0_12px_24px_rgba(37,99,235,0.18)] transition hover:bg-blue-700">
-            <ShoppingBag size={16} />
-            Create account to order
-          </Link>
         </div>
       </section>
     </main>

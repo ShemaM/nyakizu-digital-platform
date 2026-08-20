@@ -56,7 +56,7 @@ export function PushNotificationToggle() {
   return (
     <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-6 flex items-center justify-between gap-4">
       <div className="flex items-center gap-3 min-w-0">
-        <span className="flex items-center justify-center w-10 h-10 rounded-full bg-role-soft text-role shrink-0">
+        <span className="flex items-center justify-center w-10 h-10 rounded-full bg-role-soft text-role-dark shrink-0">
           {subscribed ? <BellRing size={18} /> : <Bell size={18} />}
         </span>
         <div className="min-w-0">

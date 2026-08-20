@@ -93,11 +93,11 @@ export default function BuyerDashboard() {
   if (error) {
     return (
       <DashboardLayout title="Dashboard">
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center m-4 sm:m-6">
-          <p className="text-red-700 font-medium mb-3">{error}</p>
+        <div className="bg-error/10 border border-error/20 rounded-2xl p-6 text-center m-4 sm:m-6">
+          <p className="text-error font-medium mb-3">{error}</p>
           <button
             onClick={() => loadDashboardData()}
-            className="flex items-center gap-1.5 text-xs font-semibold text-red-700 hover:text-red-800 cursor-pointer mx-auto bg-red-100 px-4 py-2 rounded-lg"
+            className="flex items-center gap-1.5 text-xs font-semibold text-error hover:text-error/80 cursor-pointer mx-auto bg-error/10 px-4 py-2 rounded-lg"
           >
             <RefreshCw size={14} /> Try Again
           </button>
@@ -144,7 +144,7 @@ export default function BuyerDashboard() {
             />
             <div className="relative flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-white">{greeting}, {firstName}</h1>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white">{greeting}, {firstName}</h2>
                 <p className="text-sm text-white/80 mt-1.5">
                   Here&apos;s what&apos;s happening with your trade today.
                 </p>

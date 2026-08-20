@@ -32,7 +32,7 @@ export function QuantityStepper({ qty, onDecrease, onIncrease, disabled, classNa
         onClick={onIncrease}
         disabled={disabled}
         aria-label="Increase quantity"
-        className="w-11 h-11 rounded-full bg-role text-white flex items-center justify-center hover:opacity-90 disabled:bg-slate-200 disabled:text-slate-400 cursor-pointer disabled:cursor-not-allowed shadow-sm transition-colors"
+        className="w-11 h-11 rounded-full bg-role-dark text-white flex items-center justify-center hover:opacity-90 disabled:bg-slate-200 disabled:text-slate-400 cursor-pointer disabled:cursor-not-allowed shadow-sm transition-colors"
       >
         <Plus size={15} />
       </button>

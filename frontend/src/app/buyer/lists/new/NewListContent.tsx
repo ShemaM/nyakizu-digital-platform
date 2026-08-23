@@ -20,6 +20,12 @@ import { products, categories, orders, relationships, type ApiProduct, type ApiC
 import { offlineDB } from "@/lib/offline-db";
 import { cn } from "@/lib/cn";
 
+// After this many failed attempts in a row, stop retrying an order
+// automatically when the connection comes back — it's probably failing for
+// a real reason (an item no longer available, etc.), not a bad connection.
+// "Send now" still always tries it again: that's the user explicitly asking.
+const MAX_AUTO_RETRIES = 3;
+
 /**
  * Shown when /buyer/lists/new is opened with no ?id= — happens whenever a
  * buyer starts an order from the dashboard hero/quick-action instead of a
@@ -118,6 +124,7 @@ export function NewListContent() {
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== "undefined" ? navigator.onLine : true);
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "done" | "failed">("idle");
   const [pendingCount, setPendingCount] = useState(0);
+  const [stuckCount, setStuckCount] = useState(0);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -148,11 +155,15 @@ export function NewListContent() {
     };
   }, []);
 
-  // Auto-sync when coming back online
-  const syncQueued = useCallback(async () => {
+  // Auto-sync when coming back online. manual=true (the "Send now" button)
+  // also retries orders that already failed and hit the auto-retry cap —
+  // otherwise a stuck order had no way to ever leave the queue.
+  const syncQueued = useCallback(async (manual = false) => {
     if (!isOnline) return;
     const queued = await offlineDB.getQueuedOrders();
-    const pending = queued.filter((q) => q.status === "pending");
+    const pending = queued.filter(
+      (q) => q.status === "pending" || (q.status === "failed" && (manual || (q.retryCount ?? 0) < MAX_AUTO_RETRIES))
+    );
     if (pending.length === 0) return;
 
     setSyncStatus("syncing");
@@ -168,7 +179,7 @@ export function NewListContent() {
         await offlineDB.removeQueued(order.id);
       } catch (err) {
         console.error("Sync failed for order:", order.id, err);
-        await offlineDB.updateQueuedStatus(order.id, "failed", err instanceof ApiError ? err.message : "Sync failed");
+        await offlineDB.updateQueuedStatus(order.id, "failed", err instanceof ApiError ? err.message : "Could not send.");
       }
     }
     setSyncStatus("done");
@@ -185,6 +196,7 @@ export function NewListContent() {
   const updatePendingCount = async () => {
     const queued = await offlineDB.getQueuedOrders();
     setPendingCount(queued.filter((q) => q.status === "pending" || q.status === "failed").length);
+    setStuckCount(queued.filter((q) => q.status === "failed" && (q.retryCount ?? 0) >= MAX_AUTO_RETRIES).length);
   };
 
   useEffect(() => {
@@ -483,12 +495,17 @@ export function NewListContent() {
 
           {/* Pending orders count */}
           {pendingCount > 0 && (
-            <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-xl px-3 py-2.5">
+            <div className={cn(
+              "flex items-center gap-2 rounded-xl px-3 py-2.5 border",
+              stuckCount > 0 ? "bg-amber-50 border-amber-200" : "bg-slate-100 border-slate-200"
+            )}>
               <CloudOff size={14} className="text-text-muted shrink-0" />
               <p className="text-xs text-text-secondary">
-                {pendingCount} order{pendingCount !== 1 ? "s" : ""} waiting to send.
+                {stuckCount > 0
+                  ? `${stuckCount} order${stuckCount !== 1 ? "s" : ""} did not send. Tap Send now to try again.`
+                  : `${pendingCount} order${pendingCount !== 1 ? "s" : ""} waiting to send.`}
               </p>
-              <Button variant="ghost" size="sm" className="ml-auto text-xs h-6 px-2" onClick={syncQueued} disabled={!isOnline}>
+              <Button variant="ghost" size="sm" className="ml-auto text-xs h-6 px-2" onClick={() => syncQueued(true)} disabled={!isOnline}>
                 <RefreshCw size={12} className="mr-1" /> Send now
               </Button>
             </div>

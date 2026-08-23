@@ -4,6 +4,30 @@ import type { NextConfig } from "next";
 // reading the same env var rather than duplicating the URL.
 const BACKEND_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/api\/?$/, "");
 
+// Static (no-nonce) CSP — see Next.js's own "Without Nonces" guidance. A
+// nonce-based policy would be stricter but forces every page into dynamic
+// rendering (no ISR/static generation for the catalog/store pages), which
+// isn't a trade-off to make silently; 'unsafe-inline' is the documented
+// fallback for apps that keep static rendering. img-src stays broad (https:)
+// because product/avatar photos are served from R2's own domain, which
+// isn't known to the frontend build (only the Django backend has R2_PUBLIC_URL).
+const isDev = process.env.NODE_ENV === "development";
+const CSP = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' https: data: blob:",
+  "font-src 'self'",
+  "connect-src 'self' https://*.ingest.sentry.io https://*.ingest.us.sentry.io",
+  "worker-src 'self'",
+  "manifest-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+  "upgrade-insecure-requests",
+].join("; ");
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Every /api/ call in lib/api.ts already ends in a trailing slash,
@@ -49,6 +73,20 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      {
+        // Every response gets these — defense-in-depth headers the app had
+        // none of before. X-Frame-Options is redundant with frame-ancestors
+        // in the CSP above for modern browsers, but costs nothing to keep
+        // for the handful that only understand the older header.
+        source: "/(.*)",
+        headers: [
+          { key: "Content-Security-Policy", value: CSP },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+        ],
+      },
       {
         // Still a static public/sw.js — see scripts/build-sw.mjs — so it
         // needs these headers manually. app/manifest.ts, by contrast, is a

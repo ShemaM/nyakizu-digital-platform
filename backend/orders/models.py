@@ -32,6 +32,15 @@ class Order(models.Model):
         ('cancelled',   'Cancelled'),       # order cancelled
     ]
 
+    # Shared with PaymentRecord.method below, so a payment's method and the
+    # order-level summary field can never drift into two different choice sets.
+    PAYMENT_METHOD_CHOICES = [
+        ('', '—'),
+        ('mpesa', 'M-Pesa'),
+        ('cash', 'Cash'),
+        ('bank_transfer', 'Bank Transfer'),
+    ]
+
     buyer = models.ForeignKey(
         CustomUser,
         on_delete=models.CASCADE,
@@ -71,12 +80,7 @@ class Order(models.Model):
     last_debt_reminder_at = models.DateField(null=True, blank=True)
     payment_method = models.CharField(
         max_length=20,
-        choices=[
-            ('', '—'),
-            ('mpesa', 'M-Pesa'),
-            ('cash', 'Cash'),
-            ('bank_transfer', 'Bank Transfer'),
-        ],
+        choices=PAYMENT_METHOD_CHOICES,
         default='',
         blank=True,
     )
@@ -252,3 +256,39 @@ class PaymentClaim(models.Model):
 
     def __str__(self):
         return f"{self.reference} — KES {self.amount} for Order #{self.order_id}"
+
+
+class PaymentRecord(models.Model):
+    """
+    One row per confirmed payment recorded against an order — written by
+    RecordPaymentView alongside its usual update to Order.amount_paid /
+    payment_reference (those two stay as a cheap running-total/latest-
+    reference for reads elsewhere; this is the append-only source of truth
+    behind them). Two jobs: the unique constraint below rejects a duplicate
+    POST — a network retry or double-click resubmitting the exact same
+    payment — instead of silently crediting it twice, and it gives a seller
+    who was paid in installments a real history instead of just whatever
+    reference happened to be typed in most recently.
+    """
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='payment_records')
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    reference = models.CharField(max_length=100, blank=True, help_text="M-Pesa txn code or other ref")
+    method = models.CharField(max_length=20, choices=Order.PAYMENT_METHOD_CHOICES, default='', blank=True)
+    recorded_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='+')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        constraints = [
+            # Blank references (cash payments, mostly) are exempt — only a
+            # real, non-empty reference should block a repeat of itself.
+            models.UniqueConstraint(
+                fields=['order', 'reference'],
+                condition=models.Q(reference__gt=''),
+                name='unique_order_payment_reference',
+            ),
+        ]
+
+    def __str__(self):
+        return f"KES {self.amount} for Order #{self.order_id}"

@@ -2,7 +2,7 @@
 
 from django.contrib import admin
 from unfold.admin import ModelAdmin, TabularInline
-from .models import Order, OrderItem, OrderStatusEvent
+from .models import Order, OrderItem, OrderStatusEvent, PaymentRecord
 
 
 class OrderItemInline(TabularInline):
@@ -34,13 +34,28 @@ class OrderStatusEventInline(TabularInline):
         return False
 
 
+class PaymentRecordInline(TabularInline):
+    """Read-only per-order payment ledger — append-only audit log."""
+    model = PaymentRecord
+    extra = 0
+    can_delete = False
+    fields = ('amount', 'reference', 'method', 'recorded_by', 'created_at')
+    readonly_fields = fields
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(Order)
 class OrderAdmin(ModelAdmin):
     list_display = ('id', 'buyer', 'status', 'total_price', 'is_flagged', 'created_at')
     list_filter = ('status', 'is_flagged')
     search_fields = ('buyer__username',)
     list_select_related = ('buyer',)
-    inlines = [OrderItemInline, OrderStatusEventInline]
+    inlines = [OrderItemInline, OrderStatusEventInline, PaymentRecordInline]
 
 
 @admin.register(OrderStatusEvent)
@@ -49,6 +64,21 @@ class OrderStatusEventAdmin(ModelAdmin):
     list_display  = ('order', 'status', 'created_at')
     list_filter   = ('status',)
     search_fields = ('order__id', 'order__buyer__username')
+    ordering      = ('-created_at',)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(PaymentRecord)
+class PaymentRecordAdmin(ModelAdmin):
+    """Append-only audit log — browsable, but not editable/creatable here."""
+    list_display  = ('order', 'amount', 'reference', 'method', 'recorded_by', 'created_at')
+    list_filter   = ('method',)
+    search_fields = ('order__id', 'order__buyer__username', 'reference')
     ordering      = ('-created_at',)
 
     def has_add_permission(self, request):

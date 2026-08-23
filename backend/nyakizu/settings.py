@@ -9,7 +9,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ── Security ──────────────────────────────────────────────────────────────────
 SECRET_KEY = config('SECRET_KEY', default='dev-insecure-key-change-in-production')
-DEBUG      = config('DEBUG', default=True, cast=bool)
+# Fails closed: an absent/misconfigured DEBUG env var must never leave a
+# deploy running in debug mode with CSRF/HSTS/secure-cookie checks relaxed.
+# Local dev sets DEBUG=True explicitly in backend/.env, so this only changes
+# behavior for the "env var forgotten" case.
+DEBUG      = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
 if not DEBUG and SECRET_KEY == 'dev-insecure-key-change-in-production':
@@ -41,6 +45,7 @@ INSTALLED_APPS = [
 
     # Third-party
     'rest_framework',
+    'drf_spectacular',
     'corsheaders',
     'storages',  # only actually used when R2_BUCKET_NAME is set — see STORAGES below
     'anymail',   # only actually used when RESEND_API_KEY is set — see EMAIL_BACKEND below
@@ -59,6 +64,10 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    # No-op unless ADMIN_ALLOWED_IPS is set — see admin_security.py. Placed
+    # right after SecurityMiddleware so a blocked /admin/ request short-
+    # circuits before session/CSRF middleware does any work on it.
+    'nyakizu.admin_security.AdminIPAllowlistMiddleware',
     # Serves collected static files directly from the app process — no
     # separate CDN/static host needed, which is what makes single-service
     # free-tier hosting (Render, Railway, Fly.io, ...) work for a Django
@@ -342,15 +351,20 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
-    # CsrfExemptSessionAuthentication skips CSRF enforcement so Next.js
-    # can call the API during development without needing a CSRF token.
-    # Switch back to standard SessionAuthentication in production with HTTPS.
+    # CSRF is always enforced (see api.ts's fetchWithSession, which primes
+    # the csrftoken cookie via GET /api/csrf/ and sends it back as
+    # X-CSRFToken on every unsafe request) — it must never be conditioned
+    # on DEBUG, since that flag can be wrong in a misconfigured deploy.
+    # BasicAuthentication was removed here: this API is cookie/session-only
+    # (see api.ts), and Basic's per-request username+password on every call
+    # isn't covered by the dedicated `login` throttle scope — it's a second,
+    # less-limited door into the same accounts.
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'nyakizu.auth.CsrfExemptSessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     # BrowsableAPIRenderer is a dev convenience (an HTML page instead of raw
     # JSON) whose templates pull in static assets (bootstrap.min.css etc.)
     # via the manifest-based staticfiles storage below — if collectstatic
@@ -360,7 +374,7 @@ REST_FRAMEWORK = {
     # failure mode entirely: plain JSON responses never touch static files.
     'DEFAULT_RENDERER_CLASSES': (
         ['rest_framework.renderers.JSONRenderer', 'rest_framework.renderers.BrowsableAPIRenderer']
-        if config('DEBUG', default=True, cast=bool)
+        if DEBUG
         else ['rest_framework.renderers.JSONRenderer']
     ),
     # Global request-volume limits (by IP for anonymous, by user once
@@ -379,9 +393,20 @@ REST_FRAMEWORK = {
     },
 }
 
+# ── API docs (drf-spectacular) ───────────────────────────────────────────────
+# Served at /api/schema/ (raw OpenAPI) and /api/docs/ (Swagger UI) — see
+# nyakizu/urls.py. No separate auth: same session/CSRF as the rest of the API,
+# so the browsable UI can only actually execute requests once you're logged in.
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Nyakizu API',
+    'DESCRIPTION': 'Buyer/seller marketplace API — accounts, products, orders.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
+
 # ── CORS ──────────────────────────────────────────────────────────────────────
 # EXTRA_CORS_ORIGINS / EXTRA_CSRF_ORIGINS: comma-separated, for the deployed
-# frontend origin(s) — e.g. https://nyakizu.vercel.app. The localhost dev
+# frontend origin(s) — e.g. https://www.nyakizudigital.me. The localhost dev
 # ports stay allowed in every environment so local dev against a deployed
 # backend still works; add production origins on top rather than replacing.
 _dev_frontend_origins = [

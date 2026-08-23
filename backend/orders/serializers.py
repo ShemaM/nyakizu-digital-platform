@@ -4,13 +4,22 @@ orders/serializers.py
 Serializers for orders and order items.
 """
 
+from datetime import timedelta
+
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import serializers
 from accounts.permissions import is_verified_buyer
 from accounts.models import SellerProfile, BuyerSellerRelationship
-from .models import Order, OrderItem, OrderStatusEvent, PaymentClaim
+from .models import Order, OrderItem, OrderStatusEvent, PaymentClaim, PaymentRecord
 from .notifications import record_status_event
 from products.models import Product
+
+# A double-click or a network retry resubmitting the same "place order" POST
+# is the realistic failure mode here — not two legitimate orders to the same
+# seller a second apart. A short cooldown catches the former without getting
+# in the way of the latter (just wait a moment and resubmit).
+DUPLICATE_ORDER_WINDOW = timedelta(seconds=20)
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -69,6 +78,17 @@ class PaymentClaimSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class PaymentRecordSerializer(serializers.ModelSerializer):
+    """One confirmed payment from the ledger — the buyer/seller-facing payment history."""
+
+    recorded_by_username = serializers.CharField(source='recorded_by.username', read_only=True, default=None)
+
+    class Meta:
+        model = PaymentRecord
+        fields = ('id', 'amount', 'reference', 'method', 'recorded_by_username', 'created_at')
+        read_only_fields = fields
+
+
 class OrderSerializer(serializers.ModelSerializer):
     """Full order representation including all line items."""
 
@@ -82,6 +102,7 @@ class OrderSerializer(serializers.ModelSerializer):
     is_payment_late = serializers.BooleanField(read_only=True)
     status_history = OrderStatusEventSerializer(source='status_events', many=True, read_only=True)
     payment_claims = PaymentClaimSerializer(many=True, read_only=True)
+    payment_history = PaymentRecordSerializer(source='payment_records', many=True, read_only=True)
 
     def get_buyer_full_name(self, obj):
         return obj.buyer.get_full_name() or obj.buyer.username
@@ -120,7 +141,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'expected_payment_date', 'is_payment_late',
             'delivery_address', 'buyer_notes', 'sourcing_notes',
             'is_flagged', 'flag_reason', 'flagged_at',
-            'items', 'status_history', 'payment_claims', 'created_at', 'updated_at',
+            'items', 'status_history', 'payment_claims', 'payment_history', 'created_at', 'updated_at',
         )
         read_only_fields = (
             'id', 'buyer', 'seller', 'total_price', 'created_at', 'updated_at', 'balance', 'is_payment_late',
@@ -163,6 +184,14 @@ class OrderCreateSerializer(serializers.Serializer):
         except SellerProfile.DoesNotExist:
             raise serializers.ValidationError({"seller_id": "Seller not found."})
         seller_user = seller_store.user
+
+        if Order.objects.filter(
+            buyer=user, seller=seller_user,
+            created_at__gte=timezone.now() - DUPLICATE_ORDER_WINDOW,
+        ).exists():
+            raise serializers.ValidationError(
+                "You just placed an order with this seller — give it a moment before submitting another."
+            )
 
         is_approved_buyer = BuyerSellerRelationship.objects.filter(
             buyer=user, seller=seller_store, status="approved"

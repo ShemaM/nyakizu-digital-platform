@@ -30,6 +30,7 @@ pnpm-debug.log*
 .env.local
 .env.*.local
 !*.env.example
+cookies.txt
 
 # --- OS / editor ---
 .DS_Store

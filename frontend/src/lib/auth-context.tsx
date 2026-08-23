@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { auth, primeCsrf, type User } from "@/lib/api";
+import { offlineDB } from "@/lib/offline-db";
 
 interface AuthContextType {
   user: User | null;
@@ -43,6 +44,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // ignore runtime logout errors safely
     } finally {
+      try {
+        await offlineDB.clearAll();
+      } catch {
+        // best-effort — IndexedDB can be unavailable (private browsing, etc.)
+      }
       setUser(null);
       setIsLoading(false);
     }

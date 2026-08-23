@@ -3,7 +3,7 @@ import re
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.validators import UnicodeUsernameValidator
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from .models import CustomUser, BuyerProfile, SellerProfile, BuyerStoreFollow, BuyerSellerRelationship
 
 PHONE_RE = re.compile(r"^\+?[0-9 ()-]{7,20}$")
@@ -83,30 +83,40 @@ class RegisterSerializer(serializers.Serializer):
         full_name = validated_data["full_name"].strip()
         parts     = full_name.split(" ", 1)
 
-        user = CustomUser.objects.create_user(
-            username=validated_data["username"],
-            email=validated_data["email"],
-            first_name=parts[0],
-            last_name=parts[1] if len(parts) > 1 else "",
-            phone_number=validated_data.get("phone", ""),
-            password=validated_data["password"],
-            role=role,
-            is_email_verified=False,
-        )
-
-        if role == "seller":
-            SellerProfile.objects.create(
-                user=user,
-                store_name=validated_data["shop_name"],
-                location=validated_data.get("shop_location", ""),
-                categories=validated_data.get("categories", []),
+        try:
+            user = CustomUser.objects.create_user(
+                username=validated_data["username"],
+                email=validated_data["email"],
+                first_name=parts[0],
+                last_name=parts[1] if len(parts) > 1 else "",
+                phone_number=validated_data.get("phone", ""),
+                password=validated_data["password"],
+                role=role,
+                is_email_verified=False,
             )
-        else:
-            BuyerProfile.objects.create(
-                user=user,
-                location=validated_data.get("location", ""),
-                main_supplier=validated_data.get("main_supplier", ""),
-                business_type=validated_data.get("business_type", ""),
+
+            if role == "seller":
+                SellerProfile.objects.create(
+                    user=user,
+                    store_name=validated_data["shop_name"],
+                    location=validated_data.get("shop_location", ""),
+                    categories=validated_data.get("categories", []),
+                )
+            else:
+                BuyerProfile.objects.create(
+                    user=user,
+                    location=validated_data.get("location", ""),
+                    main_supplier=validated_data.get("main_supplier", ""),
+                    business_type=validated_data.get("business_type", ""),
+                )
+        except IntegrityError:
+            # validate_email/username/phone above already checked for
+            # duplicates, but that check and this insert aren't atomic with
+            # each other — two concurrent registrations for the same email
+            # can both pass validation and race to this insert. Without this,
+            # the loser gets a raw 500 instead of a normal validation error.
+            raise serializers.ValidationError(
+                {"email": "An account with these details already exists. Please sign in instead."}
             )
 
         return user
@@ -221,6 +231,10 @@ class BuyerProfileSerializer(serializers.ModelSerializer):
 
 
 class SellerProfileSerializer(serializers.ModelSerializer):
+    """Full seller profile, including the owner's personal email/phone via
+    the nested UserSerializer. Only for the store owner themselves or an
+    admin reviewing an application — never for anonymous/public requests.
+    See PublicSellerProfileSerializer for the buyer-facing version."""
     user = UserSerializer(read_only=True)
 
     class Meta:
@@ -234,6 +248,32 @@ class SellerProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "approval_status", "is_live", "created_at")
 
 
+class PublicSellerUserSerializer(serializers.ModelSerializer):
+    """The subset of a seller's account safe to show to any site visitor —
+    no email or phone number (those are personal contact details, not the
+    M-Pesa payment numbers on SellerProfile, which are meant to be public)."""
+    full_name = serializers.SerializerMethodField()
+    avatar_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = CustomUser
+        fields = ("id", "username", "full_name", "avatar_url", "date_joined")
+
+    def get_full_name(self, obj):
+        return obj.get_full_name() or obj.username
+
+    def get_avatar_url(self, obj):
+        if not obj.avatar:
+            return None
+        request = self.context.get("request")
+        return request.build_absolute_uri(obj.avatar.url) if request else obj.avatar.url
+
+
+class PublicSellerProfileSerializer(SellerProfileSerializer):
+    """Store page as shown to buyers/anonymous visitors. Same fields as
+    SellerProfileSerializer, but with the seller's personal email/phone
+    stripped out of the nested user object."""
+    user = PublicSellerUserSerializer(read_only=True)
 
 
 class BuyerStoreFollowSerializer(serializers.ModelSerializer):

@@ -24,6 +24,7 @@ from .serializers import (
     ProfileUpdateSerializer,
     BuyerProfileSerializer,
     SellerProfileSerializer,
+    PublicSellerProfileSerializer,
     BuyerStoreFollowSerializer,
     CommunityActivitySerializer,
     BuyerSellerRelationshipSerializer,
@@ -368,7 +369,7 @@ class SellerProfileListView(generics.ListAPIView):
     its owner's username (used by the public /store/[slug] page).
     Lists only approved (live) stores. Public.
     """
-    serializer_class   = SellerProfileSerializer
+    serializer_class   = PublicSellerProfileSerializer
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
@@ -381,12 +382,20 @@ class SellerProfileListView(generics.ListAPIView):
 
 class SellerProfileDetailView(generics.RetrieveUpdateAPIView):
     """GET/PATCH /api/accounts/sellers/<id>/"""
-    serializer_class = SellerProfileSerializer
 
     def get_permissions(self):
         if self.request.method == "GET":
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
+
+    def get_serializer_class(self):
+        # GET is public (AllowAny) — never return the owner's personal
+        # email/phone to an anonymous or unrelated caller. PATCH is only
+        # ever reachable by the store's own owner or an admin (see
+        # get_queryset below), so echoing the full profile back is fine.
+        if self.request.method == "GET":
+            return PublicSellerProfileSerializer
+        return SellerProfileSerializer
 
     def get_queryset(self):
         user = self.request.user

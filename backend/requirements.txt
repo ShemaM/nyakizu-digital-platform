@@ -1,5 +1,6 @@
 django==5.2.17
 djangorestframework==3.16.0
+drf-spectacular==0.30.0
 django-cors-headers==4.7.0
 python-decouple==3.8
 django-allauth==65.19.1
@@ -7,9 +8,9 @@ django-unfold==0.78.1
 Pillow==12.3.0
 
 # Required by django-allauth Google OAuth provider
-requests>=2.34
-PyJWT>=2.8
-cryptography>=41.0
+requests==2.34.2
+PyJWT==2.11.0
+cryptography==46.0.5
 
 # Production: WSGI server, Postgres driver, DATABASE_URL parsing, static file serving
 gunicorn==23.0.0

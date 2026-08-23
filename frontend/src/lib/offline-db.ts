@@ -28,6 +28,11 @@ interface QueuedOrder {
   createdAt: number;
   status: "pending" | "syncing" | "synced" | "failed";
   error?: string;
+  // How many times this has failed in a row. Only read by automatic
+  // (connection-restored) retries, to stop hammering an order that keeps
+  // failing for a real reason — a manual "Send now" tap always tries
+  // regardless, since that's the user explicitly asking again.
+  retryCount?: number;
 }
 
 function openDB(): Promise<IDBDatabase> {
@@ -133,7 +138,8 @@ export const offlineDB = {
     });
     if (existing) {
       existing.status = status;
-      if (error) existing.error = error;
+      existing.error = status === "failed" ? error : undefined;
+      existing.retryCount = status === "failed" ? (existing.retryCount ?? 0) + 1 : 0;
       await new Promise<void>((resolve, reject) => {
         const req = store.put(existing);
         req.onsuccess = () => resolve();
@@ -151,6 +157,28 @@ export const offlineDB = {
       const req = store.delete(id);
       req.onsuccess = () => resolve();
       req.onerror = () => reject(req.error);
+    });
+    db.close();
+  },
+
+  // ── Logout ──────────────────────────────────────────────────────────────────
+
+  /**
+   * Wipes drafts and the sync queue. This app is used from shared/kiosk-style
+   * devices (see sw-src/sw.ts), so a buyer's unsynced draft list can't be
+   * allowed to sit in IndexedDB — readable by whoever logs in next on the
+   * same device — after they've logged out. Called from auth-context's
+   * logout(); any not-yet-synced order in the queue at that point is lost,
+   * which is the correct trade-off for this threat model.
+   */
+  async clearAll(): Promise<void> {
+    const db = await openDB();
+    const tx = db.transaction([STORE_DRAFTS, STORE_QUEUE], "readwrite");
+    tx.objectStore(STORE_DRAFTS).clear();
+    tx.objectStore(STORE_QUEUE).clear();
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
     });
     db.close();
   },

@@ -8,7 +8,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from accounts.models import CustomUser, BuyerProfile, SellerProfile, BuyerSellerRelationship
-from orders.models import Order, OrderStatusEvent
+from orders.models import Order, OrderStatusEvent, PaymentRecord
 from products.models import Category, Product
 
 
@@ -238,6 +238,44 @@ class OrderNotificationTests(TestCase):
             OrderStatusEvent.objects.filter(order_id=order_id).order_by("created_at").values_list("status", flat=True)
         )
         self.assertEqual(events[-2:], ["debt_active", "cleared"])
+
+    def test_duplicate_payment_reference_is_not_double_credited(self):
+        """A retried/double-clicked pay request with the same reference must
+        not credit amount_paid twice — see PaymentRecord's unique constraint."""
+        self.client.force_authenticate(self.buyer)
+        create_response = self.client.post(
+            "/api/orders/",
+            {"items": [{"product_id": self.product.id, "quantity": 1}], "seller_id": self.store.id},
+            format="json",
+        )
+        order_id = create_response.data["id"]
+
+        self.client.force_authenticate(self.seller)
+        self.client.patch(f"/api/orders/{order_id}/", {"status": "sourcing"}, format="json")
+        self.client.patch(f"/api/orders/{order_id}/", {"status": "locked", "final_total": "850.00"}, format="json")
+
+        payload = {"amount": "500.00", "payment_reference": "QWERTY123"}
+        first = self.client.post(f"/api/orders/{order_id}/pay/", payload, format="json")
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(Decimal(first.data["amount_paid"]), Decimal("500.00"))
+
+        # Same request again — a network retry or a double-click, not a
+        # second real payment.
+        retry = self.client.post(f"/api/orders/{order_id}/pay/", payload, format="json")
+        self.assertEqual(retry.status_code, 200)
+        self.assertEqual(Decimal(retry.data["amount_paid"]), Decimal("500.00"))  # unchanged, not 1000
+
+        self.assertEqual(PaymentRecord.objects.filter(order_id=order_id).count(), 1)
+
+        # A genuinely different payment (new reference) still goes through.
+        second = self.client.post(
+            f"/api/orders/{order_id}/pay/",
+            {"amount": "350.00", "payment_reference": "ASDFGH456"},
+            format="json",
+        )
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(Decimal(second.data["amount_paid"]), Decimal("850.00"))
+        self.assertEqual(PaymentRecord.objects.filter(order_id=order_id).count(), 2)
 
     def test_cancelling_order_logs_event_and_emails_buyer(self):
         self.client.force_authenticate(self.buyer)

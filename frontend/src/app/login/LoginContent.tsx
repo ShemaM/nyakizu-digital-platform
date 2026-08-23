@@ -36,6 +36,10 @@ function LoginForm() {
   const { setSessionUser } = useAuth();
 
   const nextUrl = searchParams.get("next") || "";
+  // "/" alone isn't enough — "//evil.example" and "/\evil.example" both pass
+  // that check yet browsers treat them as off-site (protocol-relative) URLs.
+  const isSafeRedirect = (path: string) =>
+    path.startsWith("/") && !path.startsWith("//") && !path.startsWith("/\\");
 
   // Warm up the likely post-login destinations so the redirect after a
   // successful sign-in doesn't sit on a fresh route compile/fetch — most of
@@ -61,7 +65,7 @@ function LoginForm() {
       }
 
       const roleHome = user.role === "seller" ? "/seller/dashboard" : "/buyer";
-      const redirectTo = nextUrl && nextUrl.startsWith("/") ? nextUrl : roleHome;
+      const redirectTo = isSafeRedirect(nextUrl) ? nextUrl : roleHome;
 
       router.push(redirectTo);
       // Deliberately leave `loading` true here — we're navigating away, and

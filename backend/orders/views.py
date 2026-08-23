@@ -7,12 +7,12 @@ from rest_framework import generics, permissions, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.db.models import Q
 from django.utils import timezone
 from accounts.permissions import is_approved_seller, is_verified_buyer, is_admin_user
 from nyakizu.pagination import LargeResultsSetPagination
-from .models import Order, OrderItem, PaymentClaim
+from .models import Order, OrderItem, PaymentClaim, PaymentRecord
 from .notifications import record_status_event, send_payment_claim_seller_email, send_payment_reminder_email
 from .serializers import OrderSerializer, OrderCreateSerializer
 
@@ -108,14 +108,36 @@ class OrderDetailView(generics.RetrieveUpdateAPIView):
         return _orders_for_serialization(Order.objects.filter(allowed_orders).distinct())
 
     def perform_update(self, serializer):
-        old_status = serializer.instance.status
+        order = serializer.instance
+        user = self.request.user
+        old_status = order.status
         new_status = serializer.validated_data.get("status", old_status)
+
         if new_status == "cancelled" and old_status != "cancelled":
             # Cancelling has side effects (releasing stock back to inventory)
             # that only CancelOrderView performs — going through this generic
             # PATCH used to silently skip that and leak sold-out stock.
             raise ValidationError(
                 {"status": "Use the cancel endpoint (/orders/<id>/cancel/) to cancel an order."}
+            )
+
+        if new_status in ("debt_active", "cleared") and new_status != old_status:
+            # These two only ever mean "a payment was actually recorded" —
+            # RecordPaymentView derives them from amount_paid vs. the total,
+            # inside a locked transaction. Letting either party PATCH the
+            # label directly would let an order claim to be paid (or
+            # partially paid) with no payment behind it.
+            raise ValidationError(
+                {"status": "This status is set automatically when a payment is recorded — "
+                           "use /orders/<id>/record-payment/ instead."}
+            )
+
+        if "final_total" in serializer.validated_data and order.seller != user and not is_admin_user(user):
+            # The seller locks the price after reviewing/sourcing an order;
+            # a buyer changing it on their own order would let them quietly
+            # undercut what they actually owe.
+            raise ValidationError(
+                {"final_total": "Only the seller can adjust the order total."}
             )
 
         # A payment date only makes sense once there's an actual debt to
@@ -377,17 +399,15 @@ class RecordPaymentView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
+        user = request.user
+        # Ownership lives in the queryset, same as every other order view in
+        # this file — a non-owner gets a 404 rather than a 403 that confirms
+        # the order exists (order IDs are plain sequential integers).
+        orders = Order.objects.all() if is_admin_user(user) else Order.objects.filter(seller=user)
         try:
-            order = Order.objects.get(pk=pk)
+            order = orders.get(pk=pk)
         except Order.DoesNotExist:
             return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        user = request.user
-        if order.seller != user and not is_admin_user(user):
-            return Response(
-                {"error": "Only the seller can record payments on this order."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
 
         if order.status not in ("locked", "debt_active"):
             return Response(
@@ -410,11 +430,28 @@ class RecordPaymentView(APIView):
         if amount <= 0:
             return Response({"error": "amount must be greater than 0."}, status=status.HTTP_400_BAD_REQUEST)
 
+        reference = (request.data.get("payment_reference") or "").strip()
+        method = request.data.get("payment_method", "")
+
         with transaction.atomic():
+            # Locks the order row first, so two near-simultaneous requests
+            # (a network retry racing the original) serialize against each
+            # other here rather than both passing the duplicate check below.
             order = Order.objects.select_for_update().get(pk=order.pk)
+
+            # A repeat of a reference already recorded on this order is a
+            # retry/double-click, not a second real payment — the intent
+            # ("make sure this payment is recorded") is already satisfied,
+            # so return the order as-is instead of crediting it twice. Blank
+            # references (cash, mostly) have nothing to dedupe against and
+            # aren't checked — an accepted gap, not something worth an
+            # Idempotency-Key protocol for a marketplace this size.
+            if reference and order.payment_records.filter(reference=reference).exists():
+                return Response(OrderSerializer(order).data)
+
             order.amount_paid += amount
-            order.payment_reference = request.data.get("payment_reference", order.payment_reference)
-            order.payment_method = request.data.get("payment_method", order.payment_method)
+            order.payment_reference = reference or order.payment_reference
+            order.payment_method = method or order.payment_method
 
             if order.balance <= 0:
                 order.status = "cleared"
@@ -422,6 +459,17 @@ class RecordPaymentView(APIView):
                 order.status = "debt_active"
 
             order.save(update_fields=["amount_paid", "payment_reference", "payment_method", "status", "updated_at"])
+
+            try:
+                PaymentRecord.objects.create(
+                    order=order, amount=amount, reference=reference,
+                    method=method, recorded_by=user,
+                )
+            except IntegrityError:
+                # Belt-and-suspenders for the unique constraint itself, in
+                # case some future codepath ever creates a PaymentRecord
+                # without going through this locked block.
+                return Response(OrderSerializer(order).data)
 
             claim_id = request.data.get("claim_id")
             if claim_id is not None:
@@ -446,17 +494,12 @@ class RequestPaymentView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
+        user = request.user
+        orders = Order.objects.all() if is_admin_user(user) else Order.objects.filter(seller=user)
         try:
-            order = Order.objects.get(pk=pk)
+            order = orders.get(pk=pk)
         except Order.DoesNotExist:
             return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        user = request.user
-        if order.seller != user and not is_admin_user(user):
-            return Response(
-                {"error": "Only the seller can request payment on this order."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
 
         if order.status != "debt_active":
             return Response(

@@ -19,6 +19,7 @@ import { QuickActions } from "@/components/seller-dashboard/QuickActions";
 import { RecentOrders } from "@/components/seller-dashboard/RecentOrders";
 import { SalesInsights } from "@/components/seller-dashboard/SalesInsights";
 import { PendingApprovalView } from "@/components/seller-dashboard/PendingApprovalView";
+import { GetStartedView } from "@/components/seller-dashboard/GetStartedView";
 
 export default function SellerDashboardPage() {
   const { user } = useAuth();
@@ -122,6 +123,43 @@ export default function SellerDashboardPage() {
                 </CardSection>
               </Card>
             )}
+          </Container>
+        </Section>
+      </AppShell>
+    );
+  }
+
+  // ── Approved, but nothing has happened yet ───────────────────────────────
+  // Not gated on product count: even with products listed, every number on
+  // the real dashboard is still a meaningless zero until a buyer's actually
+  // involved — the first order or the first buyer relationship is the real
+  // signal this shop has "started," not the catalog size.
+  if (orderList.length === 0 && relationshipList.length === 0) {
+    const sellerProfile = user?.seller_profile;
+    const hasPaymentMethod = Boolean(
+      sellerProfile?.mpesa_till_number ||
+        sellerProfile?.mpesa_pochi_number ||
+        sellerProfile?.mpesa_paybill_number ||
+        sellerProfile?.mpesa_send_money_number
+    );
+
+    return (
+      <AppShell title="Dashboard">
+        <Section spacing="md">
+          <Container size="xl" className="space-y-8 sm:space-y-10">
+            <SellerHeader
+              shopName={sellerProfile?.shop_name || sellerProfile?.store_name || "Nyakizu Shop"}
+              sellerName={user?.full_name || user?.username || "Seller"}
+              status={approvalStatus}
+              location={sellerProfile?.location}
+              phoneNumber={user?.phone_number}
+            />
+            <GetStartedView
+              productCount={productList.length}
+              hasAvatar={Boolean(user?.avatar_url)}
+              hasPaymentMethod={hasPaymentMethod}
+              username={user?.username || ""}
+            />
           </Container>
         </Section>
       </AppShell>

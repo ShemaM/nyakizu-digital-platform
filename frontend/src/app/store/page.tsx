@@ -80,7 +80,7 @@ export default async function StoreDirectoryPage() {
                   className="group relative flex flex-col gap-4 rounded-2xl border border-dark-accent bg-white p-6 transition-all hover:-translate-y-0.5 hover:border-brand-gold/50 hover:shadow-[0_16px_32px_-12px_rgba(20,18,14,0.12)]"
                 >
                   <div className="flex items-start justify-between">
-                    <StoreMark name={storeLabel} size="md" />
+                    <StoreMark name={storeLabel} imageUrl={seller.user?.avatar_url} size="md" />
                     <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2.5 py-1 text-xs font-bold text-success">
                       <ShieldCheck size={12} aria-hidden="true" />
                       Approved

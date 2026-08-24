@@ -87,7 +87,7 @@ export function StoreProducts({ products }: Props) {
           <div className="flex items-center gap-2">
             <span className="text-body font-extrabold text-slate-950">{name}</span>
             <span className="text-caption text-slate-400">
-              ({groupProducts.length} items)
+              ({groupProducts.length} item{groupProducts.length === 1 ? "" : "s"})
             </span>
           </div>
 

@@ -100,7 +100,11 @@ export default async function PublicStorePage({ params }: { params: Promise<{ sl
             />
             <div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
               <div className="flex gap-4">
-                <StoreMark name={seller.store_name || "Store"} size="xl" className="hidden sm:flex" />
+                <StoreMark
+                  name={seller.store_name || "Store"}
+                  imageUrl={seller.user?.avatar_url}
+                  size="xl"
+                />
                 <div>
                   <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-caption font-bold text-slate-200">
                     <Store size={14} />
@@ -114,7 +118,7 @@ export default async function PublicStorePage({ params }: { params: Promise<{ sl
                   {seller.store_description && (
                     <p className="mt-3 max-w-2xl text-body leading-6 text-slate-300">{seller.store_description}</p>
                   )}
-                  <p className="mt-2 text-caption font-bold text-slate-500">Trading since {joinedDate}</p>
+                  <p className="mt-2 text-caption font-bold text-slate-400">Trading since {joinedDate}</p>
                 </div>
               </div>
               <div className="relative grid gap-2 sm:min-w-64">

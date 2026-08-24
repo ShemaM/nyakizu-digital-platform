@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { RefreshCw, ArrowRight, ShoppingBag, Wallet, Layers } from "lucide-react";
+import { RefreshCw, ArrowRight, ShoppingBag, Wallet, Layers, AlertTriangle } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Container, Section } from "@/components/layouts";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { PageSkeleton } from "@/components/ui/LoadingState";
+import { Card, CardSection } from "@/components/ui/Card";
 import { orders, products, relationships, type ApiOrder, type ApiProduct, type ApiRelationship, ApiError, fmtKES, parsePrice } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
@@ -17,6 +18,7 @@ import { MetricCard } from "@/components/seller-dashboard/MetricCard";
 import { QuickActions } from "@/components/seller-dashboard/QuickActions";
 import { RecentOrders } from "@/components/seller-dashboard/RecentOrders";
 import { SalesInsights } from "@/components/seller-dashboard/SalesInsights";
+import { PendingApprovalView } from "@/components/seller-dashboard/PendingApprovalView";
 
 export default function SellerDashboardPage() {
   const { user } = useAuth();
@@ -72,6 +74,56 @@ export default function SellerDashboardPage() {
             <RefreshCw size={14} /> Try Again
           </button>
         </div>
+      </AppShell>
+    );
+  }
+
+  // ── Not yet approved: nothing to report, so don't report it ─────────────
+  // A shop that can't yet receive orders or buyer requests has nothing real
+  // to show in "New Orders: 0" / "Buyer Requests: 0" — those read as broken,
+  // not as "you haven't started." Show what's actually true instead.
+  const approvalStatus = (user?.seller_profile?.approval_status || "").toLowerCase();
+  if (approvalStatus && approvalStatus !== "approved") {
+    return (
+      <AppShell title="Dashboard">
+        <Section spacing="md">
+          <Container size="xl" className="space-y-8 sm:space-y-10">
+            <SellerHeader
+              shopName={user?.seller_profile?.shop_name || user?.seller_profile?.store_name || "Nyakizu Shop"}
+              sellerName={user?.full_name || user?.username || "Seller"}
+              status={approvalStatus}
+              location={user?.seller_profile?.location}
+              phoneNumber={user?.phone_number}
+            />
+
+            {approvalStatus === "pending" ? (
+              <PendingApprovalView productCount={productList.length} username={user?.username || ""} />
+            ) : (
+              <Card className="border-error/20 bg-error/5">
+                <CardSection className="flex flex-col items-center text-center py-8 sm:py-10">
+                  <span className="flex items-center justify-center w-14 h-14 rounded-full bg-error/15 text-error mb-4">
+                    <AlertTriangle size={28} />
+                  </span>
+                  <p className="text-lg font-black text-text-primary">
+                    {approvalStatus === "rejected" ? "Your shop wasn't approved" : "We need a bit more information"}
+                  </p>
+                  <p className="text-sm text-text-secondary mt-1.5 max-w-sm">
+                    {user?.seller_profile?.approval_note ||
+                      (approvalStatus === "rejected"
+                        ? "Contact support to find out what to fix and try again."
+                        : "Our team needs more details before your shop can go live. Contact support for what's missing.")}
+                  </p>
+                  <Link
+                    href="/help"
+                    className="inline-flex items-center gap-1 text-sm font-bold text-role-dark hover:opacity-80 mt-4"
+                  >
+                    Get help <ArrowRight size={14} />
+                  </Link>
+                </CardSection>
+              </Card>
+            )}
+          </Container>
+        </Section>
       </AppShell>
     );
   }

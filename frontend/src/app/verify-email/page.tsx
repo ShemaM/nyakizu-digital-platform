@@ -3,11 +3,13 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { CheckCircle2 } from "lucide-react";
 
 import { AuthLayout } from "@/components/layouts/AuthLayout";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Alert, AlertDescription } from "@/components/ui/Alert";
+import { Loading } from "@/components/ui/Loading";
 import { API_BASE_URL, auth, ApiError } from "@/lib/api";
 
 export default function VerifyEmailPage() {
@@ -116,33 +118,26 @@ function VerifyEmailContent() {
   return (
     <AuthLayout title={title} subtitle={subtitle} alternate>
       <div className="space-y-4">
-        {loading && (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-6">
-            <div className="flex items-center gap-3">
-              <div className="h-3 w-3 rounded-full bg-info animate-pulse" />
-              <p className="text-text-secondary">Verifying your account...</p>
-            </div>
-          </div>
-        )}
+        {loading && <Loading size="lg" label="Checking your link…" />}
 
         {!loading && success && (
-          <>
-            <Alert variant="success">
-              <AlertDescription>
-                Your email has been verified successfully. You can now sign in.
-              </AlertDescription>
-            </Alert>
+          <div className="flex flex-col items-center text-center animate-fade-in-up">
+            <span className="flex items-center justify-center w-20 h-20 rounded-full bg-success/12 text-success mb-4">
+              <CheckCircle2 size={40} strokeWidth={2.5} aria-hidden="true" />
+            </span>
+            <p className="text-lg font-black text-text-primary">You’re all set</p>
 
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button asChild className="flex-1" loading={false}>
-                <Link href="/login">Go to login</Link>
-              </Button>
-            </div>
+            <Button asChild className="w-full mt-6">
+              <Link href="/login">Go to login</Link>
+            </Button>
 
-            <p className="text-sm text-text-muted">
-              If you can’t access your account, contact support.
+            <p className="text-sm text-text-muted mt-4">
+              Trouble signing in?{" "}
+              <Link href="/help" className="font-semibold text-role hover:underline">
+                Get help
+              </Link>
             </p>
-          </>
+          </div>
         )}
 
         {!loading && !success && (

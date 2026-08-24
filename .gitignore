@@ -41,3 +41,5 @@ Thumbs.db
 # --- Scratch / working notes ---
 scratch/
 data_export.json
+.vercel
+.env*

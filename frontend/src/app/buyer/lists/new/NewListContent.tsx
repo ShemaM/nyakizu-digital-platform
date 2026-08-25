@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { CloudOff, RefreshCw, CheckCircle, Store, ChevronRight, SlidersHorizontal, ShoppingCart, X } from "lucide-react";
+import { CloudOff, RefreshCw, CheckCircle, Store, ChevronRight, ChevronLeft, SlidersHorizontal, ShoppingCart } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/Button";
@@ -120,6 +120,12 @@ export function NewListContent() {
   const sellerId = searchParams.get("id")
     ? parseInt(searchParams.get("id")!)
     : undefined;
+  // A step within this same page/URL rather than a separate route or a
+  // fixed-position overlay — the latter fought endlessly with mobile
+  // browsers' own dynamic toolbars (the "Send this order" button kept
+  // ending up hidden behind the bottom nav). A normal in-flow page gets
+  // bottom-nav clearance for free from AppShell, like every other screen.
+  const view = searchParams.get("view") === "cart" ? "cart" : "catalog";
 
   const [productList, setProductList] = useState<ApiProduct[]>([]);
   const [categoryList, setCategoryList] = useState<ApiCategory[]>([]);
@@ -134,7 +140,6 @@ export function NewListContent() {
   const [error, setError] = useState<string | null>(null);
 
   const [filterOpen, setFilterOpen] = useState(false);
-  const [cartOpen, setCartOpen] = useState(false);
   const [nameQuery, setNameQuery] = useState("");
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<number>>(new Set());
 
@@ -370,16 +375,15 @@ export function NewListContent() {
         });
         await offlineDB.deleteDraft(sellerId!);
         setConfirmOpen(false);
-        setCartOpen(false);
         setItems([]);
         await updatePendingCount();
         toast("You are offline. Your order has been saved and will be sent automatically when you reconnect.", "info");
+        router.push(`/buyer/lists/new?id=${sellerId}`);
         return;
       }
 
       const order = await orders.create(orderData);
       setConfirmOpen(false);
-      setCartOpen(false);
       await offlineDB.deleteDraft(sellerId!);
       router.push(`/buyer/orders/${order.id}`);
     } catch (err) {
@@ -456,26 +460,33 @@ export function NewListContent() {
 
   return (
     <AppShell
-      title="New Order"
+      title={view === "cart" ? "Your Order" : "New Order"}
       headerRight={
-        <button
-          type="button"
-          onClick={() => setFilterOpen(true)}
-          aria-label="Filter products"
-          className="relative w-10 h-10 rounded-full flex items-center justify-center text-text-secondary hover:bg-slate-100 transition-colors"
-        >
-          <SlidersHorizontal size={19} />
-          {activeFilterCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-role" aria-hidden="true" />
-          )}
-        </button>
+        view === "cart" ? undefined : (
+          <button
+            type="button"
+            onClick={() => setFilterOpen(true)}
+            aria-label="Filter products"
+            className="relative w-10 h-10 rounded-full flex items-center justify-center text-text-secondary hover:bg-slate-100 transition-colors"
+          >
+            <SlidersHorizontal size={19} />
+            {activeFilterCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-role" aria-hidden="true" />
+            )}
+          </button>
+        )
       }
     >
       {/* Split screen on wide viewports — product grid on the left, an
           always-visible cart on the right, like a real storefront checkout.
-          On phones the cart collapses into a floating bar + bottom sheet
-          instead, since there's no room for two columns. */}
-      <div className="lg:grid lg:grid-cols-[1fr_380px] lg:gap-6 lg:items-start lg:p-6 lg:max-w-6xl lg:mx-auto">
+          Desktop always shows this regardless of `view` (there's no need
+          for a separate cart step when the cart's already visible). On
+          phones this catalog is swapped out entirely for the full-page
+          cart below once `view=cart`. */}
+      <div className={cn(
+        "lg:grid lg:grid-cols-[1fr_380px] lg:gap-6 lg:items-start lg:p-6 lg:max-w-6xl lg:mx-auto",
+        view === "cart" && "hidden lg:grid"
+      )}>
         {/* pb-16 is *additional* clearance on top of AppShell's own pb-20 on
             <main> (which already clears the bottom nav) — just enough extra
             to keep the floating cart bar off the last row, not a second full
@@ -574,11 +585,10 @@ export function NewListContent() {
         </div>
       </div>
 
-      {/* Mobile — floating summary bar opens a bottom-sheet cart */}
-      {(itemCount > 0) && (
-        <button
-          type="button"
-          onClick={() => setCartOpen(true)}
+      {/* Mobile — floating summary bar navigates to the full-page cart below */}
+      {view === "catalog" && itemCount > 0 && (
+        <Link
+          href={`/buyer/lists/new?id=${sellerId}&view=cart`}
           className="lg:hidden fixed bottom-[calc(6.25rem+env(safe-area-inset-bottom))] left-4 right-4 z-30 flex items-center justify-between gap-3 rounded-2xl bg-role-dark px-5 py-4 shadow-[0_12px_24px_-6px_rgb(var(--role)/0.5)]"
         >
           <span className="flex items-center gap-2 text-white font-bold text-sm">
@@ -587,48 +597,32 @@ export function NewListContent() {
           </span>
           <span className="text-white font-black tabular-nums">{fmtKES(total)}</span>
           <span className="text-white/90 text-xs font-bold underline underline-offset-2">View order</span>
-        </button>
+        </Link>
       )}
 
       {/* A sourcing-only cart (no priced items yet) still needs a way in on mobile */}
-      {itemCount === 0 && (
-        <button
-          type="button"
-          onClick={() => setCartOpen(true)}
+      {view === "catalog" && itemCount === 0 && (
+        <Link
+          href={`/buyer/lists/new?id=${sellerId}&view=cart`}
           className="lg:hidden fixed bottom-[calc(6.25rem+env(safe-area-inset-bottom))] right-4 z-30 flex items-center gap-2 rounded-full bg-white border border-slate-200 px-4 py-3 shadow-lg text-sm font-bold text-text-secondary"
         >
           <ShoppingCart size={16} /> Cart
-        </button>
+        </Link>
       )}
 
-      {cartOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 flex items-end">
-          <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm" onClick={() => setCartOpen(false)} aria-hidden="true" />
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Your order"
-            className="relative w-full max-h-[85dvh] flex flex-col bg-white rounded-t-3xl shadow-2xl animate-scale-in overflow-hidden"
+      {/* Mobile — the cart as a normal in-flow page, not an overlay. This
+          gets bottom-nav clearance for free from AppShell's own pb-24,
+          instead of re-deriving it via fixed positioning + safe-area
+          calc()s that fought with mobile browsers' dynamic toolbars. */}
+      {view === "cart" && (
+        <div className="lg:hidden p-4 sm:p-6 max-w-2xl mx-auto pb-8">
+          <Link
+            href={`/buyer/lists/new?id=${sellerId}`}
+            className="inline-flex items-center gap-1 text-sm font-bold text-role mb-4"
           >
-            <div className="absolute left-1/2 top-2.5 h-1 w-10 -translate-x-1/2 rounded-full bg-slate-200" aria-hidden="true" />
-            <div className="flex items-center justify-between px-5 pt-6 pb-3 border-b border-slate-100 shrink-0">
-              <h2 className="text-xl font-black text-text-primary">Your Order</h2>
-              <button
-                type="button"
-                onClick={() => setCartOpen(false)}
-                aria-label="Close cart"
-                className="w-9 h-9 rounded-full flex items-center justify-center text-text-secondary hover:bg-slate-100 transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <div
-              className="flex-1 overflow-y-auto overscroll-contain px-5"
-              style={{ paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom))" }}
-            >
-              <CartPanel {...cartPanelProps} />
-            </div>
-          </div>
+            <ChevronLeft size={16} /> Continue shopping
+          </Link>
+          <CartPanel {...cartPanelProps} />
         </div>
       )}
 

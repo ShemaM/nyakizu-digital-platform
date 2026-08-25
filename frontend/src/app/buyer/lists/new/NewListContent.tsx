@@ -83,7 +83,10 @@ function SupplierPicker() {
   return (
     <AppShell title="New Order">
       <div className="p-4 sm:p-6 max-w-2xl mx-auto space-y-3">
-        <h2 className="text-label px-1">Who is this order for?</h2>
+        <div className="px-1 mb-1">
+          <h2 className="text-body-lg font-bold text-text-primary">Who do you want to order from?</h2>
+          <p className="text-sm text-text-muted mt-0.5">Choose one seller at a time to start an order.</p>
+        </div>
         {suppliers.map((rel) => (
           <Link
             key={rel.id}
@@ -576,7 +579,7 @@ export function NewListContent() {
         <button
           type="button"
           onClick={() => setCartOpen(true)}
-          className="lg:hidden fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] left-4 right-4 z-30 flex items-center justify-between gap-3 rounded-2xl bg-role-dark px-5 py-4 shadow-[0_12px_24px_-6px_rgb(var(--role)/0.5)]"
+          className="lg:hidden fixed bottom-[calc(6.25rem+env(safe-area-inset-bottom))] left-4 right-4 z-30 flex items-center justify-between gap-3 rounded-2xl bg-role-dark px-5 py-4 shadow-[0_12px_24px_-6px_rgb(var(--role)/0.5)]"
         >
           <span className="flex items-center gap-2 text-white font-bold text-sm">
             <ShoppingCart size={18} />
@@ -592,7 +595,7 @@ export function NewListContent() {
         <button
           type="button"
           onClick={() => setCartOpen(true)}
-          className="lg:hidden fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] right-4 z-30 flex items-center gap-2 rounded-full bg-white border border-slate-200 px-4 py-3 shadow-lg text-sm font-bold text-text-secondary"
+          className="lg:hidden fixed bottom-[calc(6.25rem+env(safe-area-inset-bottom))] right-4 z-30 flex items-center gap-2 rounded-full bg-white border border-slate-200 px-4 py-3 shadow-lg text-sm font-bold text-text-secondary"
         >
           <ShoppingCart size={16} /> Cart
         </button>
@@ -605,8 +608,7 @@ export function NewListContent() {
             role="dialog"
             aria-modal="true"
             aria-label="Your order"
-            className="relative w-full max-h-[85vh] flex flex-col bg-white rounded-t-3xl shadow-2xl animate-scale-in overflow-hidden"
-            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+            className="relative w-full max-h-[85dvh] flex flex-col bg-white rounded-t-3xl shadow-2xl animate-scale-in overflow-hidden"
           >
             <div className="absolute left-1/2 top-2.5 h-1 w-10 -translate-x-1/2 rounded-full bg-slate-200" aria-hidden="true" />
             <div className="flex items-center justify-between px-5 pt-6 pb-3 border-b border-slate-100 shrink-0">
@@ -620,7 +622,10 @@ export function NewListContent() {
                 <X size={18} />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto px-5">
+            <div
+              className="flex-1 overflow-y-auto overscroll-contain px-5"
+              style={{ paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom))" }}
+            >
               <CartPanel {...cartPanelProps} />
             </div>
           </div>
@@ -656,7 +661,7 @@ export function NewListContent() {
         <div className="max-h-48 overflow-y-auto rounded-xl border border-slate-100 divide-y divide-slate-100">
           {items.map((item) => (
             <div key={item.key} className="flex items-center justify-between gap-3 px-3 py-2 text-body">
-              <span className="text-text-primary truncate">{item.qty}× {item.name}</span>
+              <span className="flex-1 min-w-0 text-text-primary truncate">{item.qty}× {item.name}</span>
               <span className="text-text-secondary font-semibold shrink-0">
                 {item.price != null ? fmtKES(item.price * item.qty) : "To be priced"}
               </span>

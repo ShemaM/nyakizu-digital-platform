@@ -144,13 +144,6 @@ export default function BuyerDashboard() {
             </div>
           </div>
 
-          <Link
-            href="/buyer/lists/new"
-            className="mb-8 flex items-center justify-center gap-1.5 w-full bg-role text-white font-semibold text-sm px-5 py-3.5 rounded-xl hover:opacity-90 active:scale-[0.98] transition-all shadow-sm"
-          >
-            <Plus size={16} strokeWidth={2.5} /> New Order
-          </Link>
-
           {/* Stats — each one is a real link to where that number comes
               from, not just a readout. Value line drops "KES" (the label
               carries it instead) so a 5-figure total doesn't get truncated
@@ -159,19 +152,29 @@ export default function BuyerDashboard() {
             {stats.map(({ icon: Icon, label, value, href }) => (
               <Link key={label} href={href} className="block">
                 <Card interactive>
-                  <CardContent className="p-4 sm:p-5 flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-xl bg-role-soft flex items-center justify-center shrink-0">
-                      <Icon className="w-5 h-5 text-role" />
+                  <CardContent className="p-3.5 sm:p-5 flex items-center gap-2.5 sm:gap-3">
+                    <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-role-soft flex items-center justify-center shrink-0">
+                      <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-role" />
                     </div>
+                    {/* No truncate on the value — a money figure must never
+                        have digits hidden behind an ellipsis. The label can
+                        wrap to two lines instead of losing whole words. */}
                     <div className="min-w-0">
-                      <p className="text-xl sm:text-2xl font-bold text-text-primary leading-tight truncate">{value}</p>
-                      <p className="text-xs text-text-muted font-medium truncate">{label}</p>
+                      <p className="text-lg sm:text-2xl font-bold text-text-primary leading-tight">{value}</p>
+                      <p className="text-xs text-text-muted font-medium leading-snug">{label}</p>
                     </div>
                   </CardContent>
                 </Card>
               </Link>
             ))}
           </div>
+
+          <Link
+            href="/buyer/lists/new"
+            className="mb-8 flex items-center justify-center gap-1.5 w-full bg-role text-white font-semibold text-sm px-5 py-3.5 rounded-xl hover:opacity-90 active:scale-[0.98] transition-all shadow-sm"
+          >
+            <Plus size={16} strokeWidth={2.5} /> Make a New Order
+          </Link>
 
           <div className="grid grid-cols-1">
             {/* Recent Activity */}

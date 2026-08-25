@@ -60,9 +60,14 @@ export function BuyerProductCard({ product, qty, onIncrease, onDecrease }: Buyer
         )}
         <h3 className="text-body font-bold text-text-primary leading-snug line-clamp-2">{product.name}</h3>
 
-        <div className="mt-auto flex items-center justify-between gap-2 pt-1">
+        {/* Stacked, not side-by-side — on a 2-column grid at phone widths
+            (~150px per card) the price and a qty>0 stepper (two 44px tap
+            targets plus the count) don't fit on one line without wrapping. */}
+        <div className="mt-auto flex flex-col gap-2 pt-1">
           <span className="text-body-lg font-black text-role">{fmtKES(product.price)}</span>
-          <QuantityStepper qty={qty} onIncrease={onIncrease} onDecrease={onDecrease} />
+          <div className="flex justify-end">
+            <QuantityStepper qty={qty} onIncrease={onIncrease} onDecrease={onDecrease} />
+          </div>
         </div>
       </div>
     </div>

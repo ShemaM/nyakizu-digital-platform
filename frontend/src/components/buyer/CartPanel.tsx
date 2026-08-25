@@ -30,35 +30,45 @@ interface CartPanelProps {
   isOnline: boolean;
 }
 
-/** A receipt-style line: name (+ unit price), a stepper, and a right-aligned subtotal — or "To be priced" for a sourcing request. */
+/**
+ * A receipt-style line: name + unit price on top (with the subtotal
+ * right-aligned), the qty stepper on its own row below. Squeezing the
+ * stepper (two 44px tap targets) onto the same line as the name used to
+ * crush product names down to 2-3 characters on phone-width screens —
+ * this keeps the name fully readable regardless of viewport width.
+ */
 function ReceiptRow({ item, onIncrease, onDecrease }: { item: CartItem; onIncrease: () => void; onDecrease: () => void }) {
   const isCustom = item.productId == null;
   return (
-    <div className="flex items-center gap-3 py-3">
-      <div className="relative w-11 h-11 rounded-xl bg-dark-secondary overflow-hidden shrink-0">
-        {item.imageUrl ? (
-          <Image src={item.imageUrl} alt={item.name} fill unoptimized className="object-cover" />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-text-muted">
-            {isCustom ? <PackageSearch size={16} /> : <ImagePlus size={16} />}
-          </div>
-        )}
+    <div className="py-3">
+      <div className="flex items-start gap-3">
+        <div className="relative w-11 h-11 rounded-xl bg-dark-secondary overflow-hidden shrink-0">
+          {item.imageUrl ? (
+            <Image src={item.imageUrl} alt={item.name} fill unoptimized className="object-cover" />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center text-text-muted">
+              {isCustom ? <PackageSearch size={16} /> : <ImagePlus size={16} />}
+            </div>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-text-primary leading-snug">{item.name}</p>
+          {isCustom ? (
+            <span className="inline-block mt-0.5 text-xs font-bold text-warning">To be priced by seller</span>
+          ) : (
+            <p className="text-xs text-text-muted mt-0.5 tabular-nums">{fmtKES(item.price)} each</p>
+          )}
+        </div>
+        <div className="shrink-0 text-right">
+          {isCustom ? (
+            <span className="text-xs font-bold text-text-muted">—</span>
+          ) : (
+            <span className="text-sm font-black text-text-primary tabular-nums">{fmtKES((item.price ?? 0) * item.qty)}</span>
+          )}
+        </div>
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-text-primary leading-snug truncate">{item.name}</p>
-        {isCustom ? (
-          <span className="inline-block mt-0.5 text-xs font-bold text-warning">To be priced by seller</span>
-        ) : (
-          <p className="text-xs text-text-muted mt-0.5 tabular-nums">{fmtKES(item.price)} each</p>
-        )}
-      </div>
-      <QuantityStepper qty={item.qty} onIncrease={onIncrease} onDecrease={onDecrease} />
-      <div className="w-20 shrink-0 text-right">
-        {isCustom ? (
-          <span className="text-xs font-bold text-text-muted">—</span>
-        ) : (
-          <span className="text-sm font-black text-text-primary tabular-nums">{fmtKES((item.price ?? 0) * item.qty)}</span>
-        )}
+      <div className="mt-2 flex justify-end">
+        <QuantityStepper qty={item.qty} onIncrease={onIncrease} onDecrease={onDecrease} />
       </div>
     </div>
   );
@@ -130,7 +140,7 @@ export function CartPanel({
               }
             }}
             placeholder="e.g. iPhone 13 Silicone Cover"
-            className="flex-1 min-w-0 rounded-xl border border-slate-200 bg-white py-2.5 px-3 text-sm font-medium text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-role/40"
+            className="flex-1 min-w-0 rounded-xl border border-slate-200 bg-white py-2.5 px-3 text-base font-medium text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-role/40"
           />
           <input
             type="number"
@@ -138,7 +148,7 @@ export function CartPanel({
             value={sourceQty}
             onChange={(e) => setSourceQty(Math.max(1, parseInt(e.target.value) || 1))}
             aria-label="Quantity"
-            className="w-16 shrink-0 rounded-xl border border-slate-200 bg-white py-2.5 px-2 text-sm font-medium text-text-primary text-center focus:outline-none focus:ring-2 focus:ring-role/40"
+            className="w-16 shrink-0 rounded-xl border border-slate-200 bg-white py-2.5 px-2 text-base font-medium text-text-primary text-center focus:outline-none focus:ring-2 focus:ring-role/40"
           />
           <button
             type="button"

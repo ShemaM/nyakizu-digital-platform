@@ -110,8 +110,11 @@ export function AppShell({
         </div>
       </header>
 
-      {/* Main content — bottom padding clears the fixed BottomNav (shown below lg) */}
-      <main className={cn("flex-1 w-full min-w-0 overflow-auto", user && "pb-20 lg:pb-0")}>
+      {/* Main content — bottom padding clears the fixed BottomNav (shown below
+          lg). BottomNav's real rendered height is ~92px (its icon circle,
+          label, and padding stack taller than any single Tailwind spacing
+          step) — pb-24 (96px) covers that with a few px to spare. */}
+      <main className={cn("flex-1 w-full min-w-0 overflow-auto", user && "pb-24 lg:pb-0")}>
         <div className="min-w-0 w-full">{roleMismatch ? null : children}</div>
       </main>
 

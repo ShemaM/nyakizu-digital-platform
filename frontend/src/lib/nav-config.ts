@@ -1,5 +1,5 @@
 import {
-  Store, ClipboardList, BookOpen, User, LayoutDashboard,
+  Store, ClipboardList, Wallet, User, LayoutDashboard,
   Package, ShoppingBag, Users,
   type LucideIcon,
 } from "lucide-react";
@@ -14,7 +14,7 @@ const BUYER_LINKS: NavLink[] = [
   { href: "/buyer", label: "Home", Icon: LayoutDashboard },
   { href: "/buyer/suppliers", label: "Suppliers", Icon: Store },
   { href: "/buyer/lists/new", label: "New Order", Icon: ClipboardList },
-  { href: "/buyer/debts", label: "Payments", Icon: BookOpen },
+  { href: "/buyer/debts", label: "Payments", Icon: Wallet },
   { href: "/buyer/account", label: "Account", Icon: User },
 ];
 
@@ -23,7 +23,7 @@ const SELLER_LINKS: NavLink[] = [
   { href: "/seller/dashboard/catalog", label: "Products", Icon: Package },
   { href: "/seller/dashboard/orders", label: "Orders", Icon: ShoppingBag },
   { href: "/seller/dashboard/buyers", label: "Buyers", Icon: Users },
-  { href: "/seller/dashboard/ledger", label: "Payments", Icon: BookOpen },
+  { href: "/seller/dashboard/ledger", label: "Payments", Icon: Wallet },
 ];
 
 // Admins are redirected straight to the Django admin (a different origin)

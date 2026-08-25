@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  ShoppingCart, Package, TrendingUp, Store, RefreshCw,
-  ClipboardList, BookOpen, Settings, ChevronRight, Plus,
+  ShoppingCart, Package, TrendingUp, Store, RefreshCw, Plus,
 } from "lucide-react";
 import { Container, Section, DashboardLayout } from "@/components/layouts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -14,13 +13,6 @@ import { useAuth } from "@/lib/auth-context";
 import { orders, relationships, type ApiOrder, type ApiRelationship, fmtKES, parsePrice, ApiError } from "@/lib/api";
 import { getStatusLabel, orderTimelineSteps } from "@/lib/order-status";
 import { cn } from "@/lib/cn";
-
-const QUICK_ACTIONS = [
-  { href: "/buyer/suppliers", label: "Browse Suppliers", Icon: Store },
-  { href: "/buyer/lists/new", label: "New Order", Icon: ClipboardList },
-  { href: "/buyer/debts", label: "What You Owe", Icon: BookOpen },
-  { href: "/buyer/account", label: "My Account", Icon: Settings },
-];
 
 /** Tiny at-a-glance version of the order tracker — a Jumia-style dot strip. */
 function MiniProgress({ status }: { status: string }) {
@@ -122,18 +114,20 @@ export default function BuyerDashboard() {
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
   const stats = [
-    { icon: ShoppingCart, label: "Active Orders", value: String(activeOrders.length) },
-    { icon: Package, label: "Completed", value: String(completedOrders.length) },
-    { icon: TrendingUp, label: "Total Spent", value: fmtKES(totalSpent) },
-    { icon: Store, label: "Suppliers", value: String(approvedSuppliers.length) },
+    { icon: ShoppingCart, label: "Active Orders", value: String(activeOrders.length), href: "/buyer/orders?status=active" },
+    { icon: Package, label: "Completed", value: String(completedOrders.length), href: "/buyer/orders?status=completed" },
+    { icon: TrendingUp, label: "Total Spent (KES)", value: totalSpent.toLocaleString("en-KE"), href: "/buyer/orders" },
+    { icon: Store, label: "Suppliers", value: String(approvedSuppliers.length), href: "/buyer/suppliers" },
   ];
 
   return (
     <DashboardLayout title="Dashboard">
       <Section spacing="md">
         <Container size="xl">
-          {/* Hero greeting */}
-          <div className="relative mb-8 overflow-hidden rounded-2xl bg-gradient-to-br from-[rgb(var(--role))] to-[rgb(var(--role)/0.78)] p-6 sm:p-8 shadow-[0_12px_32px_-8px_rgb(var(--role)/0.4)]">
+          {/* Hero greeting — just the greeting. The primary action used to
+              live inside this card too, competing with it for attention;
+              now it's its own clear next step right below. */}
+          <div className="relative mb-4 overflow-hidden rounded-2xl bg-gradient-to-br from-[rgb(var(--role))] to-[rgb(var(--role)/0.78)] p-6 sm:p-8 shadow-[0_12px_32px_-8px_rgb(var(--role)/0.4)]">
             <span
               className="absolute -right-10 -top-10 w-44 h-44 rounded-full bg-white/10"
               aria-hidden="true"
@@ -142,104 +136,46 @@ export default function BuyerDashboard() {
               className="absolute right-10 bottom-[-3rem] w-28 h-28 rounded-full bg-white/10"
               aria-hidden="true"
             />
-            <div className="relative flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
-              <div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-white">{greeting}, {firstName}</h2>
-                <p className="text-sm text-white/80 mt-1.5">
-                  Here&apos;s what&apos;s happening with your trade today.
-                </p>
-              </div>
-              <Link
-                href="/buyer/lists/new"
-                className="inline-flex items-center justify-center gap-1.5 shrink-0 bg-white text-role font-semibold text-sm px-5 py-3 rounded-xl hover:bg-white/90 active:scale-[0.98] transition-all shadow-sm"
-              >
-                <Plus size={16} strokeWidth={2.5} /> New Order
-              </Link>
+            <div className="relative">
+              <h2 className="text-2xl sm:text-3xl font-bold text-white">{greeting}, {firstName}</h2>
+              <p className="text-sm text-white/80 mt-1.5">
+                Here&apos;s what&apos;s happening with your trade today.
+              </p>
             </div>
           </div>
 
-          {/* Stats */}
+          <Link
+            href="/buyer/lists/new"
+            className="mb-8 flex items-center justify-center gap-1.5 w-full bg-role text-white font-semibold text-sm px-5 py-3.5 rounded-xl hover:opacity-90 active:scale-[0.98] transition-all shadow-sm"
+          >
+            <Plus size={16} strokeWidth={2.5} /> New Order
+          </Link>
+
+          {/* Stats — each one is a real link to where that number comes
+              from, not just a readout. Value line drops "KES" (the label
+              carries it instead) so a 5-figure total doesn't get truncated
+              in the 2-column mobile grid. */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
-            {stats.map(({ icon: Icon, label, value }) => (
-              <Card key={label}>
-                <CardContent className="p-4 sm:p-5 flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-xl bg-role-soft flex items-center justify-center shrink-0">
-                    <Icon className="w-5 h-5 text-role" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xl sm:text-2xl font-bold text-text-primary leading-tight truncate">{value}</p>
-                    <p className="text-xs text-text-muted font-medium truncate">{label}</p>
-                  </div>
-                </CardContent>
-              </Card>
+            {stats.map(({ icon: Icon, label, value, href }) => (
+              <Link key={label} href={href} className="block">
+                <Card interactive>
+                  <CardContent className="p-4 sm:p-5 flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-xl bg-role-soft flex items-center justify-center shrink-0">
+                      <Icon className="w-5 h-5 text-role" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xl sm:text-2xl font-bold text-text-primary leading-tight truncate">{value}</p>
+                      <p className="text-xs text-text-muted font-medium truncate">{label}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
 
-          {/* Suppliers strip */}
-          {approvedSuppliers.length > 0 && (
-            <Card className="relative mb-8">
-              <CardContent className="py-5 flex items-center gap-5 overflow-x-auto">
-                <span className="text-label shrink-0">
-                  My Suppliers
-                </span>
-                <div className="flex items-center gap-4">
-                  {approvedSuppliers.slice(0, 8).map((rel) => (
-                    <Link
-                      key={rel.id}
-                      href={`/buyer/suppliers/${rel.seller_id}/storefront`}
-                      className="flex flex-col items-center gap-1.5 shrink-0 group"
-                    >
-                      <div className="rounded-full ring-2 ring-transparent group-hover:ring-role/30 transition-all">
-                        <Avatar name={rel.seller_name} size="md" />
-                      </div>
-                      <span className="text-xs text-text-muted max-w-[64px] truncate">
-                        {rel.seller_name}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-                <Link
-                  href="/buyer/suppliers"
-                  className="ml-auto shrink-0 flex items-center gap-0.5 text-xs font-semibold text-role hover:opacity-80"
-                >
-                  View all <ChevronRight size={14} />
-                </Link>
-              </CardContent>
-              {/* Fade cue — hints there's more to scroll to on desktop, where
-                  the scrollbar itself may not be visible until hovered. */}
-              <span
-                className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 rounded-r-2xl bg-gradient-to-l from-white to-transparent"
-                aria-hidden="true"
-              />
-            </Card>
-          )}
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Quick Actions */}
-            <Card className="lg:col-span-1">
-              <CardHeader>
-                <CardTitle className="text-lg">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-3">
-                  {QUICK_ACTIONS.map(({ href, label, Icon }) => (
-                    <Link
-                      key={href}
-                      href={href}
-                      className="flex flex-col items-center justify-center gap-2 text-center p-4 rounded-xl bg-slate-50 hover:bg-role-soft border border-slate-100 hover:border-role/20 transition-all hover:scale-[1.02] active:scale-[0.98] group"
-                    >
-                      <Icon className="w-5 h-5 text-text-muted group-hover:text-role transition-colors" />
-                      <span className="text-xs font-semibold text-text-secondary group-hover:text-role transition-colors">
-                        {label}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
+          <div className="grid grid-cols-1">
             {/* Recent Activity */}
-            <Card className="lg:col-span-2">
+            <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Recent Orders</CardTitle>
                 <CardDescription>Your last few orders</CardDescription>

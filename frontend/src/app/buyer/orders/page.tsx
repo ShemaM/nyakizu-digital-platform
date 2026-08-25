@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { DashboardLayout } from "@/components/layouts";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -31,7 +32,38 @@ function MiniProgress({ status }: { status: string }) {
   );
 }
 
+const FILTERS = [
+  { key: "all", label: "All" },
+  { key: "active", label: "Active" },
+  { key: "completed", label: "Completed" },
+] as const;
+
+type FilterKey = (typeof FILTERS)[number]["key"];
+
+function matchesFilter(status: string, filter: FilterKey): boolean {
+  if (filter === "active") return !["cleared", "cancelled"].includes(status);
+  if (filter === "completed") return status === "cleared";
+  return true;
+}
+
 export default function BuyerOrdersPage() {
+  return (
+    <Suspense
+      fallback={
+        <DashboardLayout title="Orders">
+          <PageSkeleton showKPIs={false} listCount={4} />
+        </DashboardLayout>
+      }
+    >
+      <BuyerOrdersContent />
+    </Suspense>
+  );
+}
+
+function BuyerOrdersContent() {
+  const searchParams = useSearchParams();
+  const rawFilter = searchParams.get("status");
+  const activeFilter: FilterKey = rawFilter === "active" || rawFilter === "completed" ? rawFilter : "all";
   const [orderList, setOrderList] = useState<ApiOrder[]>([]);
   const [relationshipList, setRelationshipList] = useState<ApiRelationship[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -79,6 +111,7 @@ export default function BuyerOrdersPage() {
   }
 
   const sellerNameById = new Map(relationshipList.map((r) => [r.seller_id, r.seller_name]));
+  const filteredOrders = orderList.filter((o) => matchesFilter(o.status, activeFilter));
 
   return (
     <DashboardLayout title="Orders">
@@ -90,6 +123,25 @@ export default function BuyerOrdersPage() {
           </Button>
         </div>
 
+        {orderList.length > 0 && (
+          <div className="flex items-center gap-2">
+            {FILTERS.map(({ key, label }) => (
+              <Link
+                key={key}
+                href={key === "all" ? "/buyer/orders" : `/buyer/orders?status=${key}`}
+                className={cn(
+                  "px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors",
+                  activeFilter === key
+                    ? "bg-role text-white"
+                    : "bg-slate-100 text-text-muted hover:bg-slate-200"
+                )}
+              >
+                {label}
+              </Link>
+            ))}
+          </div>
+        )}
+
         {orderList.length === 0 ? (
           <div className="text-center py-12 text-text-muted">
             <p className="text-sm">You have no orders yet.</p>
@@ -98,9 +150,13 @@ export default function BuyerOrdersPage() {
               <Link href="/buyer/suppliers">Browse Suppliers</Link>
             </Button>
           </div>
+        ) : filteredOrders.length === 0 ? (
+          <div className="text-center py-12 text-text-muted">
+            <p className="text-sm">No {activeFilter} orders.</p>
+          </div>
         ) : (
           <div className="space-y-4">
-            {orderList.map((order) => {
+            {filteredOrders.map((order) => {
               const itemCount = order.items?.length ?? 0;
               const sellerName = sellerNameById.get(order.seller ?? -1) ?? "Supplier";
               return (

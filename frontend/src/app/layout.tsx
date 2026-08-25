@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { Inter, Bricolage_Grotesque } from "next/font/google";
 import { MotionConfig } from "motion/react";
+import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/lib/auth-context";
 import { ToastProvider } from "@/components/ui/Toast";
 import { RouteProgressBar } from "@/components/RouteProgressBar";
@@ -159,6 +160,7 @@ export default function RootLayout({
         </MotionConfig>
         <PWARegister />
         <InstallPrompt />
+        <Analytics />
       </body>
     </html>
   );

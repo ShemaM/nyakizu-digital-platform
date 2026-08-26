@@ -125,7 +125,8 @@ export function NewListContent() {
   // browsers' own dynamic toolbars (the "Send this order" button kept
   // ending up hidden behind the bottom nav). A normal in-flow page gets
   // bottom-nav clearance for free from AppShell, like every other screen.
-  const view = searchParams.get("view") === "cart" ? "cart" : "catalog";
+  const rawView = searchParams.get("view");
+  const view = rawView === "cart" ? "cart" : rawView === "confirm" ? "confirm" : "catalog";
 
   const [productList, setProductList] = useState<ApiProduct[]>([]);
   const [categoryList, setCategoryList] = useState<ApiCategory[]>([]);
@@ -453,16 +454,21 @@ export function NewListContent() {
     onIncrease: (key: string) => adjustByKey(key, 1),
     onDecrease: (key: string) => adjustByKey(key, -1),
     onAddSourcingItem: addSourcingItem,
-    onSubmit: () => setConfirmOpen(true),
     submitting,
     isOnline,
   };
+  // Mobile submits by moving to the ?view=confirm page (a Dialog overlay on
+  // a phone-width screen is exactly what fought the bottom nav for the cart
+  // itself). Desktop never had that problem — its cart is a plain sidebar
+  // with room to spare — so it keeps the quick inline Dialog.
+  const mobileCartPanelProps = { ...cartPanelProps, onSubmit: () => router.push(`/buyer/lists/new?id=${sellerId}&view=confirm`) };
+  const desktopCartPanelProps = { ...cartPanelProps, onSubmit: () => setConfirmOpen(true) };
 
   return (
     <AppShell
-      title={view === "cart" ? "Your Order" : "New Order"}
+      title={view === "cart" ? "Your Order" : view === "confirm" ? "Review Order" : "New Order"}
       headerRight={
-        view === "cart" ? undefined : (
+        view === "cart" || view === "confirm" ? undefined : (
           <button
             type="button"
             onClick={() => setFilterOpen(true)}
@@ -485,7 +491,7 @@ export function NewListContent() {
           cart below once `view=cart`. */}
       <div className={cn(
         "lg:grid lg:grid-cols-[1fr_380px] lg:gap-6 lg:items-start lg:p-6 lg:max-w-6xl lg:mx-auto",
-        view === "cart" && "hidden lg:grid"
+        view !== "catalog" && "hidden lg:grid"
       )}>
         {/* pb-16 is *additional* clearance on top of AppShell's own pb-20 on
             <main> (which already clears the bottom nav) — just enough extra
@@ -581,7 +587,7 @@ export function NewListContent() {
         {/* Desktop/tablet cart — sticky alongside the grid */}
         <div className="hidden lg:block sticky top-24 bg-white border border-slate-100 shadow-sm rounded-2xl p-5">
           <h2 className="text-lg font-black text-text-primary mb-1">Your Order</h2>
-          <CartPanel {...cartPanelProps} />
+          <CartPanel {...desktopCartPanelProps} />
         </div>
       </div>
 
@@ -622,7 +628,53 @@ export function NewListContent() {
           >
             <ChevronLeft size={16} /> Continue shopping
           </Link>
-          <CartPanel {...cartPanelProps} />
+          <CartPanel {...mobileCartPanelProps} />
+        </div>
+      )}
+
+      {/* Mobile — final review before sending, also a normal page rather
+          than the Dialog overlay that used to get cut off by the bottom
+          nav on top of a phone-width cart. */}
+      {view === "confirm" && (
+        <div className="lg:hidden p-4 sm:p-6 max-w-2xl mx-auto pb-8 space-y-4">
+          <Link
+            href={`/buyer/lists/new?id=${sellerId}&view=cart`}
+            className="inline-flex items-center gap-1 text-sm font-bold text-role"
+          >
+            <ChevronLeft size={16} /> Edit order
+          </Link>
+          <div>
+            <h2 className="text-xl font-black text-text-primary">
+              {isOnline ? "Send this order?" : "Save this order?"}
+            </h2>
+            <p className="text-sm text-text-secondary mt-1">
+              {isOnline
+                ? "Once you send it, you cannot change the list. The seller will check it and confirm the final price."
+                : "You are offline. This order will be saved on your phone and sent automatically when you reconnect."}
+            </p>
+          </div>
+          <div className="rounded-xl border border-slate-100 divide-y divide-slate-100 overflow-hidden bg-white">
+            {items.map((item) => (
+              <div key={item.key} className="flex items-center justify-between gap-3 px-3 py-2.5 text-body">
+                <span className="flex-1 min-w-0 text-text-primary truncate">{item.qty}× {item.name}</span>
+                <span className="text-text-secondary font-semibold shrink-0">
+                  {item.price != null ? fmtKES(item.price * item.qty) : "To be priced"}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-between items-baseline pt-1">
+            <span className="text-body text-text-muted">Total</span>
+            <span className="text-title font-bold text-role">{fmtKES(total)}</span>
+          </div>
+          <Button
+            className="w-full rounded-xl"
+            size="lg"
+            onClick={() => void handleConfirmSubmit()}
+            disabled={submitting}
+          >
+            {submitting ? "Sending…" : isOnline ? "Yes, send it" : "Yes, save it"}
+          </Button>
         </div>
       )}
 

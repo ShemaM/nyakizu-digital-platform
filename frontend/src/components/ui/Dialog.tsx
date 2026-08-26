@@ -94,19 +94,26 @@ export function Dialog({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="relative w-full max-w-sm space-y-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl animate-scale-in outline-none"
+        // max-h + flex-col + an internal scroll region keeps the Confirm/
+        // Cancel buttons reachable no matter how tall `children` turns out
+        // to be — a fixed-height-unaware panel here is exactly what let
+        // the buyer order-confirm dialog get cut off behind the bottom nav.
+        className="relative flex w-full max-w-sm max-h-[85dvh] flex-col rounded-2xl border border-slate-100 bg-white shadow-2xl animate-scale-in outline-none overflow-hidden"
       >
         <div className="absolute left-1/2 top-3 h-1 w-8 -translate-x-1/2 rounded-full bg-slate-200 sm:hidden" />
 
-        <div className="space-y-2 pt-2 sm:pt-0">
-          <h2 id={titleId} className="text-title font-black text-text-primary">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-6 space-y-2">
+          <h2 id={titleId} className="text-title font-black text-text-primary pt-2 sm:pt-0">
             {title}
           </h2>
           {message && <p className="text-body leading-relaxed text-text-secondary">{message}</p>}
           {children}
         </div>
 
-        <div className="flex gap-2.5 pt-1">
+        <div
+          className="flex gap-2.5 px-6 pt-1 shrink-0"
+          style={{ paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom))" }}
+        >
           <Button variant="secondary" className="flex-1" onClick={onCancel}>
             {cancelLabel}
           </Button>

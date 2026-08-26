@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { Suspense, useState, useEffect } from "react";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { AlertCircle, CheckCircle2, ChevronLeft } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { PageSkeleton } from "@/components/ui/LoadingState";
 import { Card, CardSection } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
 import { OrderTracker } from "@/components/ui/OrderTracker";
-import { PageSkeleton } from "@/components/ui/LoadingState";
 import { OrderSummaryHeader } from "@/components/seller-dashboard/fulfill/OrderSummaryHeader";
 import { NewOrderStage } from "@/components/seller-dashboard/fulfill/NewOrderStage";
 import { PackingStage } from "@/components/seller-dashboard/fulfill/PackingStage";
@@ -22,9 +22,34 @@ import { orders, type ApiOrder, fmtKES, parsePrice, ApiError } from "@/lib/api";
 import { orderTimelineSteps, hasUnpricedItems, buyerDisplayName, buyerFirstName } from "@/lib/order-status";
 
 export default function FulfillOrderPage() {
+  return (
+    <Suspense
+      fallback={
+        <AppShell title="Order Details">
+          <PageSkeleton showKPIs={false} listCount={3} />
+        </AppShell>
+      }
+    >
+      <FulfillOrderContent />
+    </Suspense>
+  );
+}
+
+function FulfillOrderContent() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const orderId = parseInt(id);
+  const basePath = `/seller/dashboard/orders/${id}/fulfill`;
+  // "Send price" and "Record payment" used to be Dialog overlays — with a
+  // price breakdown, a sourced-items note, and an editable total, they were
+  // exactly the content-heavy case that can overflow behind the bottom nav
+  // on a phone. Full pages (a step within this same route) fix that the
+  // same way the buyer order-review page did, and read better as a
+  // dedicated review screen on any size screen, not just mobile.
+  const step = searchParams.get("step") === "confirm-price" || searchParams.get("step") === "record-payment"
+    ? searchParams.get("step") as "confirm-price" | "record-payment"
+    : null;
   const { toast } = useToast();
 
   const [order, setOrder] = useState<ApiOrder | null>(null);
@@ -37,13 +62,11 @@ export default function FulfillOrderPage() {
   // otherwise pricing one more sourced item would silently wipe out an
   // intentional adjustment (a discount, a delivery fee, etc).
   const [finalTotalTouched, setFinalTotalTouched] = useState(false);
-  const [confirmLock, setConfirmLock] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   // Payment recording states — the seller logs whatever the buyer sent via
   // M-Pesa manually; there is no integrated payment gateway.
-  const [payOpen, setPayOpen] = useState(false);
   const [payAmount, setPayAmount] = useState("");
   const [payRef, setPayRef] = useState("");
   const [payMethod, setPayMethod] = useState("mpesa");
@@ -96,17 +119,20 @@ export default function FulfillOrderPage() {
 
       const updatedOrder = await orders.update(orderId, payload);
       setOrder(updatedOrder);
+      return true;
     } catch (err) {
       console.error("Update error:", err);
       toast(err instanceof ApiError ? err.message : "We could not update this order. Please try again.", "error");
+      return false;
     } finally {
       setIsSaving(false);
-      setConfirmLock(false);
     }
   };
 
   const handleStartSourcing = () => updateOrderStatus("sourcing");
-  const handleLock = () => updateOrderStatus("locked", finalTotal);
+  const handleLock = async () => {
+    if (await updateOrderStatus("locked", finalTotal)) router.push(basePath);
+  };
 
   const handleCancel = async () => {
     setIsSaving(true);
@@ -154,7 +180,7 @@ export default function FulfillOrderPage() {
       setPayClaimId(prefill.claimId);
       setPayMethod("mpesa");
       setPayTouched(false);
-      setPayOpen(true);
+      router.push(`${basePath}?step=record-payment`);
       return;
     }
 
@@ -175,7 +201,7 @@ export default function FulfillOrderPage() {
     }
     setPayMethod("mpesa");
     setPayTouched(false);
-    setPayOpen(true);
+    router.push(`${basePath}?step=record-payment`);
   };
 
   const payAmountNumber = parseFloat(payAmount);
@@ -198,7 +224,7 @@ export default function FulfillOrderPage() {
         claim_id: payClaimId,
       });
       setOrder(updatedOrder);
-      setPayOpen(false);
+      router.push(basePath);
       toast("Payment saved.", "success");
     } catch (err) {
       console.error("Payment failed:", err);
@@ -255,99 +281,112 @@ export default function FulfillOrderPage() {
   const pendingPricing = !isLocked && hasUnpricedItems(items);
   const pendingCount = items.filter((i) => i.unit_price == null && !i.not_found).length;
 
+  const stepTitle = step === "confirm-price" ? "Send Price" : step === "record-payment" ? "Record Payment" : buyerDisplayName(order);
+
   return (
-    <AppShell title={buyerDisplayName(order)}>
-      <OrderSummaryHeader
-        order={order}
-        canCancel={!isLocked && order.status !== "cancelled"}
-        onCancelClick={() => setConfirmCancel(true)}
-      />
+    <AppShell title={stepTitle}>
+      {!step && (
+        <>
+          <OrderSummaryHeader
+            order={order}
+            canCancel={!isLocked && order.status !== "cancelled"}
+            onCancelClick={() => setConfirmCancel(true)}
+          />
 
-      <Card className="mt-3 animate-fade-in-up delay-50">
-        <CardSection>
-          <OrderTracker steps={orderTimelineSteps(order.status, order.status_history)} />
-        </CardSection>
-      </Card>
+          <Card className="mt-3 animate-fade-in-up delay-50">
+            <CardSection>
+              <OrderTracker steps={orderTimelineSteps(order.status, order.status_history)} />
+            </CardSection>
+          </Card>
 
-      {order.status === "submitted" && (
-        <NewOrderStage items={items} onStart={handleStartSourcing} isSaving={isSaving} />
+          {order.status === "submitted" && (
+            <NewOrderStage items={items} onStart={handleStartSourcing} isSaving={isSaving} />
+          )}
+
+          {order.status === "sourcing" && (
+            <PackingStage
+              orderId={order.id}
+              items={items}
+              onOrderUpdated={setOrder}
+              packedCount={packedCount}
+              packableCount={packableItems.length}
+              allPacked={allPacked}
+              displayTotal={displayTotal}
+              pendingPricing={pendingPricing}
+              pendingCount={pendingCount}
+              onSendPrice={() => router.push(`${basePath}?step=confirm-price`)}
+            />
+          )}
+
+          {order.status === "locked" && (
+            <PaymentStage
+              orderId={order.id}
+              buyerName={buyerFirstName(order)}
+              items={items}
+              onOrderUpdated={setOrder}
+              displayTotal={displayTotal}
+              amountPaid={amountPaid}
+              balance={balance}
+              paidProgress={paidProgress}
+              canTakePayment={canTakePayment}
+              paymentReference={order.payment_reference}
+              paymentMethod={order.payment_method}
+              paymentClaims={order.payment_claims}
+              onRecordPayment={openPayDialog}
+              openingPayment={isOpeningPay}
+            />
+          )}
+
+          {order.status === "debt_active" && (
+            <DebtStage
+              order={order}
+              items={items}
+              onOrderUpdated={setOrder}
+              amountPaid={amountPaid}
+              balance={balance}
+              paidProgress={paidProgress}
+            />
+          )}
+
+          {order.status === "cleared" && <DoneStage order={order} />}
+
+          {order.status === "cancelled" && <CancelledStage />}
+        </>
       )}
 
-      {order.status === "sourcing" && (
-        <PackingStage
-          orderId={order.id}
-          items={items}
-          onOrderUpdated={setOrder}
-          packedCount={packedCount}
-          packableCount={packableItems.length}
-          allPacked={allPacked}
-          displayTotal={displayTotal}
-          pendingPricing={pendingPricing}
-          pendingCount={pendingCount}
-          onSendPrice={() => setConfirmLock(true)}
-        />
-      )}
-
-      {order.status === "locked" && (
-        <PaymentStage
-          orderId={order.id}
-          buyerName={buyerFirstName(order)}
-          items={items}
-          onOrderUpdated={setOrder}
-          displayTotal={displayTotal}
-          amountPaid={amountPaid}
-          balance={balance}
-          paidProgress={paidProgress}
-          canTakePayment={canTakePayment}
-          paymentReference={order.payment_reference}
-          paymentMethod={order.payment_method}
-          paymentClaims={order.payment_claims}
-          onRecordPayment={openPayDialog}
-          openingPayment={isOpeningPay}
-        />
-      )}
-
-      {order.status === "debt_active" && (
-        <DebtStage
-          order={order}
-          items={items}
-          onOrderUpdated={setOrder}
-          amountPaid={amountPaid}
-          balance={balance}
-          paidProgress={paidProgress}
-        />
-      )}
-
-      {order.status === "cleared" && <DoneStage order={order} />}
-
-      {order.status === "cancelled" && <CancelledStage />}
-
-      {/* ── Confirmation Dialogs ──────────────────────────────────────────── */}
-      <Dialog
-        open={confirmLock}
-        title="Send price to buyer?"
-        confirmLabel={isSaving ? "Sending…" : "Yes, Send It"}
-        onConfirm={handleLock}
-        onCancel={() => !isSaving && setConfirmLock(false)}
-      >
-        <div className="space-y-3">
-          <p className="text-body leading-relaxed text-text-secondary">
-            The buyer will pay this amount. You can&apos;t change it after you send it.
-          </p>
-          <div className="rounded-xl border border-slate-100 divide-y divide-slate-100 overflow-hidden">
+      {/* ── Send price to buyer — a full page, not a Dialog: a price
+          breakdown plus an editable total is exactly the content that used
+          to overflow behind the bottom nav on a phone. ────────────────── */}
+      {step === "confirm-price" && (
+        <div className="p-4 sm:p-6 max-w-xl mx-auto space-y-4">
+          <button
+            type="button"
+            onClick={() => router.push(basePath)}
+            disabled={isSaving}
+            className="inline-flex items-center gap-1 text-sm font-bold text-role disabled:opacity-50"
+          >
+            <ChevronLeft size={16} /> Back
+          </button>
+          <div>
+            <h2 className="text-xl font-black text-text-primary">Send price to buyer?</h2>
+            <p className="text-sm text-text-secondary mt-1">
+              The buyer will pay this amount. You can&apos;t change it after you send it.
+            </p>
+          </div>
+          <div className="rounded-xl border border-slate-100 divide-y divide-slate-100 overflow-hidden bg-white">
             {items.filter((i) => !i.is_sourcing).map((item) => (
-              <div key={item.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+              <div key={item.id} className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm">
                 <span className="text-text-primary truncate">{item.quantity}× {item.product_name || "Item"}</span>
                 <span className="text-text-secondary font-semibold shrink-0">{fmtKES(item.subtotal)}</span>
               </div>
             ))}
             {sourcingCount > 0 && (
-              <div className="flex items-center justify-between gap-3 px-3 py-2 text-sm bg-warning/5">
+              <div className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm bg-warning/5">
                 <span className="text-text-muted">{sourcingCount} sourced item{sourcingCount !== 1 ? "s" : ""} (priced below)</span>
               </div>
             )}
             {notFoundCount > 0 && (
-              <div className="flex items-center justify-between gap-3 px-3 py-2 text-sm bg-error/5">
+              <div className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm bg-error/5">
                 <span className="text-error font-semibold">{notFoundCount} item{notFoundCount !== 1 ? "s" : ""} not found. Won&apos;t be charged</span>
               </div>
             )}
@@ -369,8 +408,87 @@ export default function FulfillOrderPage() {
               className="w-full border-2 border-slate-100 rounded-xl px-4 py-3 text-lg font-black text-role focus:outline-none focus:border-role focus:ring-4 focus:ring-role/10 transition-all"
             />
           </div>
+          <Button className="w-full rounded-xl" size="lg" onClick={handleLock} disabled={isSaving}>
+            {isSaving ? "Sending…" : "Yes, Send It"}
+          </Button>
         </div>
-      </Dialog>
+      )}
+
+      {/* ── Record payment — a full page for the same reason: a form (with
+          its own on-screen keyboard) is worse squeezed into a modal. ──── */}
+      {step === "record-payment" && (
+        <div className="p-4 sm:p-6 max-w-xl mx-auto space-y-4">
+          <button
+            type="button"
+            onClick={() => router.push(basePath)}
+            disabled={isPaySaving}
+            className="inline-flex items-center gap-1 text-sm font-bold text-role disabled:opacity-50"
+          >
+            <ChevronLeft size={16} /> Back
+          </button>
+          <div>
+            <h2 className="text-xl font-black text-text-primary">Payment from {buyerDisplayName(order)}</h2>
+            <p className="text-sm text-text-secondary mt-1">
+              {payClaimId != null
+                ? "Filled in from what the buyer told us. Check your M-Pesa matches, then save."
+                : "No message from the buyer for this yet. We've filled in the full balance owed. Change it if they paid something else, and add the M-Pesa code yourself."}
+            </p>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <Input
+                label="Amount Received (KES)"
+                type="number"
+                value={payAmount}
+                onChange={(e) => setPayAmount(e.target.value)}
+                onBlur={() => setPayTouched(true)}
+                error={payTouched ? payAmountError ?? undefined : undefined}
+              />
+              {!payAmountError && payAmountNumber > balance && balance > 0 && (
+                <p className="text-xs text-warning font-semibold mt-1.5">
+                  That&apos;s more than the {fmtKES(balance)} still owed. Check before saving.
+                </p>
+              )}
+              {!payAmountError && (
+                payAmountNumber >= balance ? (
+                  <p className="text-xs text-success font-bold mt-1.5 flex items-center gap-1">
+                    <CheckCircle2 size={12} /> This pays it off. No debt left.
+                  </p>
+                ) : (
+                  <p className="text-xs text-warning font-bold mt-1.5">
+                    This leaves {fmtKES(balance - payAmountNumber)} still owing.
+                  </p>
+                )
+              )}
+            </div>
+            <Input
+              label="M-Pesa Code (or payment reference)"
+              type="text"
+              value={payRef}
+              onChange={(e) => setPayRef(e.target.value)}
+              onBlur={() => setPayTouched(true)}
+              placeholder="SAB2XYZ123"
+              error={payTouched ? payRefError ?? undefined : undefined}
+            />
+            <div className="space-y-1">
+              <label htmlFor="pay-method" className="text-label">How They Paid</label>
+              <select
+                id="pay-method"
+                value={payMethod}
+                onChange={(e) => setPayMethod(e.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-text-primary"
+              >
+                <option value="mpesa">M-Pesa</option>
+                <option value="cash">Cash</option>
+                <option value="bank_transfer">Bank Transfer</option>
+              </select>
+            </div>
+          </div>
+          <Button className="w-full rounded-xl" size="lg" onClick={handleRecordPayment} disabled={isPaySaving}>
+            {isPaySaving ? "Saving…" : "Save Payment"}
+          </Button>
+        </div>
+      )}
 
       <Dialog
         open={confirmCancel}
@@ -381,72 +499,6 @@ export default function FulfillOrderPage() {
         onConfirm={handleCancel}
         onCancel={() => !isSaving && setConfirmCancel(false)}
       />
-
-      {/* ── Record Payment Dialog ────────────────────────────────────────── */}
-      <Dialog
-        open={payOpen}
-        title={`Payment from ${buyerDisplayName(order)}`}
-        message={
-          payClaimId != null
-            ? "Filled in from what the buyer told us. Check your M-Pesa matches, then save."
-            : "No message from the buyer for this yet. We've filled in the full balance owed. Change it if they paid something else, and add the M-Pesa code yourself."
-        }
-        confirmLabel={isPaySaving ? "Saving…" : "Save Payment"}
-        confirmDisabled={isPaySaving}
-        onConfirm={handleRecordPayment}
-        onCancel={() => !isPaySaving && setPayOpen(false)}
-      >
-        <div className="space-y-3 mt-3">
-          <div>
-            <Input
-              label="Amount Received (KES)"
-              type="number"
-              value={payAmount}
-              onChange={(e) => setPayAmount(e.target.value)}
-              onBlur={() => setPayTouched(true)}
-              error={payTouched ? payAmountError ?? undefined : undefined}
-            />
-            {!payAmountError && payAmountNumber > balance && balance > 0 && (
-              <p className="text-xs text-warning font-semibold mt-1.5">
-                That&apos;s more than the {fmtKES(balance)} still owed. Check before saving.
-              </p>
-            )}
-            {!payAmountError && (
-              payAmountNumber >= balance ? (
-                <p className="text-xs text-success font-bold mt-1.5 flex items-center gap-1">
-                  <CheckCircle2 size={12} /> This pays it off. No debt left.
-                </p>
-              ) : (
-                <p className="text-xs text-warning font-bold mt-1.5">
-                  This leaves {fmtKES(balance - payAmountNumber)} still owing.
-                </p>
-              )
-            )}
-          </div>
-          <Input
-            label="M-Pesa Code (or payment reference)"
-            type="text"
-            value={payRef}
-            onChange={(e) => setPayRef(e.target.value)}
-            onBlur={() => setPayTouched(true)}
-            placeholder="SAB2XYZ123"
-            error={payTouched ? payRefError ?? undefined : undefined}
-          />
-          <div className="space-y-1">
-            <label htmlFor="pay-method" className="text-label">How They Paid</label>
-            <select
-              id="pay-method"
-              value={payMethod}
-              onChange={(e) => setPayMethod(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-text-primary"
-            >
-              <option value="mpesa">M-Pesa</option>
-              <option value="cash">Cash</option>
-              <option value="bank_transfer">Bank Transfer</option>
-            </select>
-          </div>
-        </div>
-      </Dialog>
     </AppShell>
   );
 }

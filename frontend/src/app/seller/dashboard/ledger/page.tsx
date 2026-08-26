@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { Container, Section } from "@/components/layouts";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -9,27 +10,47 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
-import { Dialog } from "@/components/ui/Dialog";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { PageSkeleton } from "@/components/ui/LoadingState";
 import { orders, type ApiOrder, fmtKES, parsePrice, ApiError } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import { useAuth } from "@/lib/auth-context";
 import { buyerDisplayName, buyerFirstName } from "@/lib/order-status";
-import { RefreshCw, Wallet, CheckCircle, TrendingUp, AlertCircle, MessageSquareText, Clock, BellRing, Pencil } from "lucide-react";
+import { RefreshCw, Wallet, CheckCircle, TrendingUp, AlertCircle, MessageSquareText, Clock, BellRing, Pencil, ChevronLeft } from "lucide-react";
 
 function formatClaimTime(iso: string): string {
   return new Date(iso).toLocaleString("en-KE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
-export default function SellerLedger() {
+export default function SellerLedgerPage() {
+  return (
+    <Suspense
+      fallback={
+        <AppShell title="Payments">
+          <PageSkeleton showKPIs listCount={4} />
+        </AppShell>
+      }
+    >
+      <SellerLedger />
+    </Suspense>
+  );
+}
+
+function SellerLedger() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  // "Record Payment" used to be a Dialog with three form fields — on a
+  // phone that's a keyboard fighting for the same space the confirm
+  // buttons need. A full page (this same route, ?pay=<order id>) gives it
+  // room and gets bottom-nav clearance the normal way, like every other
+  // page — no fixed-position overlay to fight a mobile browser's toolbar.
+  const payOrderIdParam = searchParams.get("pay");
   const { toast } = useToast();
   const { user } = useAuth();
   const [ledgerOrders, setLedgerOrders] = useState<ApiOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [payOpen, setPayOpen] = useState(false);
   const [payOrder, setPayOrder] = useState<ApiOrder | null>(null);
   const [payAmount, setPayAmount] = useState("");
   const [payRef, setPayRef] = useState("");
@@ -90,7 +111,7 @@ export default function SellerLedger() {
       setPayClaimId(undefined);
     }
     setPayMethod("mpesa");
-    setPayOpen(true);
+    router.push(`/seller/dashboard/ledger?pay=${freshOrder.id}`);
   };
 
   const handlePay = async () => {
@@ -103,7 +124,7 @@ export default function SellerLedger() {
         payment_method: payMethod,
         claim_id: payClaimId,
       });
-      setPayOpen(false);
+      router.push("/seller/dashboard/ledger");
       await loadLedger();
     } catch (err) {
       console.error("Payment failed:", err);
@@ -111,7 +132,7 @@ export default function SellerLedger() {
       // The order's real status moved out from under us (e.g. already paid
       // off elsewhere) — resync the list so the stale card doesn't linger.
       if (err instanceof ApiError && err.status === 400) {
-        setPayOpen(false);
+        router.push("/seller/dashboard/ledger");
         await loadLedger();
       }
     } finally {
@@ -215,7 +236,8 @@ export default function SellerLedger() {
   ];
 
   return (
-    <AppShell title="Payments">
+    <AppShell title={payOrderIdParam && payOrder ? `Record Payment` : "Payments"}>
+      {!payOrderIdParam && (
       <Section spacing="md">
         <Container size="xl" className="space-y-8">
           <SectionHeading
@@ -424,22 +446,30 @@ export default function SellerLedger() {
           </div>
         </Container>
       </Section>
+      )}
 
-      {/* Payment Dialog */}
-      {payOrder && (
-        <Dialog
-          open={payOpen}
-          title={`Record Payment for ${buyerDisplayName(payOrder)}`}
-          message={
-            payClaimId != null
-              ? "Filled in from what the buyer told us. Check your M-Pesa matches, then save."
-              : "Log what they sent you. The balance owed updates automatically."
-          }
-          confirmLabel={paySaving ? "Saving..." : "Record Payment"}
-          onConfirm={handlePay}
-          onCancel={() => setPayOpen(false)}
-        >
-          <div className="space-y-3 mt-3">
+      {/* Record Payment — a full page instead of a Dialog: three form
+          fields plus an on-screen keyboard is a poor fit for a modal
+          sharing the screen with the bottom nav. */}
+      {payOrderIdParam && payOrder && (
+        <div className="p-4 sm:p-6 max-w-xl mx-auto space-y-4">
+          <button
+            type="button"
+            onClick={() => router.push("/seller/dashboard/ledger")}
+            disabled={paySaving}
+            className="inline-flex items-center gap-1 text-sm font-bold text-role disabled:opacity-50"
+          >
+            <ChevronLeft size={16} /> Back
+          </button>
+          <div>
+            <h2 className="text-xl font-black text-text-primary">Record Payment for {buyerDisplayName(payOrder)}</h2>
+            <p className="text-sm text-text-secondary mt-1">
+              {payClaimId != null
+                ? "Filled in from what the buyer told us. Check your M-Pesa matches, then save."
+                : "Log what they sent you. The balance owed updates automatically."}
+            </p>
+          </div>
+          <div className="space-y-3">
             <Input
               label="Amount (KES)"
               type="number"
@@ -467,7 +497,10 @@ export default function SellerLedger() {
               </select>
             </div>
           </div>
-        </Dialog>
+          <Button className="w-full rounded-xl" size="lg" onClick={handlePay} disabled={paySaving}>
+            {paySaving ? "Saving..." : "Record Payment"}
+          </Button>
+        </div>
       )}
     </AppShell>
   );

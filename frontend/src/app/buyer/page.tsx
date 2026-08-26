@@ -11,7 +11,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { PageSkeleton } from "@/components/ui/LoadingState";
 import { useAuth } from "@/lib/auth-context";
 import { orders, relationships, type ApiOrder, type ApiRelationship, fmtKES, parsePrice, ApiError } from "@/lib/api";
-import { getStatusLabel, orderTimelineSteps } from "@/lib/order-status";
+import { getStatusLabel, orderTimelineSteps, buyerOrderLabel } from "@/lib/order-status";
 import { cn } from "@/lib/cn";
 
 /** Tiny at-a-glance version of the order tracker — a Jumia-style dot strip. */
@@ -103,8 +103,6 @@ export default function BuyerDashboard() {
   const totalSpent = orderList.reduce((s, o) => s + parsePrice(o.amount_paid ?? 0), 0);
   const approvedSuppliers = relationshipList.filter((r) => r.status === "approved");
 
-  const sellerNameById = new Map(relationshipList.map((r) => [r.seller_id, r.seller_name]));
-
   const recentOrders = [...orderList]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
@@ -195,7 +193,7 @@ export default function BuyerDashboard() {
                 ) : (
                   <div className="space-y-1">
                     {recentOrders.map((order) => {
-                      const sellerName = sellerNameById.get(order.seller ?? -1) ?? "Supplier";
+                      const sellerName = order.seller_store_name || "Supplier";
                       return (
                         <Link
                           key={order.id}
@@ -205,7 +203,7 @@ export default function BuyerDashboard() {
                           <Avatar name={sellerName} size="sm" />
                           <div className="flex-1 min-w-0 space-y-1">
                             <p className="text-sm font-medium text-text-primary truncate">
-                              Order #{order.id} · {sellerName}
+                              {buyerOrderLabel(sellerName, order.created_at)}
                             </p>
                             <MiniProgress status={order.status} />
                           </div>

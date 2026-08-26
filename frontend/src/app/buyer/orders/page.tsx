@@ -7,8 +7,8 @@ import { DashboardLayout } from "@/components/layouts";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { orders, relationships, type ApiOrder, type ApiRelationship, fmtKES, ApiError } from "@/lib/api";
-import { getStatusLabel, getStatusVariant, orderTimelineSteps } from "@/lib/order-status";
+import { orders, type ApiOrder, fmtKES, ApiError } from "@/lib/api";
+import { getStatusLabel, getStatusVariant, orderTimelineSteps, buyerOrderLabel } from "@/lib/order-status";
 import { PageSkeleton } from "@/components/ui/LoadingState";
 import { cn } from "@/lib/cn";
 
@@ -65,7 +65,6 @@ function BuyerOrdersContent() {
   const rawFilter = searchParams.get("status");
   const activeFilter: FilterKey = rawFilter === "active" || rawFilter === "completed" ? rawFilter : "all";
   const [orderList, setOrderList] = useState<ApiOrder[]>([]);
-  const [relationshipList, setRelationshipList] = useState<ApiRelationship[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -77,12 +76,8 @@ function BuyerOrdersContent() {
     try {
       setIsLoading(true);
       setError(null);
-      const [ordersData, relationsData] = await Promise.all([
-        orders.list(),
-        relationships.mine().catch(() => []),
-      ]);
+      const ordersData = await orders.list();
       setOrderList(ordersData);
-      setRelationshipList(relationsData);
     } catch (err) {
       console.error("Failed to load orders:", err);
       setError(err instanceof ApiError ? err.message : "We couldn't load your orders. Please try again.");
@@ -110,7 +105,6 @@ function BuyerOrdersContent() {
     );
   }
 
-  const sellerNameById = new Map(relationshipList.map((r) => [r.seller_id, r.seller_name]));
   const filteredOrders = orderList.filter((o) => matchesFilter(o.status, activeFilter));
 
   return (
@@ -158,7 +152,7 @@ function BuyerOrdersContent() {
           <div className="space-y-4">
             {filteredOrders.map((order) => {
               const itemCount = order.items?.length ?? 0;
-              const sellerName = sellerNameById.get(order.seller ?? -1) ?? "Supplier";
+              const sellerName = order.seller_store_name || "Supplier";
               return (
                 <Link key={order.id} href={`/buyer/orders/${order.id}`} className="block">
                   <Card interactive>
@@ -166,12 +160,11 @@ function BuyerOrdersContent() {
                       <div className="flex items-center justify-between">
                         <div className="space-y-1.5">
                           <div className="flex items-center gap-3">
-                            <h3 className="font-bold text-text-primary">Order #{order.id}</h3>
+                            <h3 className="font-bold text-text-primary">{buyerOrderLabel(sellerName, order.created_at)}</h3>
                             <Badge variant={getStatusVariant(order.status)} className="text-xs">
                               {getStatusLabel(order.status)}
                             </Badge>
                           </div>
-                          <p className="text-sm text-text-muted">{sellerName}</p>
                           <MiniProgress status={order.status} />
                         </div>
                         <div className="text-right space-y-1 shrink-0">

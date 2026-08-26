@@ -128,12 +128,20 @@ export default function ReceiptPage() {
       </div>
 
       <article ref={articleRef} className="app-panel mx-auto max-w-md overflow-hidden rounded-lg print:shadow-none">
+        {/* The seller is who this receipt is actually from — a buyer paid
+            their shop, not Nyakizu — so the seller's store name leads here,
+            the way a shop's own name leads a supermarket receipt. */}
         <header className="bg-brand-gold px-6 py-5">
-          <div className="flex items-center justify-between">
-            <Logo size="sm" accent="#FFFFFF" inverted />
-            <span className="text-xs font-bold uppercase tracking-wide text-white/80">
-              Digital Receipt
-            </span>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-base font-black text-white">
+                {order.seller_store_name || "Seller"}
+              </p>
+              <span className="text-xs font-bold uppercase tracking-wide text-white/80">
+                Digital Receipt
+              </span>
+            </div>
+            <Logo size="sm" accent="#FFFFFF" inverted className="shrink-0" />
           </div>
         </header>
 
@@ -320,7 +328,7 @@ export default function ReceiptPage() {
 
         <footer className="space-y-1 px-6 py-4 text-center">
           <p className="text-xs text-slate-400">Generated on {formatDate(new Date().toISOString())}</p>
-          <p className="text-xs text-slate-400">Nyakizu Digital Marketplace</p>
+          <p className="text-xs text-slate-400">Powered by Nyakizu Digital Marketplace</p>
         </footer>
       </article>
 

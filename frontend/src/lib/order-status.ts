@@ -46,6 +46,18 @@ export function buyerFirstName(order: { buyer_full_name?: string; buyer_username
   return buyerDisplayName(order).split(" ")[0];
 }
 
+/**
+ * A buyer-facing order label: who it went to and when, not a bare internal
+ * id. A buyer juggling several suppliers has no reason to remember "Order
+ * #24" — "To Mugisha Electronics · 26 Aug" tells them what they actually
+ * care about at a glance. The numeric id still shows up as a small
+ * secondary reference wherever a buyer might need to quote it to a seller.
+ */
+export function buyerOrderLabel(sellerName: string | undefined, createdAt: string): string {
+  const date = new Date(createdAt).toLocaleDateString("en-KE", { day: "numeric", month: "short" });
+  return sellerName ? `To ${sellerName} · ${date}` : `Order · ${date}`;
+}
+
 export interface StatusExplanation {
   headline: string;
   body: string;

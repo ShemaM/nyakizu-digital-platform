@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { orders, type ApiOrder, fmtKES, parsePrice, ApiError } from "@/lib/api";
+import { buyerOrderLabel } from "@/lib/order-status";
 import { PageSkeleton } from "@/components/ui/LoadingState";
 import { AlertCircle, RefreshCw, Wallet } from "lucide-react";
 
@@ -117,7 +118,7 @@ export default function BuyerDebts() {
                         <div className="flex items-center justify-between">
                           <div className="space-y-2 flex-1">
                             <div className="flex items-center gap-3">
-                              <h3 className="font-bold text-text-primary">Order #{order.id}</h3>
+                              <h3 className="font-bold text-text-primary">{buyerOrderLabel(order.seller_store_name, order.created_at)}</h3>
                               <Badge variant="warning" className="text-xs">
                                 {order.status === "debt_active" ? "Part Paid" : "Not Paid Yet"}
                               </Badge>

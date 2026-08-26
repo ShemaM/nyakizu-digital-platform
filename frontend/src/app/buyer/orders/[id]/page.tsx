@@ -11,7 +11,7 @@ import { OrderTracker } from "@/components/ui/OrderTracker";
 import { CardSkeleton } from "@/components/ui/LoadingState";
 import { NoDataEmptyState } from "@/components/ui/EmptyState";
 import { orders, type ApiOrder, ApiError, fmtKES, parsePrice } from "@/lib/api";
-import { getStatusLabel, orderTimelineSteps, hasUnpricedItems, buyerStatusExplanation } from "@/lib/order-status";
+import { getStatusLabel, orderTimelineSteps, hasUnpricedItems, buyerStatusExplanation, buyerOrderLabel } from "@/lib/order-status";
 import { cn } from "@/lib/cn";
 import { PaymentClaimCard } from "@/components/buyer/PaymentClaimCard";
 import { DebtDateCard } from "@/components/buyer/DebtDateCard";
@@ -73,16 +73,24 @@ export default function SubmittedOrderPage() {
   const canPay = order.status === "locked" || order.status === "debt_active";
   const balance = parsePrice(order.balance ?? Number(displayTotal) - parsePrice(order.amount_paid ?? 0));
   const statusExplanation = buyerStatusExplanation(order.status, order.seller_store_name || "");
+  // A receipt is proof of payment — showing it before any money has
+  // actually changed hands is like handing over a receipt for a still-open
+  // shopping cart. Only offer it once the seller has recorded something.
+  const hasPayment = parsePrice(order.amount_paid ?? 0) > 0;
+
+  const orderLabel = buyerOrderLabel(order.seller_store_name, order.created_at);
 
   return (
     <AppShell
-      title={`Order #${order.id}`}
+      title={orderLabel}
       headerRight={
-        <Link href={`/receipt/orders/${order.id}`} target="_blank">
-          <button className="flex items-center gap-1.5 text-xs font-semibold text-role hover:opacity-80 cursor-pointer">
-            <Download size={14} /> Receipt
-          </button>
-        </Link>
+        hasPayment ? (
+          <Link href={`/receipt/orders/${order.id}`} target="_blank">
+            <button className="flex items-center gap-1.5 text-xs font-semibold text-role hover:opacity-80 cursor-pointer">
+              <Download size={14} /> Receipt
+            </button>
+          </Link>
+        ) : undefined
       }
     >
       <div className="p-4 sm:p-6 space-y-4 max-w-2xl mx-auto">
@@ -91,7 +99,7 @@ export default function SubmittedOrderPage() {
           <span className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-white/10" aria-hidden="true" />
           <div className="relative flex items-start justify-between mb-1">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-white/70">Order #{order.id}</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-white/70">{orderLabel}</p>
               {pendingPricing ? (
                 <>
                   <p className="text-xl sm:text-2xl font-bold text-white mt-1">Price pending</p>
@@ -186,10 +194,14 @@ export default function SubmittedOrderPage() {
             )}
           </CardSection>
 
-          <div className="px-6 pb-5 sm:px-8">
+          <div className="px-6 pb-5 sm:px-8 space-y-1">
             <p className="text-xs text-text-muted">
               You can&apos;t change items after sending an order. If something is wrong, talk to the seller directly.
             </p>
+            {/* Kept small — a buyer never needs this, but it's the one thing
+                worth quoting back to a seller for support ("what about order
+                #24?"). */}
+            <p className="text-xs text-text-muted">Order reference: #{order.id}</p>
           </div>
         </Card>
 

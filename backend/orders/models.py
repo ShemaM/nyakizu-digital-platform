@@ -292,3 +292,39 @@ class PaymentRecord(models.Model):
 
     def __str__(self):
         return f"KES {self.amount} for Order #{self.order_id}"
+
+
+class CartDraft(models.Model):
+    """
+    A buyer's in-progress order for one seller, before they've actually sent
+    it — the server-side twin of the IndexedDB draft NewListContent.tsx
+    keeps locally (see frontend/src/lib/offline-db.ts). Its only job is
+    giving send_cart_reminders something to notice: IndexedDB alone is
+    invisible to the backend, so nothing could ever detect an abandoned
+    cart or email a buyer about one without a copy living here too.
+    One row per buyer-seller pair, same as the local draft's one-per-seller
+    shape. Deleted once the buyer actually submits an order for that seller
+    (see CartDraftView / handleConfirmSubmit) so a completed purchase can
+    never generate a reminder.
+    """
+
+    buyer = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='cart_drafts')
+    seller = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='buyer_cart_drafts')
+    # [{product_id, quantity} | {custom_name, quantity}, ...] — mirrors
+    # offline-db.ts's DraftData.items exactly, so the frontend can send/
+    # receive the same shape it already uses for the local draft.
+    items = models.JSONField(default=list)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    # Cleared on every genuine edit (see CartDraftView.put) so editing a
+    # cart after a reminder went out re-arms it for a later nudge instead
+    # of going silent forever after the first email.
+    reminder_sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['buyer', 'seller'], name='unique_cart_draft_per_buyer_seller'),
+        ]
+
+    def __str__(self):
+        return f"Cart draft: buyer #{self.buyer_id} -> seller #{self.seller_id}"

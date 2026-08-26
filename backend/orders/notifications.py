@@ -169,6 +169,33 @@ def send_payment_claim_seller_email(order, claim):
     )
 
 
+def send_abandoned_cart_email(draft):
+    """Nudge a buyer back to a cart they started and left untouched (best-effort)."""
+    if not draft.buyer.email:
+        return
+    try:
+        seller_profile = draft.seller.seller_profile
+        store = seller_profile.store_name
+    except Exception:
+        # No SellerProfile at all (shouldn't happen for a real seller, but
+        # without it there's also no valid ?id= to resume into) — skip.
+        return
+
+    item_count = sum(item.get("quantity", 1) for item in draft.items)
+    send_mail_async(
+        subject=f"Nyakizu: You left something at {store}",
+        message=(
+            f"You started an order with {store} ({item_count} item{'s' if item_count != 1 else ''}) "
+            "but didn't send it yet. It's still saved — pick up right where you left off.\n\n"
+            # ?id= is the SellerProfile id (see CartDraftView) — draft.seller_id
+            # is the User id, a different number for the same seller.
+            f"Finish your order: {_frontend_base_url()}/buyer/lists/new?id={seller_profile.id}"
+        ),
+        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+        recipient_list=[draft.buyer.email],
+    )
+
+
 def record_status_event(order, status):
     """Log a status transition and fire the notification(s) that go with it."""
     OrderStatusEvent.objects.create(order=order, status=status)

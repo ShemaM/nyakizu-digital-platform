@@ -16,7 +16,7 @@ import { useToast } from "@/components/ui/Toast";
 import { ProductFilterDrawer } from "@/components/products/ProductFilterDrawer";
 import { BuyerProductCard } from "@/components/buyer/BuyerProductCard";
 import { CartPanel, type CartItem } from "@/components/buyer/CartPanel";
-import { products, categories, orders, relationships, type ApiProduct, type ApiCategory, type ApiRelationship, ApiError, fmtKES, parsePrice } from "@/lib/api";
+import { products, categories, orders, relationships, type ApiProduct, type ApiCategory, type ApiRelationship, type CartDraftItem, ApiError, fmtKES, parsePrice } from "@/lib/api";
 import { offlineDB } from "@/lib/offline-db";
 import { cn } from "@/lib/cn";
 
@@ -186,6 +186,11 @@ export function NewListContent() {
         });
         await offlineDB.updateQueuedStatus(order.id, "synced");
         await offlineDB.removeQueued(order.id);
+        // The offline branch that queued this couldn't reach the server to
+        // clear its draft row (no network) — do it now that the order
+        // actually landed, so a later reminder run doesn't nudge them
+        // about a cart they already sent.
+        orders.deleteDraftRemote(order.sellerId);
       } catch (err) {
         console.error("Sync failed for order:", order.id, err);
         await offlineDB.updateQueuedStatus(order.id, "failed", err instanceof ApiError ? err.message : "Could not send.");
@@ -228,32 +233,38 @@ export function NewListContent() {
       setProductList(availableProducts);
       setCategoryList(catsData);
 
-      // Load draft from IndexedDB
+      // Load draft — local (this device) first, falling back to the
+      // server copy for a different device or after this one's storage was
+      // cleared. This fallback is what makes the abandoned-cart reminder
+      // email's resume link actually work regardless of what opened it.
       if (sellerId) {
-        const draft = await offlineDB.getDraft(sellerId);
-        if (draft) {
-          if (Array.isArray(draft.items)) {
-            const mappedItems: CartItem[] = draft.items.map((di: any) => {
-              if (di.product_id != null) {
-                const prod = availableProducts.find((p) => p.id === di.product_id);
-                return {
-                  key: productKey(di.product_id),
-                  productId: di.product_id,
-                  name: prod ? prod.name : "Unknown Product",
-                  price: prod ? parsePrice(prod.price) : 0,
-                  qty: di.quantity || di.qty || 1,
-                  imageUrl: prod?.image_url ?? null,
-                };
-              }
+        const localDraft = await offlineDB.getDraft(sellerId);
+        const draftItems: CartDraftItem[] | undefined =
+          localDraft && Array.isArray(localDraft.items) && localDraft.items.length > 0
+            ? (localDraft.items as CartDraftItem[])
+            : (await orders.getDraft(sellerId).catch(() => null)) ?? undefined;
+
+        if (draftItems && draftItems.length > 0) {
+          const mappedItems: CartItem[] = draftItems.map((di) => {
+            if (di.product_id != null) {
+              const prod = availableProducts.find((p) => p.id === di.product_id);
               return {
-                key: nextCustomKey(),
-                name: di.custom_name || "Item to source",
-                price: null,
-                qty: di.quantity || di.qty || 1,
+                key: productKey(di.product_id),
+                productId: di.product_id,
+                name: prod ? prod.name : "Unknown Product",
+                price: prod ? parsePrice(prod.price) : 0,
+                qty: di.quantity || 1,
+                imageUrl: prod?.image_url ?? null,
               };
-            });
-            setItems(mappedItems);
-          }
+            }
+            return {
+              key: nextCustomKey(),
+              name: di.custom_name || "Item to source",
+              price: null,
+              qty: di.quantity || 1,
+            };
+          });
+          setItems(mappedItems);
         }
       }
     } catch (err) {
@@ -386,6 +397,7 @@ export function NewListContent() {
       const order = await orders.create(orderData);
       setConfirmOpen(false);
       await offlineDB.deleteDraft(sellerId!);
+      orders.deleteDraftRemote(sellerId!);
       router.push(`/buyer/orders/${order.id}`);
     } catch (err) {
       console.error("Failed to create order:", err);
@@ -400,7 +412,7 @@ export function NewListContent() {
 
   // Persist drafts to IndexedDB
   useEffect(() => {
-    if (!sellerId) return;
+    if (!sellerId || isLoading) return;
     const draftItems = items.map((item) =>
       item.productId != null
         ? { product_id: item.productId, quantity: item.qty }
@@ -411,7 +423,26 @@ export function NewListContent() {
       items: draftItems as any,
       updatedAt: Date.now(),
     }).catch(() => {});
-  }, [items, sellerId]);
+  }, [items, sellerId, isLoading]);
+
+  // Mirror the draft to the server, debounced — this is what lets a cart
+  // survive a device switch/reinstall (see loadProducts's fallback below),
+  // and gives send_cart_reminders something to notice at all: IndexedDB
+  // alone is invisible to the backend. Skipped while still loading so the
+  // initial empty `items` state (before the draft has even loaded) can't
+  // race ahead and wipe a real draft server-side.
+  useEffect(() => {
+    if (!sellerId || isLoading) return;
+    const draftItems: CartDraftItem[] = items.map((item) =>
+      item.productId != null
+        ? { product_id: item.productId, quantity: item.qty }
+        : { custom_name: item.name, quantity: item.qty }
+    );
+    const timeout = setTimeout(() => {
+      orders.saveDraft(sellerId, draftItems);
+    }, 2000);
+    return () => clearTimeout(timeout);
+  }, [items, sellerId, isLoading]);
 
   if (!sellerId) {
     return <SupplierPicker />;

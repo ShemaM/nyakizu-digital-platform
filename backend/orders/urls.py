@@ -4,7 +4,7 @@ from .views import (
     CancelOrderView, SellerLedgerView, BuyerDebtsView, RecordPaymentView,
     AdminOrderListView, FlagOrderView, UnflagOrderView, ToggleItemPackedView,
     ToggleItemNotFoundView, SetItemPriceView, SubmitPaymentClaimView,
-    RequestPaymentView,
+    RequestPaymentView, CartDraftView,
 )
 
 urlpatterns = [
@@ -13,6 +13,7 @@ urlpatterns = [
     path("admin/",            AdminOrderListView.as_view(),    name="admin-order-list"),
     path("ledger/seller/",    SellerLedgerView.as_view(),      name="seller-ledger"),
     path("debts/",            BuyerDebtsView.as_view(),        name="buyer-debts"),
+    path("drafts/<int:seller_id>/", CartDraftView.as_view(),   name="cart-draft"),
     path("<int:pk>/",         OrderDetailView.as_view(),       name="order-detail"),
     path("<int:pk>/cancel/",  CancelOrderView.as_view(),       name="order-cancel"),
     path("<int:pk>/pay/",     RecordPaymentView.as_view(),     name="order-pay"),

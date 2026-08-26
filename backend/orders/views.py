@@ -10,9 +10,10 @@ from rest_framework.views import APIView
 from django.db import transaction, IntegrityError
 from django.db.models import Q
 from django.utils import timezone
+from accounts.models import SellerProfile
 from accounts.permissions import is_approved_seller, is_verified_buyer, is_admin_user
 from nyakizu.pagination import LargeResultsSetPagination
-from .models import Order, OrderItem, PaymentClaim, PaymentRecord
+from .models import Order, OrderItem, PaymentClaim, PaymentRecord, CartDraft
 from .notifications import record_status_event, send_payment_claim_seller_email, send_payment_reminder_email
 from .serializers import OrderSerializer, OrderCreateSerializer
 
@@ -620,3 +621,71 @@ class UnflagOrderView(APIView):
 
         serializer = OrderSerializer(order)
         return Response(serializer.data)
+
+
+class CartDraftView(APIView):
+    """
+    GET/PUT/DELETE /api/orders/drafts/<seller_id>/ — the authenticated
+    buyer's own in-progress cart for that seller. The server-side twin of
+    the IndexedDB draft NewListContent.tsx keeps locally; see CartDraft's
+    docstring for why this exists (send_cart_reminders needs something to
+    query — a local-only draft is invisible to the backend).
+
+    `seller_id` in the URL is a *SellerProfile* id, the same one used
+    everywhere else in this flow (the storefront URL, the product list's
+    `?seller=` filter, OrderCreateSerializer's own seller_id) — not a User
+    id. Resolved the same way OrderCreateSerializer does, so a draft here
+    always points at the same underlying seller an order for it would.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def _resolve_seller_user(self, seller_id):
+        try:
+            return SellerProfile.objects.select_related("user").get(id=seller_id).user
+        except SellerProfile.DoesNotExist:
+            return None
+
+    def get(self, request, seller_id):
+        if not is_verified_buyer(request.user):
+            return Response({"error": "Only buyers have carts."}, status=status.HTTP_403_FORBIDDEN)
+        seller_user = self._resolve_seller_user(seller_id)
+        if seller_user is None:
+            return Response({"error": "Seller not found."}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            draft = CartDraft.objects.get(buyer=request.user, seller=seller_user)
+        except CartDraft.DoesNotExist:
+            return Response({"error": "No draft."}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"items": draft.items, "updated_at": draft.updated_at})
+
+    def put(self, request, seller_id):
+        if not is_verified_buyer(request.user):
+            return Response({"error": "Only buyers have carts."}, status=status.HTTP_403_FORBIDDEN)
+        seller_user = self._resolve_seller_user(seller_id)
+        if seller_user is None:
+            return Response({"error": "Seller not found."}, status=status.HTTP_404_NOT_FOUND)
+        items = request.data.get("items")
+        if not isinstance(items, list):
+            return Response({"error": "items must be a list."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # An emptied-out cart isn't a draft worth keeping — deleting it here
+        # (rather than storing an empty list) keeps the reminder job's query
+        # trivial and means clearing a cart client-side quietly clears the
+        # server copy too, no separate DELETE call required.
+        if not items:
+            CartDraft.objects.filter(buyer=request.user, seller=seller_user).delete()
+            return Response({"items": []})
+
+        draft, _ = CartDraft.objects.update_or_create(
+            buyer=request.user,
+            seller=seller_user,
+            defaults={"items": items, "reminder_sent_at": None},
+        )
+        return Response({"items": draft.items, "updated_at": draft.updated_at})
+
+    def delete(self, request, seller_id):
+        if not is_verified_buyer(request.user):
+            return Response({"error": "Only buyers have carts."}, status=status.HTTP_403_FORBIDDEN)
+        seller_user = self._resolve_seller_user(seller_id)
+        if seller_user is not None:
+            CartDraft.objects.filter(buyer=request.user, seller=seller_user).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

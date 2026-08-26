@@ -273,6 +273,13 @@ export interface ApiOrderItem {
   not_found?: boolean;
 }
 
+/** Shape sent to/from the cart-drafts endpoint — mirrors offline-db.ts's DraftData.items exactly, since the two stay in sync. */
+export interface CartDraftItem {
+  product_id?: number;
+  custom_name?: string;
+  quantity: number;
+}
+
 export interface ApiOrderStatusEvent {
   status: string;
   created_at: string;
@@ -659,6 +666,36 @@ class OrdersAPI {
       const error = await response.json().catch(() => ({}));
       throw new ApiError(extractApiErrorMessage(error, "Could not send the reminder"), response.status);
     }
+  }
+
+  // ── Cart drafts ──────────────────────────────────────────────────────
+  // Server-side twin of the local IndexedDB draft (offline-db.ts) — lets a
+  // cart survive a device switch/reinstall, and gives the abandoned-cart
+  // reminder job something to notice (a local-only draft is invisible to
+  // the backend).
+
+  /** null if the buyer has no saved draft for this seller. */
+  async getDraft(sellerId: number): Promise<CartDraftItem[] | null> {
+    const response = await fetchWithSession(`${API_BASE_URL}/orders/drafts/${sellerId}/`);
+    if (response.status === 404) return null;
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.items ?? null;
+  }
+
+  /** Upserts the draft; an empty list deletes it server-side. Best-effort — a failed sync shouldn't block shopping. */
+  async saveDraft(sellerId: number, items: CartDraftItem[]): Promise<void> {
+    await fetchWithSession(`${API_BASE_URL}/orders/drafts/${sellerId}/`, {
+      method: "PUT",
+      body: JSON.stringify({ items }),
+    }).catch(() => {});
+  }
+
+  /** Named to not collide with offlineDB.deleteDraft — called alongside it once an order is actually sent. */
+  async deleteDraftRemote(sellerId: number): Promise<void> {
+    await fetchWithSession(`${API_BASE_URL}/orders/drafts/${sellerId}/`, {
+      method: "DELETE",
+    }).catch(() => {});
   }
 }
 export const orders = new OrdersAPI();

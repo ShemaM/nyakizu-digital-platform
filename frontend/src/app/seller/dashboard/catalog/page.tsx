@@ -4,9 +4,10 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
-  Plus, Package, ImagePlus, Edit2, MoreVertical, Eye, Trash2, Copy, Link2,
+  Plus, Package, ImagePlus, Edit2, MoreVertical, Eye, Trash2, Copy, Link2, Share2,
   AlertCircle, AlertTriangle, CheckCircle2, Tag, SlidersHorizontal, Layers,
 } from "lucide-react";
+import { shareLink } from "@/lib/share";
 import { AppShell } from "@/components/AppShell";
 import { Container, Section } from "@/components/layouts";
 import { Card, CardSection } from "@/components/ui/Card";
@@ -286,6 +287,8 @@ export default function SellerCatalogPage() {
                   key={product.id}
                   product={product}
                   storePath={storePath}
+                  storeLink={storeLink}
+                  storeName={user?.seller_profile?.store_name || "my shop"}
                   menuOpen={openMenuId === product.id}
                   onOpenMenu={() => setOpenMenuId(product.id)}
                   onCloseMenu={() => setOpenMenuId(null)}
@@ -343,6 +346,8 @@ export default function SellerCatalogPage() {
 interface ProductCardProps {
   product: ApiProduct;
   storePath: string;
+  storeLink: string;
+  storeName: string;
   menuOpen: boolean;
   onOpenMenu: () => void;
   onCloseMenu: () => void;
@@ -350,7 +355,7 @@ interface ProductCardProps {
   onDelete: () => void;
 }
 
-function ProductCard({ product, storePath, menuOpen, onOpenMenu, onCloseMenu, onEdit, onDelete }: ProductCardProps) {
+function ProductCard({ product, storePath, storeLink, storeName, menuOpen, onOpenMenu, onCloseMenu, onEdit, onDelete }: ProductCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const lowStock = isLowStock(product);
 
@@ -441,6 +446,20 @@ function ProductCard({ product, storePath, menuOpen, onOpenMenu, onCloseMenu, on
                   className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-text-secondary hover:bg-slate-50 hover:text-text-primary transition-colors"
                 >
                   <Eye size={15} /> View in my shop
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onCloseMenu();
+                    shareLink({
+                      title: product.name,
+                      text: `${product.name} — ${fmtKES(product.price)} at ${storeName}. Check it out:`,
+                      url: storeLink,
+                    });
+                  }}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-text-secondary hover:bg-slate-50 hover:text-text-primary transition-colors"
+                >
+                  <Share2 size={15} /> Share to social media
                 </button>
                 <button
                   type="button"

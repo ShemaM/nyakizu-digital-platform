@@ -141,6 +141,11 @@ function FulfillOrderContent() {
       // only the dedicated cancel endpoint performs — a generic status PATCH
       // would silently skip that.
       await orders.cancel(orderId);
+      // Drops Next's router cache for the orders list — without it,
+      // navigating back can reuse the list's previous client-side state
+      // and keep showing this order as still active (same fix as
+      // ProductFormContent.tsx's save flow).
+      router.refresh();
       router.push("/seller/dashboard/orders");
     } catch (err) {
       console.error("Cancel error:", err);

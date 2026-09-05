@@ -82,7 +82,7 @@ export function PaymentClaimCard({ order, balance, onOrderUpdated }: PaymentClai
           Paid the seller on M-Pesa? Send the code here so they know to check for it.
         </p>
 
-        {payRows.length > 0 && (
+        {payRows.length > 0 ? (
           <div className="mb-3 rounded-xl border border-role/20 bg-role-soft/40 px-3.5 py-3 space-y-1.5">
             <p className="text-xs font-bold text-role uppercase tracking-wide">Pay To</p>
             {payRows.map((row) => (
@@ -91,6 +91,16 @@ export function PaymentClaimCard({ order, balance, onOrderUpdated }: PaymentClai
                 <span className="font-bold text-text-primary">{row.value}</span>
               </div>
             ))}
+          </div>
+        ) : (
+          // The seller hasn't filled in any M-Pesa method yet — without
+          // this, a buyer sees a bare "how much / what code" form with no
+          // indication of where the money was even supposed to go.
+          <div className="mb-3 rounded-xl border border-warning/25 bg-warning/5 px-3.5 py-3">
+            <p className="text-xs font-bold text-warning">The seller hasn&apos;t added payment details yet</p>
+            <p className="text-xs text-text-muted mt-1">
+              Contact them directly to arrange how to pay, then send the code below once you have.
+            </p>
           </div>
         )}
 

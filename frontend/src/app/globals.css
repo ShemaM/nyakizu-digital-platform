@@ -51,6 +51,21 @@ html {
 
 html.dark {
   color-scheme: dark;
+  --background: 30 12% 9%;
+  --foreground: 40 33% 95%;
+  --card: 30 12% 14%;
+  --card-foreground: 40 33% 95%;
+  --popover: 30 12% 14%;
+  --popover-foreground: 40 33% 95%;
+  --muted: 30 10% 20%;
+  --muted-foreground: 38 18% 72%;
+  --secondary: 30 10% 20%;
+  --secondary-foreground: 40 33% 95%;
+  --accent: 30 10% 20%;
+  --accent-foreground: 40 33% 95%;
+  --border: 32 14% 29%;
+  --input: 32 14% 29%;
+  --ring: 43 75% 52%;
 }
 
 html.dark body {

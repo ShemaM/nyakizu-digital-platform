@@ -19,6 +19,15 @@ import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/cn";
 import { buyerDisplayName } from "@/lib/order-status";
 import { isLowStock } from "@/lib/inventory";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 const ACTIVE_STATUSES = new Set(["submitted", "sourcing", "locked", "debt_active", "cleared"]);
 
@@ -114,7 +123,7 @@ export function SellerMetrics({ orders, products, relationships }: {
     ] },
   ] as const;
   return <div>
-    <div className="mb-4 flex items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wider text-role">At a glance</p><h2 className="text-xl font-black text-foreground">Business performance</h2></div><p className="text-xs text-muted-foreground">Clear signals, fewer cards</p></div>
+    <div className="mb-4 flex items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wider text-role">At a glance</p><h2 className="text-xl font-black text-foreground">Business performance</h2></div></div>
     <div className="grid gap-3 lg:grid-cols-3">{groups.map((group) => <SectionCard key={group.title} className="p-0"><div className="border-b border-border px-4 py-4 sm:px-5"><h3 className="font-black text-foreground">{group.title}</h3><p className="mt-0.5 text-xs text-muted-foreground">{group.description}</p></div><div className="divide-y divide-border">{group.metrics.map(([icon, label, value, hint, tone]) => <MetricRow key={label} icon={icon} label={label} value={value} hint={hint} tone={tone} />)}</div></SectionCard>)}</div>
     <div className="mt-3 grid gap-3 sm:grid-cols-2"><Metric icon={TrendingUp} label="Weekly revenue" value={fmtKES(weeklyRevenue)} hint="Last 7 days" tone="success" /><Metric icon={BarChart3} label="Monthly revenue" value={fmtKES(monthlyRevenue)} hint={`Conversion rate ${conversionRate.toFixed(1)}%`} tone="success" /></div>
   </div>;
@@ -167,7 +176,10 @@ export function RevenueAnalytics({ orders }: { orders: ApiOrder[] }) {
   const products = new Map<string, number>();
   active.forEach((order) => order.items?.forEach((item) => products.set(item.product_name || item.custom_name || "Unnamed product", (products.get(item.product_name || item.custom_name || "Unnamed product") ?? 0) + item.quantity)));
   const bestSelling = [...products.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
-  const maxProduct = Math.max(1, ...bestSelling.map(([, count]) => count));
+  const bestSellingChartData = bestSelling.map(([name, count], index) => ({
+    name: `${index + 1}. ${name}`,
+    sold: count,
+  }));
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
@@ -186,7 +198,23 @@ export function RevenueAnalytics({ orders }: { orders: ApiOrder[] }) {
       </SectionCard>
       <SectionCard>
         <div className="mb-5"><p className="text-xs font-bold uppercase tracking-wider text-role">What sells</p><h2 className="text-xl font-black text-text-primary">Best-selling products</h2></div>
-        {bestSelling.length === 0 ? <p className="text-sm text-text-muted">Product sales will appear here after your first order.</p> : <div className="space-y-4">{bestSelling.map(([name, count], index) => <div key={name}><div className="mb-1 flex justify-between gap-3 text-sm"><span className="truncate font-semibold text-text-primary">{index + 1}. {name}</span><span className="shrink-0 font-bold text-text-muted">{count} sold</span></div><div className="h-2 rounded-full bg-slate-100"><div className="h-2 rounded-full bg-role" style={{ width: `${(count / maxProduct) * 100}%` }} /></div></div>)}</div>}
+        {bestSelling.length === 0 ? <p className="text-sm text-text-muted">Product sales will appear here after your first order.</p> : (
+          <div className="h-64 w-full" aria-label="Best-selling products chart">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={bestSellingChartData} layout="vertical" margin={{ top: 0, right: 12, left: 8, bottom: 0 }}>
+                <CartesianGrid horizontal={false} stroke="var(--border)" strokeDasharray="3 3" />
+                <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} />
+                <YAxis type="category" dataKey="name" width={150} axisLine={false} tickLine={false} tick={{ fill: "var(--foreground)", fontSize: 11, fontWeight: 600 }} />
+                <Tooltip
+                  cursor={{ fill: "var(--muted)" }}
+                  formatter={(value) => [`${value} sold`, "Units"]}
+                  contentStyle={{ borderRadius: 12, border: "1px solid var(--border)", background: "var(--card)", color: "var(--card-foreground)" }}
+                />
+                <Bar dataKey="sold" fill="#c88700" radius={[0, 5, 5, 0]} barSize={16} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </SectionCard>
     </div>
   );

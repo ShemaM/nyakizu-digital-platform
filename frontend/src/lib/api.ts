@@ -354,6 +354,10 @@ export interface RegisterPayload {
 
 class AuthAPI {
   async login(identifier: string, password: string): Promise<User> {
+    // The app primes CSRF in the background, but login can be submitted
+    // before that request finishes on a cold page load. Make the mutation
+    // self-sufficient so the first sign-in attempt is not rejected.
+    await primeCsrf();
     const response = await fetchWithSession(`${API_BASE_URL}/accounts/login/`, {
       method: "POST",
       body: JSON.stringify({ identifier, password }),

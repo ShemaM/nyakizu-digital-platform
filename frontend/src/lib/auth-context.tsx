@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
 import { auth, primeCsrf, type User } from "@/lib/api";
 import { offlineDB } from "@/lib/offline-db";
 
@@ -18,22 +18,31 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const sessionVersion = useRef(0);
 
   const setSessionUser = useCallback((userData: User) => {
+    sessionVersion.current += 1;
     setUser(userData);
     setIsLoading(false);
   }, []);
 
   const refetch = useCallback(async () => {
+    const requestVersion = sessionVersion.current;
     try {
       const userData = await auth.me();
-      setUser(userData);
+      if (sessionVersion.current === requestVersion) {
+        setUser(userData);
+      }
       return userData;
     } catch {
-      setUser(null);
+      if (sessionVersion.current === requestVersion) {
+        setUser(null);
+      }
       return null;
     } finally {
-      setIsLoading(false);
+      if (sessionVersion.current === requestVersion) {
+        setIsLoading(false);
+      }
     }
   }, []);
 

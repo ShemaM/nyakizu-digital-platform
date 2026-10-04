@@ -11,7 +11,7 @@ server can never block the request that triggered the notification.
 
 from django.conf import settings
 
-from nyakizu.emailing import send_mail_async
+from nyakizu.emailing import send_mail_async, sender
 from .models import OrderStatusEvent
 
 
@@ -74,7 +74,7 @@ def send_order_status_email(order, status):
     send_mail_async(
         subject=f"Nyakizu: {subject}",
         message=f"{body}\n\nSee your order: {_frontend_base_url()}/buyer/orders/{order.id}/",
-        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+        from_email=sender("orders"),
         recipient_list=[order.buyer.email],
     )
 
@@ -91,7 +91,7 @@ def send_new_order_seller_email(order):
             "Please review it and start packing.\n\n"
             f"See the order: {_frontend_base_url()}/seller/dashboard/orders/{order.id}/fulfill/"
         ),
-        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+        from_email=sender("orders"),
         recipient_list=[order.seller.email],
     )
 
@@ -108,7 +108,7 @@ def send_payment_reminder_email(order):
             "Please pay via M-Pesa, then tell us the code from your order page.\n\n"
             f"See your order: {_frontend_base_url()}/buyer/orders/{order.id}/"
         ),
-        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+        from_email=sender("payments"),
         recipient_list=[order.buyer.email],
     )
 
@@ -146,7 +146,7 @@ def send_debt_date_reminder_email(order, days_until):
             "There's no penalty for updating it.\n\n"
             f"See your order: {_frontend_base_url()}/buyer/orders/{order.id}/"
         ),
-        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+        from_email=sender("payments"),
         recipient_list=[order.buyer.email],
     )
 
@@ -164,7 +164,7 @@ def send_payment_claim_seller_email(order, claim):
             "Check your M-Pesa messages, then record the payment in the app.\n\n"
             f"See the order: {_frontend_base_url()}/seller/dashboard/orders/{order.id}/fulfill/"
         ),
-        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+        from_email=sender("payments"),
         recipient_list=[order.seller.email],
     )
 
@@ -191,7 +191,7 @@ def send_abandoned_cart_email(draft):
             # is the User id, a different number for the same seller.
             f"Finish your order: {_frontend_base_url()}/buyer/lists/new?id={seller_profile.id}"
         ),
-        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+        from_email=sender("marketing"),
         recipient_list=[draft.buyer.email],
     )
 

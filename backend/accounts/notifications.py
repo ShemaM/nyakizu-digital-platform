@@ -12,7 +12,7 @@ classes.
 from django.conf import settings
 from django.urls import reverse
 
-from nyakizu.emailing import send_mail_async
+from nyakizu.emailing import send_mail_async, sender
 from .models import CustomUser
 
 
@@ -87,7 +87,7 @@ def notify_admins_new_signup(user: CustomUser, request=None) -> None:
     send_mail_async(
         subject=subject,
         message="\n".join(lines),
-        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+        from_email=sender("alerts"),
         recipient_list=staff_emails,
     )
 
@@ -119,6 +119,6 @@ def notify_seller_new_access_request(relationship, request=None) -> None:
     send_mail_async(
         subject=f"{buyer_name} wants to order from {store_name}",
         message=message,
-        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+        from_email=sender("sellers"),
         recipient_list=[seller_user.email],
     )

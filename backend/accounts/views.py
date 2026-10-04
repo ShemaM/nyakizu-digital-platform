@@ -13,10 +13,11 @@ from rest_framework.views import APIView
 from django.contrib.auth import login, logout
 
 from .models import CustomUser, BuyerProfile, SellerProfile, BuyerStoreFollow, BuyerSellerRelationship, PushSubscription
+from billing.access import require_feature
 from products.models import Product
 from .permissions import is_admin_user, is_verified_buyer, is_approved_seller
 from .notifications import notify_admins_new_signup, notify_seller_new_access_request
-from nyakizu.emailing import send_mail_async
+from nyakizu.emailing import send_mail_async, sender
 from nyakizu.pagination import LargeResultsSetPagination
 from .serializers import (
     RegisterSerializer,
@@ -66,7 +67,7 @@ class RegisterView(APIView):
                     f"{verify_url}\n\n"
                     "If you did not create an account, you can ignore this message."
                 ),
-                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+                from_email=sender('accounts'),
                 recipient_list=[user.email],
             )
 
@@ -120,7 +121,7 @@ class ResendVerificationEmailView(APIView):
                     f"{verify_url}\n\n"
                     "If you did not ask for this, you can ignore this message."
                 ),
-                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+                from_email=sender('accounts'),
                 recipient_list=[user.email],
             )
 
@@ -187,7 +188,7 @@ class PasswordResetRequestView(APIView):
                     "If you did not request this, you can safely ignore this message — "
                     "your password will not change."
                 ),
-                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+                from_email=sender('accounts'),
                 recipient_list=[user.email],
             )
 
@@ -458,7 +459,7 @@ class ApproveSellerView(APIView):
                 f"Best regards,\n"
                 f"The Nyakizu Team"
             ),
-            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+            from_email=sender('sellers'),
             recipient_list=[seller.user.email],
         )
 
@@ -500,7 +501,7 @@ class RejectSellerView(APIView):
         send_mail_async(
             subject="Update on Your Nyakizu Seller Application",
             message=message,
-            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+            from_email=sender('sellers'),
             recipient_list=[seller.user.email],
         )
 
@@ -670,6 +671,10 @@ class RelationshipResolveView(APIView):
     """
     POST /api/accounts/relationships/<id>/resolve/
     The seller who owns the request approves or denies it. Body: { action: "approve"|"deny" }
+
+    Approving a new buyer can be blocked by an outstanding balance once billing
+    is enforced (HTTP 402 UPGRADE_REQUIRED). Denying is always free, and so is
+    re-approving someone who is already approved.
     """
     permission_classes = [permissions.IsAuthenticated]
 
@@ -689,6 +694,8 @@ class RelationshipResolveView(APIView):
 
         action = request.data.get("action")
         if action == "approve":
+            if relationship.status != "approved":
+                require_feature(request.user, "approve_new_buyers")
             relationship.approve()
         elif action == "deny":
             relationship.deny()

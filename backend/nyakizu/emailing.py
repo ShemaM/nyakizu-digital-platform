@@ -26,7 +26,7 @@ import socket
 from concurrent.futures import ThreadPoolExecutor
 
 from django.conf import settings
-from django.core.mail import send_mail
+from django.core.mail import EmailMessage
 from django.core.mail.backends.smtp import EmailBackend as DjangoSMTPBackend
 
 logger = logging.getLogger("nyakizu.emailing")
@@ -76,11 +76,24 @@ class IPv4EmailBackend(DjangoSMTPBackend):
     connection_class = _IPv4SMTP
 
 
-def send_mail_async(subject, message, recipient_list, from_email=None):
+def sender(kind):
+    """
+    Return the From address for a category of outbound mail — one of the keys
+    in settings.EMAIL_SENDERS ("accounts", "orders", "payments", "sellers",
+    "alerts", "marketing"). Falls back to DEFAULT_FROM_EMAIL for an unknown
+    key or an environment that hasn't defined the map at all.
+    """
+    senders = getattr(settings, "EMAIL_SENDERS", None) or {}
+    return senders.get(kind) or getattr(settings, "DEFAULT_FROM_EMAIL", None)
+
+
+def send_mail_async(subject, message, recipient_list, from_email=None, reply_to=None):
     """Fire-and-forget an email in a background thread; never blocks the request."""
     recipient_list = [r for r in (recipient_list or []) if r]
     if not recipient_list:
         return
+
+    reply_to = reply_to or getattr(settings, "EMAIL_REPLY_TO", "") or None
 
     backend = getattr(settings, "EMAIL_BACKEND", "")
     is_smtp = backend in (
@@ -103,13 +116,13 @@ def send_mail_async(subject, message, recipient_list, from_email=None):
 
     def _send():
         try:
-            send_mail(
+            EmailMessage(
                 subject=subject,
-                message=message,
-                from_email=from_email,
-                recipient_list=recipient_list,
-                fail_silently=False,
-            )
+                body=message,
+                from_email=from_email or getattr(settings, "DEFAULT_FROM_EMAIL", None),
+                to=recipient_list,
+                reply_to=[reply_to] if reply_to else None,
+            ).send(fail_silently=False)
         except Exception:
             # logger.exception at ERROR level is auto-forwarded to Sentry by
             # the LoggingIntegration wired in settings.py (once SENTRY_DSN is

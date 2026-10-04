@@ -12,6 +12,7 @@ from django.db.models import Q
 from django.utils import timezone
 from accounts.models import SellerProfile
 from accounts.permissions import is_approved_seller, is_verified_buyer, is_admin_user
+from billing.access import require_feature
 from nyakizu.pagination import LargeResultsSetPagination
 from .models import Order, OrderItem, PaymentClaim, PaymentRecord, CartDraft
 from .notifications import record_status_event, send_payment_claim_seller_email, send_payment_reminder_email
@@ -148,6 +149,12 @@ class OrderDetailView(generics.RetrieveUpdateAPIView):
             raise ValidationError(
                 {"expected_payment_date": "This order isn't in debt right now — there's nothing to set a payment date for."}
             )
+
+        if new_status == "locked" and old_status != "locked":
+            # An outstanding billing balance can block locking a *new* order's
+            # price (HTTP 402) — packing it and recording a payment already
+            # received are never blocked. See billing/access.py.
+            require_feature(order.seller, "lock_order")
 
         order = serializer.save()
         if order.status != old_status:

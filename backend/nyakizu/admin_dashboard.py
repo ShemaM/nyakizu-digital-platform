@@ -419,7 +419,7 @@ def dashboard_callback(request, context):
             "href": reverse("admin:orders_order_changelist") + "?is_flagged__exact=1",
         })
     gmv_direction, _ = _pct_change(gmv_current, gmv_previous)
-    if gmv_direction == "down" and gmv_previous > 0 and gmv_current < gmv_previous * 0.8:
+    if gmv_direction == "down" and gmv_previous > 0 and gmv_current < gmv_previous * Decimal("0.8"):
         drop = (1 - float(gmv_current) / float(gmv_previous)) * 100
         alerts.append({"tone": "warning", "message": f"Trade volume dropped {drop:.0f}% vs. the previous period.", "href": None})
     if cancellation_rate > 15:

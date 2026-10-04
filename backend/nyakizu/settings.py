@@ -16,9 +16,8 @@ SECRET_KEY = config('SECRET_KEY', default='dev-insecure-key-change-in-production
 DEBUG      = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
-# Automated M-Pesa Daraja billing stays off until production onboarding,
+# Automated M-Pesa Daraja top-ups stay disabled until production onboarding,
 # credentials, callbacks, and reconciliation requirements are complete.
-# The current order flow remains manual: sellers confirm payments themselves.
 MPESA_DARAJA_ENABLED = config('MPESA_DARAJA_ENABLED', default=False, cast=bool)
 
 if not DEBUG and SECRET_KEY == 'dev-insecure-key-change-in-production':
@@ -64,6 +63,7 @@ INSTALLED_APPS = [
     'accounts',
     'products',
     'orders',
+    'billing',
 ]
 
 MIDDLEWARE = [
@@ -347,6 +347,37 @@ UNFOLD = {
                     },
                 ],
             },
+            {
+                "title": "Billing",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Seller accounts",
+                        "icon": "account_balance_wallet",
+                        "link": reverse_lazy("admin:billing_selleraccount_changelist"),
+                    },
+                    {
+                        "title": "Credit ledger",
+                        "icon": "menu_book",
+                        "link": reverse_lazy("admin:billing_creditentry_changelist"),
+                    },
+                    {
+                        "title": "Order fees",
+                        "icon": "receipt_long",
+                        "link": reverse_lazy("admin:billing_orderfee_changelist"),
+                    },
+                    {
+                        "title": "Payments",
+                        "icon": "payments",
+                        "link": reverse_lazy("admin:billing_payment_changelist"),
+                    },
+                    {
+                        "title": "Fee schedule",
+                        "icon": "sell",
+                        "link": reverse_lazy("admin:billing_feeschedule_changelist"),
+                    },
+                ],
+            },
         ],
     },
 }
@@ -395,6 +426,8 @@ REST_FRAMEWORK = {
         'login': '10/min',
         'register': '10/hour',
         'password_reset': '5/hour',
+        'billing_pay': '10/hour',
+        'billing_pay_status': '240/hour',
     },
 }
 
@@ -478,8 +511,105 @@ EMAIL_TIMEOUT = config('EMAIL_TIMEOUT', default=10, cast=int)
 # (Resend's shared test sender) and mail can only reach your own Resend
 # account email — verify a domain in Resend's dashboard to send to anyone
 # else, then point this at an address on that domain.
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
+#
+# This is the fallback used only when EMAIL_SENDERS (below) has no entry for
+# a given category, or by anything sent through Django/allauth's own mail
+# calls that don't go through nyakizu.emailing.sender().
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='Nyakizu <noreply@nyakizudigital.me>')
+# Envelope sender for mail Django itself generates — currently just the
+# admin-error emails triggered by mail_admins()/mail_managers() on a 500,
+# which only fire when ADMINS is populated (it isn't yet, so this is inert
+# until that's set — Sentry is what currently surfaces those exceptions).
+SERVER_EMAIL = config('SERVER_EMAIL', default='noreply@nyakizudigital.me')
 FRONTEND_VERIFY_BASE_URL = config('FRONTEND_VERIFY_BASE_URL', default='http://localhost:3000')
+
+# ── Outbound sender identities ────────────────────────────────────────────────
+# Every outbound email goes out from a purpose-specific address so recipients
+# (and inbox filters) can tell an order update from a password reset from an
+# internal alert at a glance. Originally these lived on a dedicated sending
+# subdomain (isolates sending reputation from the root domain) — but that
+# domain was added in Resend with a typo (mail.nyakizudigtal.me) and never
+# verified, while the root domain nyakizudigital.me verified cleanly. Using
+# root for now; a correctly-spelled subdomain can be verified and swapped in
+# later by just changing EMAIL_SENDING_DOMAIN. Pick the address for a given
+# email with nyakizu.emailing.sender("<key>"); each one is individually
+# overridable via env (value may be a bare address or a "Name <addr>" string).
+EMAIL_SENDING_DOMAIN = config('EMAIL_SENDING_DOMAIN', default='nyakizudigital.me')
+EMAIL_SENDERS = {
+    # account lifecycle & security: verification links, password resets
+    'accounts':  config('EMAIL_FROM_ACCOUNTS',  default=f'Nyakizu Accounts <accounts@{EMAIL_SENDING_DOMAIN}>'),
+    # order flow: status changes to buyers, new-order alerts to sellers
+    'orders':    config('EMAIL_FROM_ORDERS',    default=f'Nyakizu Orders <orders@{EMAIL_SENDING_DOMAIN}>'),
+    # money movement: balance reminders, self-set payment-date notes, payment claims
+    'payments':  config('EMAIL_FROM_PAYMENTS',  default=f'Nyakizu Payments <payments@{EMAIL_SENDING_DOMAIN}>'),
+    # seller lifecycle: store approval/rejection, buyer access requests
+    'sellers':   config('EMAIL_FROM_SELLERS',   default=f'Nyakizu Sellers <sellers@{EMAIL_SENDING_DOMAIN}>'),
+    # internal: new-signup notifications to staff/admins
+    'alerts':    config('EMAIL_FROM_ALERTS',    default=f'Nyakizu Alerts <alerts@{EMAIL_SENDING_DOMAIN}>'),
+    # marketing: abandoned-cart nudges (keep off the transactional keys so a
+    # spam complaint here never taints deliverability of a password reset)
+    'marketing': config('EMAIL_FROM_MARKETING', default=f'Nyakizu <hello@{EMAIL_SENDING_DOMAIN}>'),
+}
+# Replies to any of the above are pointed here — none of the sending
+# addresses above have a real inbox. Set this to a monitored address /
+# forwarder (blank = no Reply-To).
+EMAIL_REPLY_TO = config('EMAIL_REPLY_TO', default='support@nyakizudigital.me')
+
+
+# ── Billing (see docs/BILLING_SPEC.md) ────────────────────────────────────────
+# Two independent switches, both off until go-live:
+#
+# BILLING_CHARGING_ENABLED — whether locking an order charges (or uses up a free
+#   order for) its fee at all. While off, nothing is charged, no free orders are
+#   consumed, and no balance moves, so the billing code can be deployed and tested
+#   in production without billing anyone. Turn it on at go-live: every seller's
+#   free orders then count from that moment, as the spec requires.
+# BILLING_ENFORCEMENT_ENABLED — whether levels 3/4 of the enforcement ladder
+#   (billing.services.enforcement_level) actually block anything. Keep it off until
+#   M-Pesa top-ups are live, or a blocked seller has no way to pay their way out.
+#
+# The fee formula and free-orders allowance live in the database
+# (billing.models.FeeSchedule), not here.
+BILLING_CHARGING_ENABLED = config('BILLING_CHARGING_ENABLED', default=False, cast=bool)
+BILLING_ENFORCEMENT_ENABLED = config('BILLING_ENFORCEMENT_ENABLED', default=False, cast=bool)
+
+# Enforcement ladder thresholds — see billing.services.enforcement_level. Levels
+# 0-2 are informational only (a nudge, then a "you owe money" notice); only 3
+# (blocks approving new buyers) and 4 (blocks locking a new order's price) are
+# gated by BILLING_ENFORCEMENT_ENABLED above.
+BILLING_LOW_CREDIT_KES = config('BILLING_LOW_CREDIT_KES', default=100, cast=int)
+BILLING_LEVEL3_OWED_KES = config('BILLING_LEVEL3_OWED_KES', default=200, cast=int)
+BILLING_LEVEL3_DAYS = config('BILLING_LEVEL3_DAYS', default=7, cast=int)
+BILLING_LEVEL4_OWED_KES = config('BILLING_LEVEL4_OWED_KES', default=500, cast=int)
+BILLING_LEVEL4_DAYS = config('BILLING_LEVEL4_DAYS', default=14, cast=int)
+
+# ── Safaricom Daraja (M-Pesa STK Push top-ups; see billing/daraja.py, billing/payments.py) ──
+# Set these in the environment only. Never commit them.
+# Sandbox works immediately, self-serve, with no approval: shortcode 174379 and
+# the passkey below are Safaricom's own published sandbox test values, the same
+# for every developer — not a secret, safe to keep as the default here. A real
+# Paybill/Till and its own passkey come from Safaricom's separate go-live
+# approval, entered here only once that is done.
+DARAJA_CONSUMER_KEY = config('DARAJA_CONSUMER_KEY', default='')
+DARAJA_CONSUMER_SECRET = config('DARAJA_CONSUMER_SECRET', default='')
+# 'sandbox' or 'production' — selects both the API host and whether topup_seller
+# demands --confirm-live (see billing/management/commands/topup_seller.py).
+DARAJA_ENV = config('DARAJA_ENV', default='sandbox')
+DARAJA_SHORTCODE = config('DARAJA_SHORTCODE', default='174379')
+DARAJA_PASSKEY = config('DARAJA_PASSKEY', default='bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919')
+# 'CustomerPayBillOnline' for a Paybill, 'CustomerBuyGoodsOnline' for a Till.
+DARAJA_TRANSACTION_TYPE = config('DARAJA_TRANSACTION_TYPE', default='CustomerPayBillOnline')
+# Must be a public HTTPS URL Safaricom can reach — it cannot be localhost. Blank
+# is fine for now: without a callback, the seller's own status poll (which
+# actively asks Daraja) is still how every top-up gets confirmed and credited.
+DARAJA_CALLBACK_URL = config('DARAJA_CALLBACK_URL', default='')
+# Optional, and not load-bearing for safety (billing/views.py explains why):
+# a comma-separated list of source IPs allowed to call the callback endpoint.
+# Blank = don't check. Get the current published range from your Daraja portal.
+DARAJA_WEBHOOK_IPS = [ip.strip() for ip in config('DARAJA_WEBHOOK_IPS', default='').split(',') if ip.strip()]
+# Top-up limits, in whole KES.
+BILLING_MIN_TOPUP_KES = config('BILLING_MIN_TOPUP_KES', default=50, cast=int)
+BILLING_MAX_TOPUP_KES = config('BILLING_MAX_TOPUP_KES', default=20000, cast=int)
 
 
 # ── django-allauth ────────────────────────────────────────────────────────────

@@ -2,7 +2,9 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import {
   AlertTriangle,
+  ArrowRight,
   BarChart3,
+  Bell,
   ChevronRight,
   Clock3,
   Package,
@@ -12,7 +14,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
-import { fmtKES, parsePrice, type ApiOrder, type ApiProduct, type ApiRelationship } from "@/lib/api";
+import { fmtKES, parsePrice, products as productsApi, type ApiOrder, type ApiProduct, type ApiRelationship, ApiError } from "@/lib/api";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/cn";
 import { buyerDisplayName } from "@/lib/order-status";
@@ -39,7 +41,7 @@ function inLastDays(iso: string, days: number): boolean {
 }
 
 function SectionCard({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("rounded-2xl border border-slate-100 bg-white p-5 shadow-sm sm:p-6", className)}>{children}</div>;
+  return <div className={cn("rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm sm:p-6", className)}>{children}</div>;
 }
 
 function Metric({ icon: Icon, label, value, hint, tone = "role" }: {
@@ -93,32 +95,32 @@ export function SellerMetrics({ orders, products, relationships }: {
   const conversionRate = conversionBase ? (buyers.size / conversionBase) * 100 : 0;
   const lowStock = products.filter((product) => product.status !== "out_of_stock" && (product.stock_quantity ?? 0) <= 3).length;
 
-  return (
-    <div>
-      <div className="mb-4 flex items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-role">At a glance</p>
-          <h2 className="text-xl font-black text-text-primary">Business performance</h2>
-        </div>
-        <p className="text-xs text-text-muted">Paid revenue unless noted</p>
-      </div>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Metric icon={Wallet} label="Today's revenue" value={fmtKES(todayRevenue)} hint="Collected today" tone="success" />
-        <Metric icon={ShoppingBagIcon} label="Orders" value={String(validOrders.length)} hint="All active orders" />
-        <Metric icon={Clock3} label="Pending" value={String(validOrders.filter((o) => o.status !== "cleared").length)} hint="Need action" tone="warning" />
-        <Metric icon={Package} label="Products" value={String(products.filter((p) => p.status === "available").length)} hint="Visible to buyers" />
-      </div>
-      <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Metric icon={TrendingUp} label="Weekly revenue" value={fmtKES(weeklyRevenue)} hint="Last 7 days" tone="success" />
-        <Metric icon={BarChart3} label="Monthly revenue" value={fmtKES(monthlyRevenue)} hint="Last 30 days" tone="success" />
-        <Metric icon={Users} label="Conversion rate" value={`${conversionRate.toFixed(1)}%`} hint="Approved buyers who ordered" />
-        <Metric icon={Wallet} label="Average order value" value={fmtKES(aov)} hint={`${completedOrPaid.length} paid orders`} />
-        <Metric icon={Users} label="Returning customers" value={String(returning)} hint="More than one order" />
-        <Metric icon={AlertTriangle} label="Products running low" value={String(lowStock)} hint="Three units or fewer" tone="warning" />
-        <Metric icon={Clock3} label="Pending deliveries" value={String(validOrders.filter((o) => ["sourcing", "locked", "debt_active"].includes(o.status)).length)} hint="Not completed or cancelled" tone="warning" />
-      </div>
-    </div>
-  );
+  const groups = [
+    { title: "Sales performance", description: "Money and order momentum", metrics: [
+      [Wallet, "Revenue", fmtKES(todayRevenue), "Today · " + fmtKES(monthlyRevenue) + " this month", "success"],
+      [ShoppingBagIcon, "Orders", String(validOrders.length), "Active orders", "role"],
+      [TrendingUp, "Average order value", fmtKES(aov), `${completedOrPaid.length} paid orders`, "role"],
+    ] },
+    { title: "Customer insights", description: "Relationships that drive repeat sales", metrics: [
+      [Users, "Total customers", String(Math.max(buyers.size, relationships.filter((r) => r.status === "approved").length)), "Approved buyers", "role"],
+      [Users, "Returning customers", String(returning), "More than one order", "role"],
+      [Bell, "Messages / requests", String(relationships.filter((r) => r.status === "pending").length), "Buyer requests pending", "warning"],
+    ] },
+    { title: "Store health", description: "What needs action next", metrics: [
+      [Package, "Active products", String(products.filter((p) => p.status === "available").length), "Visible to buyers", "role"],
+      [AlertTriangle, "Low stock", String(lowStock), "Three units or fewer", "warning"],
+      [Clock3, "Pending orders", String(validOrders.filter((o) => o.status !== "cleared").length), "Need processing", "warning"],
+    ] },
+  ] as const;
+  return <div>
+    <div className="mb-4 flex items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wider text-role">At a glance</p><h2 className="text-xl font-black text-foreground">Business performance</h2></div><p className="text-xs text-muted-foreground">Clear signals, fewer cards</p></div>
+    <div className="grid gap-3 lg:grid-cols-3">{groups.map((group) => <SectionCard key={group.title} className="p-0"><div className="border-b border-border px-4 py-4 sm:px-5"><h3 className="font-black text-foreground">{group.title}</h3><p className="mt-0.5 text-xs text-muted-foreground">{group.description}</p></div><div className="divide-y divide-border">{group.metrics.map(([icon, label, value, hint, tone]) => <MetricRow key={label} icon={icon} label={label} value={value} hint={hint} tone={tone} />)}</div></SectionCard>)}</div>
+    <div className="mt-3 grid gap-3 sm:grid-cols-2"><Metric icon={TrendingUp} label="Weekly revenue" value={fmtKES(weeklyRevenue)} hint="Last 7 days" tone="success" /><Metric icon={BarChart3} label="Monthly revenue" value={fmtKES(monthlyRevenue)} hint={`Conversion rate ${conversionRate.toFixed(1)}%`} tone="success" /></div>
+  </div>;
+}
+
+function MetricRow({ icon: Icon, label, value, hint, tone }: { icon: typeof Wallet; label: string; value: string; hint: string; tone: "role" | "success" | "warning" }) {
+  return <div className="flex items-center gap-3 px-4 py-3.5 sm:px-5"><span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", tone === "success" ? "bg-success/12 text-success" : tone === "warning" ? "bg-warning/12 text-warning" : "bg-role-soft text-role-dark")}><Icon size={17} /></span><div className="min-w-0 flex-1"><p className="text-xs font-bold text-muted-foreground">{label}</p><p className="text-lg font-black tabular-nums text-foreground">{value}</p></div><p className="max-w-[8rem] text-right text-xs text-muted-foreground">{hint}</p></div>;
 }
 
 function RevenueChart({ orders, days }: { orders: ApiOrder[]; days: 7 | 30 }) {
@@ -200,10 +202,29 @@ export function OrderPipeline({ orders }: { orders: ApiOrder[] }) {
   return <div><div className="mb-4"><p className="text-xs font-bold uppercase tracking-wider text-role">Workflow</p><h2 className="text-xl font-black text-text-primary">Order pipeline</h2></div><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">{PIPELINE.map((column) => { const items = orders.filter((order) => column.statuses.includes(order.status as never)); return <div key={column.title} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3"><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-black text-text-primary">{column.title}</h3><span className="rounded-full bg-white px-2 py-0.5 text-xs font-black text-text-muted">{items.length}</span></div><div className="space-y-2">{items.slice(0, 5).map((order) => <Link key={order.id} href={`/seller/dashboard/orders/${order.id}/fulfill`} className="block rounded-xl border border-slate-100 bg-white p-3 shadow-sm transition hover:border-role/30"><div className="flex items-center justify-between gap-2"><span className="text-sm font-black text-text-primary">Order #{order.id}</span><ChevronRight size={14} className="text-text-muted" /></div><p className="mt-1 truncate text-xs text-text-muted">{buyerDisplayName(order)}</p><p className="mt-2 text-xs font-bold text-role">{fmtKES(orderValue(order))}</p></Link>)}{items.length > 5 && <p className="px-1 text-xs font-semibold text-text-muted">+{items.length - 5} more orders</p>}{items.length === 0 && <p className="py-5 text-center text-xs text-text-muted">Nothing here</p>}</div></div>; })}</div></div>;
 }
 
-export function InventoryInsights({ products }: { products: ApiProduct[] }) {
+export function InventoryInsights({ products, onProductUpdated }: { products: ApiProduct[]; onProductUpdated?: (product: ApiProduct) => void }) {
   const low = products.filter((product) => product.status !== "out_of_stock" && (product.stock_quantity ?? 0) <= 3);
   const out = products.filter((product) => product.status === "out_of_stock" || (product.stock_quantity ?? 0) === 0);
-  return <div className="grid gap-4 md:grid-cols-2"><SectionCard><div className="mb-4 flex items-center gap-2"><AlertTriangle size={18} className="text-warning" /><div><p className="text-xs font-bold uppercase tracking-wider text-warning">Inventory insights</p><h2 className="text-lg font-black text-text-primary">Low inventory</h2></div></div>{low.length ? <div className="space-y-3">{low.map((product) => <Link href={`/seller/dashboard/catalog/new?id=${product.id}`} key={product.id} className="flex items-center justify-between gap-3 rounded-xl bg-warning/8 px-3 py-2.5 hover:bg-warning/12"><span className="truncate text-sm font-semibold text-text-primary">{product.name}</span><span className="shrink-0 text-sm font-black text-warning">{product.stock_quantity ?? 0} left</span></Link>)}</div> : <p className="text-sm text-text-muted">All products have healthy stock levels.</p>}</SectionCard><SectionCard><div className="mb-4 flex items-center gap-2"><Package size={18} className="text-error" /><div><p className="text-xs font-bold uppercase tracking-wider text-error">Needs restocking</p><h2 className="text-lg font-black text-text-primary">Out of stock</h2></div></div>{out.length ? <div className="space-y-3">{out.map((product) => <Link href={`/seller/dashboard/catalog/new?id=${product.id}`} key={product.id} className="flex items-center justify-between gap-3 rounded-xl bg-error/6 px-3 py-2.5 hover:bg-error/10"><span className="truncate text-sm font-semibold text-text-primary">{product.name}</span><span className="shrink-0 text-xs font-bold text-error">Restock</span></Link>)}</div> : <p className="text-sm text-text-muted">Nothing is out of stock.</p>}</SectionCard></div>;
+  const [selected, setSelected] = useState<ApiProduct | null>(null);
+  const [quantity, setQuantity] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const restock = async () => {
+    if (!selected) return;
+    const amount = Number(quantity);
+    if (!Number.isInteger(amount) || amount <= 0) { setError("Enter a whole number greater than zero."); return; }
+    setIsSaving(true); setError(null);
+    try {
+      const updated = await productsApi.update(selected.id, { stock_quantity: (selected.stock_quantity ?? 0) + amount, status: "available" });
+      onProductUpdated?.(updated);
+      setSelected(null); setQuantity("");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not update stock. Please try again.");
+    } finally { setIsSaving(false); }
+  };
+  return <div><div className="mb-4 flex items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wider text-warning">Inventory alerts</p><h2 className="text-xl font-black text-foreground">Restock before sales stop</h2></div><Link href="/seller/dashboard/catalog" className="text-sm font-bold text-role-dark">View catalog <ChevronRight className="inline" size={14} /></Link></div><SectionCard className="p-0"><div className="divide-y divide-border">{[...low, ...out].length ? [...low, ...out].map((product) => { const stock = product.stock_quantity ?? 0; const isOut = stock === 0 || product.status === "out_of_stock"; return <div key={product.id} className="flex items-center gap-3 px-4 py-3.5 sm:px-5"><span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", isOut ? "bg-error/10 text-error" : "bg-warning/12 text-warning")}><Package size={17} /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-foreground">{product.name}</p><p className="text-xs text-muted-foreground">Stock: <strong className={isOut ? "text-error" : "text-warning"}>{stock}</strong></p></div><button type="button" onClick={() => { setSelected(product); setQuantity(""); setError(null); }} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-xs font-black text-role-dark shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring"><span>Restock</span><ArrowRight size={14} /></button></div>; }) : <p className="px-5 py-6 text-sm text-muted-foreground">All products have healthy stock levels.</p>}</div></SectionCard>
+    {selected && <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelected(null); }}><div role="dialog" aria-modal="true" aria-labelledby="restock-title" className="w-full max-w-md rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-2xl sm:p-6"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-wider text-warning">Inventory update</p><h3 id="restock-title" className="mt-1 text-xl font-black text-foreground">Update stock</h3><p className="mt-1 text-sm text-muted-foreground">{selected.name} · Current stock: {selected.stock_quantity ?? 0}</p></div><button type="button" aria-label="Close restock dialog" onClick={() => setSelected(null)} className="min-h-11 min-w-11 rounded-lg text-2xl text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring">×</button></div><div className="mt-5 grid grid-cols-3 gap-2">{[5, 10, 20].map((amount) => <button key={amount} type="button" onClick={() => setQuantity(String(amount))} className={cn("min-h-11 rounded-lg border border-border text-sm font-black transition hover:border-role hover:bg-role-soft", quantity === String(amount) && "border-role bg-role-soft text-role-dark")}>+{amount}</button>)}</div><label htmlFor="restock-quantity" className="mt-5 block text-sm font-bold text-foreground">Quantity to add</label><input id="restock-quantity" inputMode="numeric" type="number" min="1" step="1" value={quantity} onChange={(event) => setQuantity(event.target.value)} className="mt-2 h-12 w-full rounded-lg border border-input bg-background px-3 text-base text-foreground outline-none focus:border-role focus:ring-2 focus:ring-role/20" />{error && <p role="alert" className="mt-2 text-sm font-semibold text-error">{error}</p>}<button type="button" disabled={isSaving} onClick={restock} className="mt-5 min-h-12 w-full rounded-lg bg-role-dark px-4 text-sm font-black text-white shadow-md transition hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60">{isSaving ? "Updating..." : "Update stock"}</button></div></div>}
+  </div>;
 }
 
 export function CustomerIntelligence({ orders, relationships }: { orders: ApiOrder[]; relationships: ApiRelationship[] }) {

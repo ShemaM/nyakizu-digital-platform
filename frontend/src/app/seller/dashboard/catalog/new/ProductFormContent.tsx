@@ -1,674 +1,194 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Image from "next/image";
 import {
-  ArrowLeft, ArrowRight, AlertCircle, Lightbulb, Check, Pencil,
-  ImagePlus, X, Camera, Link2, Upload,
+  AlertCircle, ArrowLeft, Camera, Check, ImagePlus, Link2, Pencil,
+  Search, Star, Trash2, Upload,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/Button";
-import { ProgressBar } from "@/components/ui/ProgressBar";
 import { PageSkeleton } from "@/components/ui/LoadingState";
-import { products, categories, type ApiCategory } from "@/lib/api";
+import { categories, products, type ApiCategory } from "@/lib/api";
 import { cn } from "@/lib/cn";
 
-const STEPS = [
-  "Product name", "Category", "Photo", "Price & stock", "Who can see it?", "Description", "Review & save",
-] as const;
-type StepIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6;
-
 const VISIBILITY_OPTIONS = [
-  {
-    value: "available",
-    title: "Visible to buyers",
-    helper: "Buyers can see this and order it right now.",
-    example: "Use this when you are ready to sell.",
-  },
-  {
-    value: "draft",
-    title: "Hidden draft",
-    helper: "Only you can see it — buyers cannot find or order it yet.",
-    example: "Use this while you are still deciding on price or details.",
-  },
-  {
-    value: "out_of_stock",
-    title: "Out of stock",
-    helper: "Buyers can see it, but cannot order until you restock.",
-    example: "Use this when you have sold out but plan to restock soon.",
-  },
+  { value: "available", title: "Publish now", helper: "Buyers can see and order this product." },
+  { value: "draft", title: "Save as draft", helper: "Only you can see it until you are ready." },
+  { value: "out_of_stock", title: "Out of stock", helper: "Buyers can see it, but cannot order yet." },
 ] as const;
 
-function ExampleBox({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-100 rounded-xl p-3.5">
-      <Lightbulb size={18} className="text-amber-500 shrink-0 mt-0.5" />
-      <p className="text-caption text-amber-800 leading-relaxed">{children}</p>
-    </div>
-  );
-}
+type Photo = { id: string; file?: File; url: string };
 
 export function ProductFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("id");
-  const isEditing = !!editId;
-
+  const isEditing = Boolean(editId);
+  const uploadRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(isEditing);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [step, setStep] = useState<StepIndex>(0);
-  const uploadInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const pasteZoneRef = useRef<HTMLDivElement>(null);
-
-  const [formData, setFormData] = useState({
-    name: "",
-    price: "",
-    stock_quantity: "",
-    description: "",
-    status: "available",
-  });
-  const [categoryId, setCategoryId] = useState<number | null>(null);
-  const [selectedValueIds, setSelectedValueIds] = useState<Record<number, number>>({}); // attributeId -> valueId
   const [categoryList, setCategoryList] = useState<ApiCategory[]>([]);
-
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imageSourceUrl, setImageSourceUrl] = useState<string | null>(null);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [categoryQuery, setCategoryQuery] = useState("");
+  const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [selectedValueIds, setSelectedValueIds] = useState<Record<number, number>>({});
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [coverId, setCoverId] = useState<string | null>(null);
   const [linkInput, setLinkInput] = useState("");
   const [imageError, setImageError] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    name: "", price: "", stock_quantity: "", description: "", status: "available",
+  });
 
   useEffect(() => {
-    categories.list().then(setCategoryList);
+    categories.list().then(setCategoryList).catch(() => setError("Could not load categories. Please try again."));
   }, []);
 
   useEffect(() => {
     if (!editId) return;
     products.mine().then((list) => {
-      const existing = list.find((p) => String(p.id) === editId);
+      const existing = list.find((product) => String(product.id) === editId);
       if (existing) {
         setFormData({
           name: existing.name,
           price: String(existing.price),
-          stock_quantity: existing.stock_quantity != null ? String(existing.stock_quantity) : "",
+          stock_quantity: existing.stock_quantity == null ? "" : String(existing.stock_quantity),
           description: existing.description || "",
           status: existing.status,
         });
         if (existing.category) setCategoryId(existing.category);
-        if (existing.attribute_values?.length) {
-          // We only know the value ids here, not which attribute each one
-          // belongs to — that gets resolved once categoryList has loaded
-          // and we can look each value up (see effect below).
-          setSelectedValueIds((prev) => ({
-            ...prev,
-            ...Object.fromEntries(existing.attribute_values!.map((v) => [v.id, v.id])),
-          }));
+        if (existing.image_url) {
+          const photo = { id: "existing-cover", url: existing.image_url };
+          setPhotos([photo]);
+          setCoverId(photo.id);
         }
-        if (existing.image_url) setImagePreviewUrl(existing.image_url);
+        if (existing.attribute_values?.length) {
+          const values: Record<number, number> = {};
+          for (const category of categoryList) {
+            for (const attribute of category.attributes || []) {
+              const match = attribute.values.find((value) => existing.attribute_values?.some((selected) => selected.id === value.id));
+              if (match) values[attribute.id] = match.id;
+            }
+          }
+          setSelectedValueIds(values);
+        }
       }
       setIsLoading(false);
+    }).catch(() => {
+      setError("Could not load this product. Please try again.");
+      setIsLoading(false);
     });
-  }, [editId]);
+  }, [editId, categoryList]);
 
-  // Resolve the flat list of pre-selected value ids (from the effect above)
-  // into the { attributeId: valueId } shape once we know each value's
-  // parent attribute, so the picker below highlights the right chip.
-  useEffect(() => {
-    if (!editId || !categoryList.length) return;
-    setSelectedValueIds((prev) => {
-      const flatIds = Object.keys(prev).map(Number);
-      if (!flatIds.length) return prev;
-      const byAttribute: Record<number, number> = {};
-      for (const cat of categoryList) {
-        for (const attr of cat.attributes || []) {
-          for (const val of attr.values) {
-            if (flatIds.includes(val.id)) byAttribute[attr.id] = val.id;
-          }
-        }
-      }
-      return Object.keys(byAttribute).length ? byAttribute : prev;
-    });
-  }, [categoryList, editId]);
+  const selectedCategory = categoryList.find((category) => category.id === categoryId) || null;
+  const filteredCategories = useMemo(() => {
+    const query = categoryQuery.trim().toLowerCase();
+    return categoryList.filter((category) => !query || category.name.toLowerCase().includes(query));
+  }, [categoryList, categoryQuery]);
+  const cover = photos.find((photo) => photo.id === coverId) || photos[0];
+  const selectedVariantSummary = Object.entries(selectedValueIds).map(([attributeId, valueId]) => {
+    const attribute = selectedCategory?.attributes?.find((item) => item.id === Number(attributeId));
+    return attribute?.values.find((value) => value.id === valueId)?.value;
+  }).filter(Boolean).join(", ");
 
-  const selectedCategory = categoryList.find((c) => c.id === categoryId) || null;
-
-  function setPhotoFromFile(file: File) {
+  function setPhotoFiles(files: FileList | File[]) {
     setImageError(null);
-    setImageFile(file);
-    setImageSourceUrl(null);
-    setImagePreviewUrl(URL.createObjectURL(file));
-  }
-
-  function handleUploadChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (file) setPhotoFromFile(file);
-  }
-
-  function handleUseLink() {
-    const url = linkInput.trim();
-    if (!url) return;
-    try {
-      new URL(url);
-    } catch {
-      setImageError("That doesn't look like a valid link.");
+    const additions = Array.from(files).filter((file) => file.type.startsWith("image/")).map((file) => ({
+      id: `${file.name}-${file.lastModified}-${Math.random()}`, file, url: URL.createObjectURL(file),
+    }));
+    if (!additions.length) {
+      setImageError("Choose an image file.");
       return;
     }
-    setImageError(null);
-    setImageFile(null);
-    setImageSourceUrl(url);
-    setImagePreviewUrl(url);
+    setPhotos((current) => {
+      const next = [...current, ...additions].slice(0, 6);
+      if (!coverId) setCoverId(next[0].id);
+      return next;
+    });
   }
 
-  function handlePasteImage(e: React.ClipboardEvent) {
-    const items = Array.from(e.clipboardData.items || []);
-    const imageItem = items.find((item) => item.type.startsWith("image/"));
-    if (imageItem) {
-      const file = imageItem.getAsFile();
-      if (file) {
-        e.preventDefault();
-        setPhotoFromFile(file);
-        return;
-      }
-    }
-    // No image data on the clipboard — fall back to treating it as a pasted link.
-    const text = e.clipboardData.getData("text");
-    if (text) {
-      setLinkInput(text);
-    }
-  }
-
-  function clearPhoto() {
-    setImageFile(null);
-    setImageSourceUrl(null);
-    setImagePreviewUrl(null);
+  function useImageLink() {
+    const value = linkInput.trim();
+    try { new URL(value); } catch { setImageError("That doesn't look like a valid image link."); return; }
+    const photo = { id: `link-${Date.now()}`, url: value };
+    setPhotos((current) => [...current.filter((item) => item.file), photo].slice(0, 6));
+    setCoverId(photo.id);
     setLinkInput("");
     setImageError(null);
   }
 
-  function canAdvance(): boolean {
-    if (step === 0) return formData.name.trim().length > 0;
-    if (step === 3) return formData.price.trim().length > 0 && !isNaN(parseFloat(formData.price));
-    return true;
+  function removePhoto(id: string) {
+    setPhotos((current) => current.filter((photo) => photo.id !== id));
+    if (coverId === id) setCoverId(photos.find((photo) => photo.id !== id)?.id || null);
   }
 
-  function goNext() {
-    if (!canAdvance()) {
-      setError(step === 0 ? "Enter a product name to continue." : "Enter a price to continue.");
+  async function handleSave(event: React.FormEvent) {
+    event.preventDefault();
+    if (isSaving) return;
+    if (!formData.name.trim() || !formData.price || !categoryId) {
+      setError(!formData.name.trim() ? "Add a product name." : !categoryId ? "Choose a category before publishing." : "Add a valid price.");
       return;
     }
-    setError(null);
-    setStep((s) => (s < 6 ? ((s + 1) as StepIndex) : s));
-  }
-
-  function goBack() {
-    setError(null);
-    setStep((s) => (s > 0 ? ((s - 1) as StepIndex) : s));
-  }
-
-  const handleSave = async () => {
-    if (isSaving) return; // Prevent double-submissions from jamming the router
-    if (!formData.name || !formData.price) {
-      setError("Product name and price are required.");
-      setStep(0);
-      return;
-    }
-
+    const coverPhoto = photos.find((photo) => photo.id === coverId) || photos[0];
+    const payload: Record<string, unknown> = {
+      name: formData.name.trim(),
+      price: parseFloat(formData.price),
+      stock_quantity: formData.stock_quantity ? parseInt(formData.stock_quantity, 10) : 0,
+      description: formData.description.trim(),
+      status: formData.status,
+      category: categoryId,
+    };
+    const attributeValueIds = Object.values(selectedValueIds);
+    if (attributeValueIds.length) payload.attribute_value_ids = attributeValueIds;
+    if (coverPhoto && !coverPhoto.file) payload.image_source_url = coverPhoto.url;
     try {
       setIsSaving(true);
       setError(null);
-
-      const payload: Record<string, unknown> = {
-        name: formData.name.trim(),
-        price: parseFloat(formData.price),
-        stock_quantity: formData.stock_quantity ? parseInt(formData.stock_quantity, 10) : 0,
-        description: formData.description.trim() || "",
-        status: formData.status,
-      };
-      if (categoryId) payload.category = categoryId;
-      const attributeValueIds = Object.values(selectedValueIds);
-      if (attributeValueIds.length) payload.attribute_value_ids = attributeValueIds;
-      // A pasted link has no File object — send it as a plain field and let
-      // the server fetch it (see products/image_fetch.py).
-      if (!imageFile && imageSourceUrl) payload.image_source_url = imageSourceUrl;
-
       if (isEditing) {
-        await products.update(Number(editId), payload, imageFile);
+        await products.update(Number(editId), payload, coverPhoto?.file || null);
       } else {
-        await products.create(payload, imageFile);
+        const created = await products.create(payload, coverPhoto?.file || null);
+        router.push(`/seller/dashboard/catalog?published=${created.id}`);
+        return;
       }
-
-      // router.refresh() forces Next to drop its router cache for the
-      // catalog route — without it, navigating back can reuse the
-      // page's previous client-side state and keep showing the product
-      // as it looked before this edit (stale photo, price, etc.).
       router.refresh();
       router.push("/seller/dashboard/catalog");
-    } catch (err: any) {
-      console.error("Caught form exception:", err);
-      setError(err?.message || "An unexpected network error occurred.");
-      setIsSaving(false); // Make sure to turn off loading state only on failure
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save this product. Please try again.");
+      setIsSaving(false);
     }
-  };
-
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (step < 6) {
-      goNext();
-    } else {
-      void handleSave();
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <AppShell title={isEditing ? "Edit Product" : "Add Product"}>
-        <PageSkeleton showKPIs={false} listCount={1} />
-      </AppShell>
-    );
   }
 
-  const visibilityChoice = VISIBILITY_OPTIONS.find((o) => o.value === formData.status) ?? VISIBILITY_OPTIONS[0];
-  const selectedVariantSummary = Object.entries(selectedValueIds)
-    .map(([attrId, valId]) => {
-      const attr = selectedCategory?.attributes?.find((a) => a.id === Number(attrId));
-      const val = attr?.values.find((v) => v.id === valId);
-      return val?.value;
-    })
-    .filter(Boolean)
-    .join(", ");
+  if (isLoading) return <AppShell title={isEditing ? "Edit Product" : "Add Product"}><PageSkeleton showKPIs={false} listCount={1} /></AppShell>;
 
   return (
     <AppShell title={isEditing ? "Edit Product" : "Add Product"}>
-      <div className="space-y-6 max-w-2xl mx-auto">
-        <button
-          type="button"
-          onClick={() => router.push("/seller/dashboard/catalog")}
-          className="flex items-center gap-2 text-caption font-bold uppercase tracking-wider text-text-muted hover:text-text-primary transition-colors border-none bg-transparent cursor-pointer"
-        >
-          <ArrowLeft size={14} /> Back to Catalog
-        </button>
+      <div className="mx-auto max-w-6xl space-y-5 pb-24">
+        <button type="button" onClick={() => router.push("/seller/dashboard/catalog")} className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground"><ArrowLeft size={16} /> Back to products</button>
+        <div><p className="text-xs font-bold uppercase tracking-wider text-role">{isEditing ? "Product editor" : "Quick publish"}</p><h1 className="mt-1 text-2xl font-black tracking-tight text-foreground sm:text-3xl">{isEditing ? "Edit product" : "Add a product"}</h1><p className="mt-1 text-sm text-muted-foreground">Add the essentials, preview the listing, and publish in under a minute.</p></div>
+        {error && <div role="alert" className="flex items-center gap-2 rounded-xl border border-error/20 bg-error/10 p-4 text-sm font-semibold text-error"><AlertCircle size={17} /> {error}</div>}
 
-        <div>
-          <h2 className="text-title font-black text-text-primary tracking-tight">
-            {isEditing ? "Edit Product" : "Add New Product"}
-          </h2>
-          <p className="text-caption text-text-muted mt-1">
-            {isEditing ? "Update details for this item, one step at a time." : "Add a new item for buyers to see, one step at a time."}
-          </p>
-        </div>
+        <form onSubmit={handleSave} className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="space-y-5">
+            <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+              <div className="mb-5"><h2 className="text-lg font-black text-foreground">Product details</h2><p className="text-sm text-muted-foreground">Only the essentials buyers need to decide.</p></div>
+              <div className="space-y-4">
+                <div><label htmlFor="product-name" className="mb-1.5 block text-sm font-bold text-foreground">Product name <span className="text-error">*</span></label><input id="product-name" autoFocus required value={formData.name} onChange={(event) => setFormData({ ...formData, name: event.target.value })} placeholder="e.g. iPhone 13 Pro Clear Case" className="h-12 w-full rounded-lg border border-input bg-background px-3 text-base text-foreground outline-none focus:border-role focus:ring-2 focus:ring-role/20" /></div>
+                <div><label htmlFor="category-search" className="mb-1.5 block text-sm font-bold text-foreground">Category <span className="text-error">*</span></label><div className="relative"><Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><input id="category-search" value={categoryQuery} onChange={(event) => setCategoryQuery(event.target.value)} placeholder="Search categories..." className="h-11 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm text-foreground outline-none focus:border-role focus:ring-2 focus:ring-role/20" /></div><div className="mt-2 flex max-h-32 flex-wrap gap-2 overflow-y-auto">{filteredCategories.map((category) => <button key={category.id} type="button" onClick={() => { setCategoryId(category.id); setSelectedValueIds({}); }} className={cn("min-h-10 rounded-lg border px-3 text-sm font-bold transition focus-visible:ring-2 focus-visible:ring-ring", categoryId === category.id ? "border-role bg-role-dark text-white" : "border-border bg-background text-muted-foreground hover:border-role hover:text-foreground")}>{category.name}{categoryId === category.id && <Check size={14} className="ml-1 inline" />}</button>)}</div>{selectedCategory?.attributes?.map((attribute) => <div key={attribute.id} className="mt-4"><p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">{attribute.name}</p><div className="flex flex-wrap gap-2">{attribute.values.map((value) => <button key={value.id} type="button" onClick={() => setSelectedValueIds((current) => ({ ...current, [attribute.id]: value.id }))} className={cn("min-h-10 rounded-full border px-3 text-sm font-semibold", selectedValueIds[attribute.id] === value.id ? "border-role-dark bg-role-dark text-white" : "border-border text-muted-foreground hover:border-role")}>{value.value}</button>)}</div></div>)}</div>
+                <div className="grid gap-4 sm:grid-cols-2"><div><label htmlFor="product-price" className="mb-1.5 block text-sm font-bold text-foreground">Price (KES) <span className="text-error">*</span></label><input id="product-price" required type="number" min="0.01" step="0.01" inputMode="decimal" value={formData.price} onChange={(event) => setFormData({ ...formData, price: event.target.value })} placeholder="500" className="h-12 w-full rounded-lg border border-input bg-background px-3 text-base text-foreground outline-none focus:border-role focus:ring-2 focus:ring-role/20" /></div><div><label htmlFor="product-stock" className="mb-1.5 block text-sm font-bold text-foreground">Stock quantity</label><input id="product-stock" type="number" min="0" step="1" inputMode="numeric" value={formData.stock_quantity} onChange={(event) => setFormData({ ...formData, stock_quantity: event.target.value })} placeholder="20" className="h-12 w-full rounded-lg border border-input bg-background px-3 text-base text-foreground outline-none focus:border-role focus:ring-2 focus:ring-role/20" /></div></div>
+              </div>
+            </section>
 
-        <div className="space-y-2">
-          <ProgressBar percent={((step + 1) / STEPS.length) * 100} tone="role" />
-          <p className="text-caption font-bold text-text-secondary">
-            Step {step + 1} of {STEPS.length} — {STEPS[step]}
-          </p>
-        </div>
+            <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6"><div className="mb-4"><h2 className="text-lg font-black text-foreground">Product photos</h2><p className="text-sm text-muted-foreground">Add up to 6 photos and choose the cover buyers see first.</p></div><div className="grid grid-cols-3 gap-2 sm:grid-cols-6">{photos.map((photo) => <div key={photo.id} className={cn("group relative aspect-square overflow-hidden rounded-xl border-2", coverId === photo.id ? "border-role" : "border-border")}><img src={photo.url} alt="" className="h-full w-full object-cover" /><button type="button" onClick={() => setCoverId(photo.id)} aria-label="Make this the cover photo" className={cn("absolute left-1 top-1 rounded-full p-1.5 shadow", coverId === photo.id ? "bg-role-dark text-white" : "bg-card/90 text-muted-foreground")}><Star size={14} fill={coverId === photo.id ? "currentColor" : "none"} /></button><button type="button" onClick={() => removePhoto(photo.id)} aria-label="Remove photo" className="absolute right-1 top-1 rounded-full bg-error p-1.5 text-white opacity-0 transition group-hover:opacity-100"><Trash2 size={13} /></button></div>)}{photos.length < 6 && <button type="button" onClick={() => uploadRef.current?.click()} className="flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-border text-muted-foreground transition hover:border-role hover:text-role"><ImagePlus size={22} /><span className="text-xs font-bold">Add photo</span></button>}</div><div className="mt-3 flex flex-wrap gap-2"><Button type="button" variant="outline" size="sm" onClick={() => uploadRef.current?.click()} className="gap-1.5"><Upload size={14} /> Upload photos</Button><Button type="button" variant="outline" size="sm" onClick={() => cameraRef.current?.click()} className="gap-1.5"><Camera size={14} /> Camera</Button><input ref={uploadRef} type="file" accept="image/*" multiple className="hidden" onChange={(event) => { if (event.target.files) setPhotoFiles(event.target.files); event.target.value = ""; }} /><input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(event) => { if (event.target.files) setPhotoFiles(event.target.files); event.target.value = ""; }} /></div><div className="mt-3 flex gap-2"><div className="relative flex-1"><Link2 size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><input value={linkInput} onChange={(event) => setLinkInput(event.target.value)} placeholder="Paste an image link" className="h-10 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm text-foreground outline-none focus:border-role" /></div><Button type="button" variant="outline" size="sm" onClick={useImageLink} disabled={!linkInput.trim()}>Use link</Button></div>{imageError && <p className="mt-2 text-sm font-semibold text-error">{imageError}</p>}</section>
 
-        {error && (
-          <div className="bg-error/10 border border-error/20 text-error rounded-xl p-4 text-caption font-semibold flex items-center gap-2">
-            <AlertCircle size={16} /> <span>{error}</span>
+            <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6"><div className="mb-4"><h2 className="text-lg font-black text-foreground">More information</h2><p className="text-sm text-muted-foreground">Optional details and visibility.</p></div><label htmlFor="product-description" className="mb-1.5 block text-sm font-bold text-foreground">Description</label><textarea id="product-description" rows={3} value={formData.description} onChange={(event) => setFormData({ ...formData, description: event.target.value })} placeholder="Pack size, colours, or details buyers should know..." className="w-full resize-none rounded-lg border border-input bg-background px-3 py-3 text-base text-foreground outline-none focus:border-role focus:ring-2 focus:ring-role/20" /><div className="mt-5 grid gap-2 sm:grid-cols-3">{VISIBILITY_OPTIONS.map((option) => <button key={option.value} type="button" onClick={() => setFormData({ ...formData, status: option.value })} className={cn("rounded-xl border p-3 text-left transition focus-visible:ring-2 focus-visible:ring-ring", formData.status === option.value ? "border-role bg-role-soft" : "border-border hover:border-role")}><span className="flex items-center gap-2 text-sm font-bold text-foreground">{formData.status === option.value && <Check size={15} className="text-role-dark" />}{option.title}</span><span className="mt-1 block text-xs text-muted-foreground">{option.helper}</span></button>)}</div></section>
           </div>
-        )}
 
-        <form onSubmit={handleFormSubmit} className="space-y-5 bg-white border border-slate-100 shadow-sm rounded-2xl p-6">
-          {step === 0 && (
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-body-lg font-bold text-text-primary">What are you selling?</h2>
-                <p className="text-caption text-text-muted mt-0.5">Type the name buyers will see first.</p>
-              </div>
-              <ExampleBox>
-                Example: <strong>&ldquo;iPhone 13 Pro Clear Case&rdquo;</strong> or <strong>&ldquo;Rice — 5kg bag&rdquo;</strong>
-              </ExampleBox>
-              <div className="space-y-1">
-                <label htmlFor="product-name" className="text-xs font-bold text-text-secondary uppercase tracking-wider">Product Name *</label>
-                <input
-                  id="product-name"
-                  type="text"
-                  autoFocus
-                  placeholder="e.g., iPhone 13 Pro Clear Case"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full bg-white border border-slate-200 focus:border-role rounded-xl px-4 py-3 text-body text-text-primary placeholder-slate-400 outline-none transition-all"
-                  disabled={isSaving}
-                  required
-                />
-              </div>
-            </div>
-          )}
-
-          {step === 1 && (
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-body-lg font-bold text-text-primary">Which category is this? (optional)</h2>
-                <p className="text-caption text-text-muted mt-0.5">
-                  Picking a category lets buyers filter by things like phone model or material.
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-2.5">
-                {categoryList.map((cat) => {
-                  const selected = categoryId === cat.id;
-                  return (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => {
-                        setCategoryId(selected ? null : cat.id);
-                        setSelectedValueIds({});
-                      }}
-                      disabled={isSaving}
-                      className={cn(
-                        "text-left rounded-xl border p-3.5 transition-all",
-                        selected ? "border-role bg-role-soft ring-1 ring-role/20" : "border-slate-200 hover:border-slate-300"
-                      )}
-                    >
-                      <p className="text-caption font-bold text-text-primary">{cat.name}</p>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {selectedCategory?.attributes?.map((attr) => (
-                <div key={attr.id} className="space-y-1.5 pt-2">
-                  <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">{attr.name}</label>
-                  <div className="flex flex-wrap gap-2">
-                    {attr.values.map((val) => {
-                      const selected = selectedValueIds[attr.id] === val.id;
-                      return (
-                        <button
-                          key={val.id}
-                          type="button"
-                          onClick={() =>
-                            setSelectedValueIds((prev) => {
-                              const next = { ...prev };
-                              if (selected) delete next[attr.id];
-                              else next[attr.id] = val.id;
-                              return next;
-                            })
-                          }
-                          disabled={isSaving}
-                          className={cn(
-                            "px-3 py-1.5 rounded-full text-caption font-semibold border transition-all",
-                            selected
-                              ? "border-role-dark bg-role-dark text-white"
-                              : "border-slate-200 text-text-secondary hover:border-slate-300"
-                          )}
-                        >
-                          {val.value}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-body-lg font-bold text-text-primary">Add a photo (optional)</h2>
-                <p className="text-caption text-text-muted mt-0.5">
-                  Buyers trust items with a real photo more. You can skip this and add one later.
-                </p>
-              </div>
-
-              <div
-                ref={pasteZoneRef}
-                onPaste={handlePasteImage}
-                tabIndex={0}
-                className="flex flex-col items-center gap-3 py-2 rounded-2xl outline-none focus:ring-2 focus:ring-role/30"
-              >
-                <div className="relative w-44 h-44 rounded-2xl border-2 border-dashed border-slate-300 bg-dark-secondary flex items-center justify-center overflow-hidden">
-                  {imagePreviewUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- pasted links may be from hosts Next/Image isn't configured for
-                    <img src={imagePreviewUrl} alt="Product photo" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="flex flex-col items-center gap-2 text-text-muted px-4 text-center">
-                      <ImagePlus size={28} />
-                      <span className="text-caption font-semibold">Upload, take a picture, or paste one below</span>
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => uploadInputRef.current?.click()} disabled={isSaving}>
-                    <Upload size={14} /> Upload
-                  </Button>
-                  <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => cameraInputRef.current?.click()} disabled={isSaving}>
-                    <Camera size={14} /> Take Picture
-                  </Button>
-                </div>
-
-                <input ref={uploadInputRef} type="file" accept="image/*" className="hidden" onChange={handleUploadChange} />
-                <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleUploadChange} />
-
-                <div className="w-full space-y-1.5 pt-1">
-                  <label htmlFor="product-image-link" className="text-xs font-bold text-text-secondary uppercase tracking-wider flex items-center gap-1.5">
-                    <Link2 size={12} /> Or paste a link / image (Ctrl+V)
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      id="product-image-link"
-                      type="text"
-                      placeholder="Paste an image link here, or click here and press Ctrl+V"
-                      value={linkInput}
-                      onChange={(e) => setLinkInput(e.target.value)}
-                      onPaste={handlePasteImage}
-                      disabled={isSaving}
-                      className="flex-1 bg-white border border-slate-200 focus:border-role rounded-xl px-3 py-2 text-caption text-text-primary placeholder-slate-400 outline-none transition-all"
-                    />
-                    <Button type="button" variant="outline" size="sm" onClick={handleUseLink} disabled={isSaving || !linkInput.trim()}>
-                      Use link
-                    </Button>
-                  </div>
-                  {imageError && <p className="text-caption text-error">{imageError}</p>}
-                </div>
-
-                {imagePreviewUrl && (
-                  <button
-                    type="button"
-                    onClick={clearPhoto}
-                    className="flex items-center gap-1 text-caption font-bold text-error border-none bg-transparent cursor-pointer"
-                  >
-                    <X size={13} /> Remove photo
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-body-lg font-bold text-text-primary">How much, and how many?</h2>
-                <p className="text-caption text-text-muted mt-0.5">
-                  Price is what one unit costs. Stock is how many you have right now.
-                </p>
-              </div>
-              <ExampleBox>
-                Example: Price = <strong>500</strong> (one item costs 500 KES) and Stock = <strong>20</strong> (you have 20 to sell).
-              </ExampleBox>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label htmlFor="product-price" className="text-xs font-bold text-text-secondary uppercase tracking-wider">Price (KES) *</label>
-                  <input
-                    id="product-price"
-                    type="number"
-                    inputMode="decimal"
-                    autoFocus
-                    placeholder="0.00"
-                    step="0.01"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    className="w-full bg-white border border-slate-200 focus:border-role rounded-xl px-4 py-3 text-body text-text-primary placeholder-slate-400 outline-none transition-all"
-                    disabled={isSaving}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label htmlFor="product-stock" className="text-xs font-bold text-text-secondary uppercase tracking-wider">Stock Quantity</label>
-                  <input
-                    id="product-stock"
-                    type="number"
-                    inputMode="numeric"
-                    placeholder="0"
-                    step="1"
-                    min="0"
-                    value={formData.stock_quantity}
-                    onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
-                    className="w-full bg-white border border-slate-200 focus:border-role rounded-xl px-4 py-3 text-body text-text-primary placeholder-slate-400 outline-none transition-all"
-                    disabled={isSaving}
-                  />
-                  <p className="text-xs text-text-muted">Not sure yet? Leave this blank.</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {step === 4 && (
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-body-lg font-bold text-text-primary">Who should see this product?</h2>
-                <p className="text-caption text-text-muted mt-0.5">Pick the option that matches where you are right now.</p>
-              </div>
-              <div className="space-y-2.5">
-                {VISIBILITY_OPTIONS.map((opt) => {
-                  const selected = formData.status === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, status: opt.value })}
-                      disabled={isSaving}
-                      className={cn(
-                        "w-full text-left rounded-xl border p-4 transition-all flex items-start gap-3",
-                        selected ? "border-role bg-role-soft ring-1 ring-role/20" : "border-slate-200 hover:border-slate-300"
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "shrink-0 w-5 h-5 rounded-full border flex items-center justify-center mt-0.5",
-                          selected ? "border-role-dark bg-role-dark" : "border-slate-300"
-                        )}
-                      >
-                        {selected && <Check size={12} className="text-white" strokeWidth={3} />}
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-body font-bold text-text-primary">{opt.title}</p>
-                        <p className="text-caption text-text-secondary">{opt.helper}</p>
-                        <p className="text-caption text-text-muted italic">{opt.example}</p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {step === 5 && (
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-body-lg font-bold text-text-primary">Any extra details? (optional)</h2>
-                <p className="text-caption text-text-muted mt-0.5">Help buyers know exactly what they are getting.</p>
-              </div>
-              <ExampleBox>
-                Example: <strong>&ldquo;All green, pack of 5, waterproof&rdquo;</strong> or <strong>&ldquo;Available in S, M, L&rdquo;</strong>
-              </ExampleBox>
-              <div className="space-y-1">
-                <label htmlFor="product-description" className="text-xs font-bold text-text-secondary uppercase tracking-wider">Description</label>
-                <textarea
-                  id="product-description"
-                  rows={4}
-                  autoFocus
-                  placeholder="Pack size, colours, or other details buyers should know..."
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full bg-white border border-slate-200 focus:border-role rounded-xl px-4 py-3 text-body text-text-primary placeholder-slate-400 outline-none transition-all resize-none"
-                  disabled={isSaving}
-                />
-              </div>
-            </div>
-          )}
-
-          {step === 6 && (
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-body-lg font-bold text-text-primary">Check everything before you save</h2>
-                <p className="text-caption text-text-muted mt-0.5">Tap the pencil to change anything.</p>
-              </div>
-              {imagePreviewUrl && (
-                <div className="relative w-24 h-24 rounded-xl overflow-hidden border border-slate-100 mx-auto">
-                  <Image src={imagePreviewUrl} alt="Product photo" fill unoptimized className="object-cover" />
-                </div>
-              )}
-              <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden">
-                <ReviewRow label="Product name" value={formData.name || "—"} onEdit={() => setStep(0)} />
-                <ReviewRow
-                  label="Category"
-                  value={selectedCategory ? `${selectedCategory.name}${selectedVariantSummary ? ` (${selectedVariantSummary})` : ""}` : "None"}
-                  onEdit={() => setStep(1)}
-                />
-                <ReviewRow label="Photo" value={imagePreviewUrl ? "Added" : "None added"} onEdit={() => setStep(2)} />
-                <ReviewRow
-                  label="Price"
-                  value={formData.price ? `${formData.price} KES` : "—"}
-                  onEdit={() => setStep(3)}
-                />
-                <ReviewRow
-                  label="Stock quantity"
-                  value={formData.stock_quantity || "Not set"}
-                  onEdit={() => setStep(3)}
-                />
-                <ReviewRow label="Who can see it" value={visibilityChoice.title} onEdit={() => setStep(4)} />
-                <ReviewRow label="Description" value={formData.description || "None added"} onEdit={() => setStep(5)} />
-              </div>
-            </div>
-          )}
-
-          <div className="pt-2 flex items-center justify-between gap-3">
-            {step > 0 ? (
-              <Button type="button" variant="outline" onClick={goBack} disabled={isSaving} className="gap-2">
-                <ArrowLeft size={16} /> Back
-              </Button>
-            ) : (
-              <span />
-            )}
-
-            <Button type="submit" loading={isSaving} variant="role" className="gap-2 px-6">
-              {step < 6 ? (
-                <>
-                  Next <ArrowRight size={16} />
-                </>
-              ) : (
-                "Save Product"
-              )}
-            </Button>
-          </div>
+          <aside className="lg:sticky lg:top-20 lg:self-start"><div className="rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-sm"><div className="mb-4 flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-wider text-role">Live preview</p><h2 className="text-lg font-black text-foreground">Buyer view</h2></div><Pencil size={16} className="text-muted-foreground" /></div><div className="overflow-hidden rounded-xl border border-border bg-background"><div className="relative aspect-square bg-muted">{cover ? <img src={cover.url} alt="Product preview" className="h-full w-full object-cover" /> : <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground"><ImagePlus size={28} /><span className="text-xs font-semibold">Add a product photo</span></div>}</div><div className="space-y-2 p-4"><p className="truncate text-lg font-black text-foreground">{formData.name || "Your product name"}</p><p className="text-xs font-semibold text-muted-foreground">{selectedCategory?.name || "Choose a category"}{selectedVariantSummary ? ` · ${selectedVariantSummary}` : ""}</p><p className="text-xl font-black text-role">{formData.price ? `KES ${Number(formData.price).toLocaleString("en-KE")}` : "KES 0"}</p><p className="line-clamp-3 text-sm text-muted-foreground">{formData.description || "Your product description will appear here."}</p><div className="rounded-lg bg-role-dark py-2.5 text-center text-sm font-bold text-white">{formData.status === "available" ? "Available to order" : formData.status === "draft" ? "Draft" : "Out of stock"}</div></div></div><button type="submit" disabled={isSaving} className="mt-4 min-h-12 w-full rounded-lg bg-role-dark px-4 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60">{isSaving ? "Saving product..." : isEditing ? "Save changes" : "Publish product"}</button><p className="mt-2 text-center text-xs text-muted-foreground">You can change the price or stock anytime.</p></div></aside>
         </form>
       </div>
     </AppShell>
-  );
-}
-
-function ReviewRow({ label, value, onEdit }: { label: string; value: string; onEdit: () => void }) {
-  return (
-    <div className="flex items-center justify-between gap-3 px-4 py-3">
-      <div className="min-w-0">
-        <p className="text-xs font-bold text-text-muted uppercase tracking-wider">{label}</p>
-        <p className="text-body text-text-primary truncate">{value}</p>
-      </div>
-      <button
-        type="button"
-        onClick={onEdit}
-        className="shrink-0 flex items-center gap-1 text-caption font-bold text-role hover:opacity-80 border-none bg-transparent cursor-pointer"
-      >
-        <Pencil size={13} /> Edit
-      </button>
-    </div>
   );
 }

@@ -205,7 +205,12 @@ export default function SellerDashboardPage() {
 
           <OrderPipeline orders={orderList} />
 
-          <InventoryInsights products={productList} />
+          <InventoryInsights
+            products={productList}
+            onProductUpdated={(updated) =>
+              setProductList((current) => current.map((product) => (product.id === updated.id ? updated : product)))
+            }
+          />
 
           <CustomerIntelligence orders={orderList} relationships={relationshipList} />
 

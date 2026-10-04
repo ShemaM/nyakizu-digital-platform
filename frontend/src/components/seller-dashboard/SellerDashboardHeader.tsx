@@ -32,9 +32,7 @@ export function SellerDashboardHeader({
   const lowStock = products.filter((product) => product.status !== "out_of_stock" && (product.stock_quantity ?? 0) > 0 && (product.stock_quantity ?? 0) <= 3).length;
   const buyerRequests = relationships.filter((relationship) => relationship.status === "pending").length;
   const priorities = [
-    { count: newOrders, label: "Orders awaiting processing", href: "/seller/dashboard/orders", icon: ShoppingBag, tone: "text-error bg-error/8" },
     { count: outOfStock + lowStock, label: "Products need restocking", href: "/seller/dashboard/catalog", icon: Package, tone: "text-warning bg-warning/10" },
-    { count: awaitingPayment, label: "Payments awaiting confirmation", href: "/seller/dashboard/ledger", icon: Bell, tone: "text-warning bg-warning/10" },
     { count: buyerRequests, label: "Buyer requests pending", href: "/seller/dashboard/buyers", icon: Users, tone: "text-info bg-info/8" },
   ].filter((priority) => priority.count > 0);
   const matches = query.trim().length < 2 ? [] : [
@@ -66,7 +64,7 @@ export function SellerDashboardHeader({
           </div>
           <CheckCircle2 className="text-success" size={24} aria-label="Dashboard priorities" />
         </div>
-        <div className="mt-5 grid gap-2 sm:grid-cols-2">
+        <div className={`mt-5 grid gap-2 ${priorities.length > 1 ? "sm:grid-cols-2" : ""}`}>
           {priorities.length ? priorities.map(({ count, label, href, icon: Icon, tone }) => (
             <Link key={label} href={href} className={`group flex min-h-12 items-center justify-between gap-3 rounded-xl border border-border px-3 py-2.5 text-sm font-bold transition hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring ${tone}`}>
               <span className="flex items-center gap-2"><Icon size={17} aria-hidden="true" /><span>{count} {label}</span></span>

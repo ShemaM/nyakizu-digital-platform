@@ -634,6 +634,7 @@ function PromotionDialog({
   const [format, setFormat] = useState<"story" | "square">("story");
   const [qrSrc, setQrSrc] = useState("");
   const [downloading, setDownloading] = useState(false);
+  const [sharingPoster, setSharingPoster] = useState(false);
   const posterRef = useRef<HTMLDivElement>(null);
   const product = target === "store" ? null : target;
   const url = product ? `${window.location.origin}/store/${username}#product-${product.id}` : storeLink;
@@ -649,8 +650,39 @@ function PromotionDialog({
     await navigator.clipboard?.writeText(text);
     onToast(message);
   };
-  const whatsapp = () => shareLink({ title: product?.name || storeName, text: caption, url });
   const facebook = () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, "_blank", "noopener,noreferrer");
+  const shareToWhatsAppStatus = async () => {
+    if (!posterRef.current) return;
+    setSharingPoster(true);
+    try {
+      const { default: html2canvas } = await import("html2canvas-pro");
+      const canvas = await html2canvas(posterRef.current, { scale: 2, backgroundColor: "#ffffff", useCORS: true });
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+      if (!blob) throw new Error("Poster image could not be created.");
+
+      const file = new File([blob], `${product ? "product" : "store"}-status.png`, { type: "image/png" });
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: product?.name || storeName, text: caption });
+        onToast("Poster ready to share. Choose WhatsApp, then My status.");
+        return;
+      }
+
+      // WhatsApp's web intent cannot attach an image. Keep the fallback useful:
+      // save the poster locally and open a pre-filled caption/link.
+      const download = document.createElement("a");
+      download.download = file.name;
+      download.href = URL.createObjectURL(blob);
+      download.click();
+      URL.revokeObjectURL(download.href);
+      window.location.href = `https://wa.me/?text=${encodeURIComponent(`${caption}`)}`;
+      onToast("Poster downloaded. Attach it in WhatsApp Status.");
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      onToast("Could not prepare the WhatsApp Status poster. Try Download poster instead.");
+    } finally {
+      setSharingPoster(false);
+    }
+  };
   const downloadPoster = async () => {
     if (!posterRef.current) return;
     setDownloading(true);
@@ -674,7 +706,7 @@ function PromotionDialog({
         <div className="flex items-start justify-between gap-4"><div>{success && <p className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-success"><CheckCircle2 size={14} /> Product published successfully</p>}<p className="text-xs font-black uppercase tracking-widest text-role">Promotion center</p><h2 id="promotion-title" className="mt-1 text-xl font-black text-foreground">{success ? "Get your first customer now." : product ? "Share product" : "Promote your store"}</h2><p className="mt-1 text-sm text-muted-foreground">Ready-made assets for WhatsApp, Facebook, Instagram Stories, and print.</p></div><button type="button" onClick={onClose} aria-label="Close promotion center" className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"><X size={19} /></button></div>
         <div className="mt-5 grid gap-5 md:grid-cols-[minmax(0,1fr)_15rem]">
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-2"><button type="button" onClick={whatsapp} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-[#168c4a] px-3 text-sm font-black text-white focus-visible:ring-2 focus-visible:ring-ring"><MessageCircle size={17} /> WhatsApp</button><button type="button" onClick={facebook} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-black text-foreground focus-visible:ring-2 focus-visible:ring-ring"><span className="flex h-5 w-5 items-center justify-center rounded bg-[#1877f2] text-xs font-black text-white">f</span> Facebook</button></div>
+            <div className="grid grid-cols-2 gap-2"><button type="button" onClick={shareToWhatsAppStatus} disabled={sharingPoster || !qrSrc} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-[#168c4a] px-3 text-sm font-black text-white focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"><MessageCircle size={17} /> {sharingPoster ? "Preparing..." : "WhatsApp Status"}</button><button type="button" onClick={facebook} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-black text-foreground focus-visible:ring-2 focus-visible:ring-ring"><span className="flex h-5 w-5 items-center justify-center rounded bg-[#1877f2] text-xs font-black text-white">f</span> Facebook</button></div>
             <div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => copy(caption, product ? "Product caption copied." : "Store caption copied.")} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-bold text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Copy size={16} /> Copy caption</button><button type="button" onClick={() => copy(url, product ? "Product link copied." : "Store link copied.")} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-bold text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Link2 size={16} /> Copy link</button></div>
             <div className="rounded-xl border border-border bg-background p-4"><p className="mb-2 text-xs font-black uppercase tracking-wider text-muted-foreground">Generated caption</p><p className="whitespace-pre-line text-sm leading-relaxed text-foreground">{caption}</p></div>
             <div className="flex items-center gap-2"><p className="text-xs font-bold text-muted-foreground">Poster format</p><button type="button" onClick={() => setFormat("story")} className={cn("min-h-10 rounded-lg border px-3 text-xs font-bold", format === "story" ? "border-role bg-role-soft text-role-dark" : "border-border text-muted-foreground")}>Story</button><button type="button" onClick={() => setFormat("square")} className={cn("min-h-10 rounded-lg border px-3 text-xs font-bold", format === "square" ? "border-role bg-role-soft text-role-dark" : "border-border text-muted-foreground")}>Square</button></div>

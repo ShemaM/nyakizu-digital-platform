@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight, Bell, CheckCircle2, Package, Search, ShoppingBag, Users } from "lucide-react";
 import { fmtKES, type ApiOrder, type ApiProduct, type ApiRelationship } from "@/lib/api";
 import { buyerDisplayName } from "@/lib/order-status";
+import { isLowStock } from "@/lib/inventory";
 
 interface SellerDashboardHeaderProps {
   sellerName: string;
@@ -29,7 +30,7 @@ export function SellerDashboardHeader({
   const awaitingPayment = orders.filter((order) => ["locked", "debt_active"].includes(order.status)).length;
   const confirmedPayments = orders.filter((order) => order.status === "cleared").length;
   const outOfStock = products.filter((product) => product.status === "out_of_stock" || (product.stock_quantity ?? 0) === 0).length;
-  const lowStock = products.filter((product) => product.status !== "out_of_stock" && (product.stock_quantity ?? 0) > 0 && (product.stock_quantity ?? 0) <= 3).length;
+  const lowStock = products.filter(isLowStock).length;
   const buyerRequests = relationships.filter((relationship) => relationship.status === "pending").length;
   const priorities = [
     { count: outOfStock + lowStock, label: "Products need restocking", href: "/seller/dashboard/catalog", icon: Package, tone: "text-warning bg-warning/10" },

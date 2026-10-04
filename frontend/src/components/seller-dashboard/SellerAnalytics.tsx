@@ -18,6 +18,7 @@ import { fmtKES, parsePrice, products as productsApi, type ApiOrder, type ApiPro
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/cn";
 import { buyerDisplayName } from "@/lib/order-status";
+import { isLowStock } from "@/lib/inventory";
 
 const ACTIVE_STATUSES = new Set(["submitted", "sourcing", "locked", "debt_active", "cleared"]);
 
@@ -93,7 +94,7 @@ export function SellerMetrics({ orders, products, relationships }: {
   const aov = completedOrPaid.length ? completedOrPaid.reduce((sum, o) => sum + orderValue(o), 0) / completedOrPaid.length : 0;
   const conversionBase = relationships.filter((relationship) => relationship.status === "approved").length;
   const conversionRate = conversionBase ? (buyers.size / conversionBase) * 100 : 0;
-  const lowStock = products.filter((product) => product.status !== "out_of_stock" && (product.stock_quantity ?? 0) <= 3).length;
+  const lowStock = products.filter(isLowStock).length;
 
   const groups = [
     { title: "Sales performance", description: "Money and order momentum", metrics: [
@@ -203,7 +204,7 @@ export function OrderPipeline({ orders }: { orders: ApiOrder[] }) {
 }
 
 export function InventoryInsights({ products, onProductUpdated }: { products: ApiProduct[]; onProductUpdated?: (product: ApiProduct) => void }) {
-  const low = products.filter((product) => product.status !== "out_of_stock" && (product.stock_quantity ?? 0) <= 3);
+  const low = products.filter(isLowStock);
   const out = products.filter((product) => product.status === "out_of_stock" || (product.stock_quantity ?? 0) === 0);
   const [selected, setSelected] = useState<ApiProduct | null>(null);
   const [quantity, setQuantity] = useState("");

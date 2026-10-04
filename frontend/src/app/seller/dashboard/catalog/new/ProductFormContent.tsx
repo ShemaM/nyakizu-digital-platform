@@ -146,8 +146,13 @@ export function ProductFormContent() {
     try {
       setIsSaving(true);
       setError(null);
-      if (isEditing) await products.update(Number(editId), payload, coverPhoto?.file || null);
-      else await products.create(payload, coverPhoto?.file || null);
+      if (isEditing) {
+        await products.update(Number(editId), payload, coverPhoto?.file || null);
+      } else {
+        const created = await products.create(payload, coverPhoto?.file || null);
+        router.push(`/seller/dashboard/catalog?published=${created.id}`);
+        return;
+      }
       router.refresh();
       router.push("/seller/dashboard/catalog");
     } catch (err) {

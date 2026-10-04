@@ -97,6 +97,7 @@ export function StoreProducts({ products }: Props) {
               return (
                 <div
                   key={p.id}
+                  id={`product-${p.id}`}
                   className="app-panel group overflow-hidden rounded-lg transition hover:border-slate-300 hover:shadow-md"
                 >
                   <div className="relative aspect-square overflow-hidden bg-slate-100">

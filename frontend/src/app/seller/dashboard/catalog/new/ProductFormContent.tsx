@@ -86,7 +86,7 @@ export function ProductFormContent() {
 
   useEffect(() => {
     if (!editId) return;
-    products.list().then((list) => {
+    products.mine().then((list) => {
       const existing = list.find((p) => String(p.id) === editId);
       if (existing) {
         setFormData({

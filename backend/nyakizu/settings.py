@@ -16,6 +16,11 @@ SECRET_KEY = config('SECRET_KEY', default='dev-insecure-key-change-in-production
 DEBUG      = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
+# Automated M-Pesa Daraja billing stays off until production onboarding,
+# credentials, callbacks, and reconciliation requirements are complete.
+# The current order flow remains manual: sellers confirm payments themselves.
+MPESA_DARAJA_ENABLED = config('MPESA_DARAJA_ENABLED', default=False, cast=bool)
+
 if not DEBUG and SECRET_KEY == 'dev-insecure-key-change-in-production':
     raise ValueError(
         'SECRET_KEY is still the dev default with DEBUG=False. '

@@ -49,6 +49,29 @@ html {
   -webkit-overflow-scrolling: touch;
 }
 
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background: #171512;
+  color: #f7f3ea;
+}
+
+html.dark .bg-white { background-color: #25221d; }
+html.dark .bg-slate-50,
+html.dark .bg-slate-100 { background-color: #302c25; }
+html.dark .bg-dark-secondary { background-color: #25221d; }
+html.dark .border-slate-100,
+html.dark .border-slate-200 { border-color: #4a4338; }
+html.dark .text-text-primary { color: #f7f3ea; }
+html.dark .text-text-secondary { color: #ded6c8; }
+html.dark .text-text-muted { color: #afa595; }
+html.dark header { background-color: rgba(37, 34, 29, 0.95); border-color: #4a4338; }
+html.dark input,
+html.dark textarea,
+html.dark select { background-color: #25221d; color: #f7f3ea; border-color: #4a4338; }
+
 body {
   @apply min-h-screen bg-dark-primary text-text-primary antialiased;
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;

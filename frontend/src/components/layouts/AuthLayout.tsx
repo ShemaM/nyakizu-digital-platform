@@ -99,7 +99,7 @@ export function AuthLayout({
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: "easeOut", delay: 0.1 }}
-            className="space-y-6 rounded-2xl border border-dark-accent bg-white p-7 shadow-xl sm:p-9"
+            className="space-y-6"
           >
             <div className={`space-y-1.5 text-center ${hidePanel ? "" : "lg:text-left"}`}>
               <h2 className="text-3xl font-extrabold text-text-primary sm:text-4xl">{title}</h2>

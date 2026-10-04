@@ -2,30 +2,36 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { RefreshCw, ArrowRight, ShoppingBag, Wallet, Layers, AlertTriangle } from "lucide-react";
+import { RefreshCw, ArrowRight, AlertTriangle } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Container, Section } from "@/components/layouts";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { PageSkeleton } from "@/components/ui/LoadingState";
 import { Card, CardSection } from "@/components/ui/Card";
-import { orders, products, relationships, type ApiOrder, type ApiProduct, type ApiRelationship, ApiError, fmtKES, parsePrice } from "@/lib/api";
+import { orders, products, relationships, type ApiOrder, type ApiProduct, type ApiRelationship, ApiError, parsePrice } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
 import { SellerHeader } from "@/components/seller-dashboard/SellerHeader";
-import { ShopStats } from "@/components/seller-dashboard/ShopStats";
-import { PendingActivity } from "@/components/seller-dashboard/PendingActivity";
-import { MetricCard } from "@/components/seller-dashboard/MetricCard";
 import { QuickActions } from "@/components/seller-dashboard/QuickActions";
 import { RecentOrders } from "@/components/seller-dashboard/RecentOrders";
 import { SalesInsights } from "@/components/seller-dashboard/SalesInsights";
 import { PendingApprovalView } from "@/components/seller-dashboard/PendingApprovalView";
 import { GetStartedView } from "@/components/seller-dashboard/GetStartedView";
+import { SellerDashboardHeader } from "@/components/seller-dashboard/SellerDashboardHeader";
+import {
+  CustomerIntelligence,
+  InventoryInsights,
+  OrderPipeline,
+  RevenueAnalytics,
+  SellerMetrics,
+} from "@/components/seller-dashboard/SellerAnalytics";
 
 export default function SellerDashboardPage() {
   const { user } = useAuth();
   const [orderList, setOrderList] = useState<ApiOrder[]>([]);
   const [productList, setProductList] = useState<ApiProduct[]>([]);
   const [relationshipList, setRelationshipList] = useState<ApiRelationship[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -134,7 +140,7 @@ export default function SellerDashboardPage() {
   // the real dashboard is still a meaningless zero until a buyer's actually
   // involved — the first order or the first buyer relationship is the real
   // signal this shop has "started," not the catalog size.
-  if (orderList.length === 0 && relationshipList.length === 0) {
+  if (orderList.length === 0 && relationshipList.length === 0 && productList.length === 0) {
     const sellerProfile = user?.seller_profile;
     const hasPaymentMethod = Boolean(
       sellerProfile?.mpesa_till_number ||
@@ -167,68 +173,41 @@ export default function SellerDashboardPage() {
   }
 
   // ── Local Calculations ──────────────────────────────────────────────────
-  const totalProducts = productList.length;
-  const activeProducts = productList.filter((p) => p.status === "available").length;
-  const draftProducts = productList.filter((p) => p.status === "draft").length;
-
-  const newOrders = orderList.filter((o) => o.status === "submitted").length;
-  const ordersPending = orderList.filter((o) => ["submitted", "sourcing"].includes(o.status)).length;
-
-  const moneyOwed = orderList
-    .filter((o) => o.status === "debt_active")
-    .reduce((sum, o) => sum + parsePrice(o.balance ?? parsePrice(o.final_total ?? o.total_price) - parsePrice(o.amount_paid ?? 0)), 0);
-
-  const totalRevenue = orderList.reduce((sum, o) => sum + parsePrice(o.amount_paid ?? 0), 0);
-
-  const newBuyerRequests = relationshipList.filter((r) => r.status === "pending").length;
-
   const recentOrders = [...orderList]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
+  const todayRevenue = orderList
+    .filter((order) => new Date(order.created_at).toDateString() === new Date().toDateString())
+    .reduce((sum, order) => sum + parsePrice(order.amount_paid ?? 0), 0);
 
   return (
     <AppShell title="Dashboard">
       <Section spacing="md">
         <Container size="xl" className="space-y-8 sm:space-y-10">
-          {/* Greeting — plain text, no card chrome, like a native app's home screen */}
-          <SellerHeader
-            shopName={user?.seller_profile?.shop_name || user?.seller_profile?.store_name || "Nyakizu Shop"}
+          <SellerDashboardHeader
             sellerName={user?.full_name || user?.username || "Seller"}
-            status={user?.seller_profile?.approval_status || "Approved"}
-            location={user?.seller_profile?.location}
-            phoneNumber={user?.phone_number}
+            todayRevenue={todayRevenue}
+            orders={orderList}
+            products={productList}
+            relationships={relationshipList}
+            query={searchQuery}
+            onQueryChange={setSearchQuery}
           />
 
-          {/* What needs your attention — no heading, position alone says "act on this first" */}
-          <ShopStats newOrders={newOrders} newBuyerRequests={newBuyerRequests} moneyOwed={moneyOwed} />
-
-          {/* Pending activity — every open order and buyer request, split by
-              who has to act on it next: you, or the buyer. */}
           <div>
-            <SectionHeading
-              title="Pending activity"
-              description="What's waiting on you, and what's waiting on your buyers."
-            />
-            <PendingActivity orders={orderList} relationships={relationshipList} />
-          </div>
-
-          {/* Shortcuts */}
-          <div>
-            <SectionHeading eyebrow="Shortcuts" title="Manage your shop" />
+            <SectionHeading eyebrow="Action center" title="Move your shop forward" />
             <QuickActions />
           </div>
 
-          {/* Key metrics — "how's business", further down since it's context
-              rather than something to act on. Always shown, at a stable
-              position, so the dashboard's layout doesn't shift with data. */}
-          <div>
-            <SectionHeading eyebrow="Overview" title="Business overview" />
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <MetricCard Icon={ShoppingBag} label="In Progress" value={String(ordersPending)} hint="Submitted or being packed" />
-              <MetricCard Icon={Wallet} label="Money Made" value={fmtKES(totalRevenue)} hint="Collected so far, all time" tone="success" />
-              <MetricCard Icon={Layers} label="Products Live" value={String(activeProducts)} hint={`${totalProducts} total, ${draftProducts} hidden`} />
-            </div>
-          </div>
+          <SellerMetrics orders={orderList} products={productList} relationships={relationshipList} />
+
+          <RevenueAnalytics orders={orderList} />
+
+          <OrderPipeline orders={orderList} />
+
+          <InventoryInsights products={productList} />
+
+          <CustomerIntelligence orders={orderList} relationships={relationshipList} />
 
           {/* Recent orders */}
           <div>

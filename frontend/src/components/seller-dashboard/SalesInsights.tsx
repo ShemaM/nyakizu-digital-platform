@@ -185,9 +185,18 @@ export function SalesInsights({ orders }: SalesInsightsProps) {
       </div>
 
       {dayOrders.length === 0 ? (
-        <p className="text-sm text-text-muted text-center py-4">
-          {isToday ? "No orders yet today." : "No orders on this day."}
-        </p>
+        <div className="py-4 text-center">
+          <p className="text-sm font-bold text-text-primary">
+            {isToday ? "No sales yet today." : "No orders on this day."}
+          </p>
+          {isToday && <p className="mt-1 text-sm text-text-muted">Share your products to get more visibility.</p>}
+          {isToday && (
+            <div className="mt-4 flex justify-center gap-2">
+              <Link href="/seller/dashboard/catalog" className="rounded-lg bg-role-soft px-3 py-2 text-xs font-bold text-role-dark">Share store</Link>
+              <Link href="/seller/dashboard/catalog/new" className="rounded-lg bg-role-dark px-3 py-2 text-xs font-bold text-white">Add new product</Link>
+            </div>
+          )}
+        </div>
       ) : (
         <>
           <div>

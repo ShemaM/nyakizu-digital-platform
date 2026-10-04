@@ -15,7 +15,7 @@ export function LoginContent() {
   return (
     <Suspense
       fallback={
-        <AuthLayout title="Welcome back" subtitle="Sign in to buy and sell." footnote="Your information is safe with us" hidePanel>
+        <AuthLayout title="Sign in" subtitle="Access your Nyakizu account." footnote="Your information is safe with us" hidePanel>
           {null}
         </AuthLayout>
       }
@@ -78,7 +78,7 @@ function LoginForm() {
   };
 
   return (
-    <AuthLayout title="Welcome back" subtitle="Sign in to manage your trades." footnote="Secure sign in · Your data stays private" hidePanel>
+    <AuthLayout title="Sign in" subtitle="Access your Nyakizu account." footnote="Secure sign in · Your data stays private" hidePanel>
       <form onSubmit={handleSubmit} className="space-y-5">
         {error && (
           <Alert variant="error">

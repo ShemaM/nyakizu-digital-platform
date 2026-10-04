@@ -39,6 +39,7 @@ export default function SellerCatalogPage() {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ApiProduct | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [savingPriceId, setSavingPriceId] = useState<number | null>(null);
 
   useEffect(() => {
     loadCatalog();
@@ -143,6 +144,20 @@ export default function SellerCatalogPage() {
       toast("Could not delete that product.", "error");
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function handlePriceUpdate(product: ApiProduct, price: number) {
+    setSavingPriceId(product.id);
+    try {
+      const updated = await products.update(product.id, { price });
+      setProductList((prev) => prev.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)));
+      toast(`Price for "${product.name}" updated.`, "success");
+    } catch (err) {
+      toast(err instanceof ApiError ? err.message : "Could not update that price.", "error");
+      throw err;
+    } finally {
+      setSavingPriceId(null);
     }
   }
 
@@ -293,6 +308,8 @@ export default function SellerCatalogPage() {
                   onOpenMenu={() => setOpenMenuId(product.id)}
                   onCloseMenu={() => setOpenMenuId(null)}
                   onEdit={() => router.push(`/seller/dashboard/catalog/new?id=${product.id}`)}
+                  savingPrice={savingPriceId === product.id}
+                  onSavePrice={(price) => handlePriceUpdate(product, price)}
                   onDelete={() => {
                     setOpenMenuId(null);
                     setDeleteTarget(product);
@@ -352,11 +369,16 @@ interface ProductCardProps {
   onOpenMenu: () => void;
   onCloseMenu: () => void;
   onEdit: () => void;
+  savingPrice: boolean;
+  onSavePrice: (price: number) => Promise<void>;
   onDelete: () => void;
 }
 
-function ProductCard({ product, storePath, storeLink, storeName, menuOpen, onOpenMenu, onCloseMenu, onEdit, onDelete }: ProductCardProps) {
+function ProductCard({ product, storePath, storeLink, storeName, menuOpen, onOpenMenu, onCloseMenu, onEdit, savingPrice, onSavePrice, onDelete }: ProductCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
+  const [editingPrice, setEditingPrice] = useState(false);
+  const [priceInput, setPriceInput] = useState(String(product.price));
+  const [priceError, setPriceError] = useState<string | null>(null);
   const lowStock = isLowStock(product);
 
   const status =
@@ -411,8 +433,61 @@ function ProductCard({ product, storePath, storeLink, storeName, menuOpen, onOpe
             <p className="text-sm font-bold text-text-primary tabular-nums">{product.stock_quantity ?? 0} units</p>
           </div>
           <div className="text-right">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-text-muted">Price</p>
-            <p className="text-sm font-black text-role tabular-nums">{fmtKES(product.price)}</p>
+            {editingPrice ? (
+              <form
+                className="flex items-end gap-1.5"
+                onSubmit={async (event) => {
+                  event.preventDefault();
+                  const nextPrice = Number(priceInput);
+                  if (!Number.isFinite(nextPrice) || nextPrice <= 0) {
+                    setPriceError("Enter a price above 0.");
+                    return;
+                  }
+                  setPriceError(null);
+                  try {
+                    await onSavePrice(nextPrice);
+                    setEditingPrice(false);
+                  } catch {
+                    // The parent toast contains the API error; keep the editor open.
+                  }
+                }}
+              >
+                <label htmlFor={`price-${product.id}`} className="sr-only">Price in KES</label>
+                <input
+                  id={`price-${product.id}`}
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={priceInput}
+                  onChange={(event) => {
+                    setPriceInput(event.target.value);
+                    setPriceError(null);
+                  }}
+                  disabled={savingPrice}
+                  className="w-24 h-9 rounded-lg border border-role/40 px-2 text-right text-sm font-bold text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-role"
+                />
+                <button type="submit" disabled={savingPrice} className="h-9 rounded-lg bg-role-dark px-2.5 text-xs font-bold text-white disabled:opacity-50">
+                  {savingPrice ? "Saving…" : "Save"}
+                </button>
+              </form>
+            ) : (
+              <>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-text-muted">Price</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPriceInput(String(product.price));
+                    setPriceError(null);
+                    setEditingPrice(true);
+                  }}
+                  className="text-sm font-black text-role tabular-nums hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-role rounded"
+                  aria-label={`Edit price for ${product.name}`}
+                >
+                  {fmtKES(product.price)}
+                </button>
+              </>
+            )}
+            {priceError && <p className="text-[10px] font-semibold text-error mt-1">{priceError}</p>}
           </div>
         </div>
 

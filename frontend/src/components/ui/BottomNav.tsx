@@ -5,10 +5,19 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/lib/auth-context";
 import { navLinksForRole, activeNavHref } from "@/lib/nav-config";
+import { Plus, User } from "lucide-react";
 
 export function BottomNav() {
   const { user } = useAuth();
-  const links = navLinksForRole(user?.role);
+  const links = user?.role === "seller"
+    ? [
+        { href: "/seller/dashboard", label: "Home", Icon: navLinksForRole("seller")[0].Icon },
+        { href: "/seller/dashboard/orders", label: "Orders", Icon: navLinksForRole("seller")[2].Icon },
+        { href: "/seller/dashboard/catalog/new", label: "Add", Icon: Plus },
+        { href: "/seller/dashboard/ledger", label: "Sales", Icon: navLinksForRole("seller")[4].Icon },
+        { href: "/seller/dashboard/account", label: "Account", Icon: User },
+      ]
+    : navLinksForRole(user?.role);
   const pathname = usePathname();
   const currentActiveHref = activeNavHref(pathname, links);
 

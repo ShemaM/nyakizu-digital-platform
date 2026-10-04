@@ -79,6 +79,19 @@ class ProductPermissionTests(TestCase):
 
         self.assertEqual(response.status_code, 404)
 
+    def test_seller_can_update_their_product_price(self):
+        self.client.force_authenticate(self.seller)
+
+        response = self.client.patch(
+            f"/api/products/{self.product.id}/",
+            {"price": "175.50"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.price, Decimal("175.50"))
+
     def test_public_product_list_hides_unapproved_seller_products(self):
         self.store.approval_status = "pending"
         self.store.save(update_fields=["approval_status"])

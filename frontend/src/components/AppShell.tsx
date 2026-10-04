@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { BottomNav } from "@/components/ui/BottomNav";
@@ -9,6 +9,7 @@ import { ProfileMenu } from "@/components/ui/ProfileMenu";
 import { useAuth } from "@/lib/auth-context";
 import { navLinksForRole, activeNavHref } from "@/lib/nav-config";
 import { cn } from "@/lib/cn";
+import { Moon, Sun } from "lucide-react";
 
 interface AppShellProps {
   children: ReactNode;
@@ -26,6 +27,22 @@ export function AppShell({
   const pathname = usePathname();
   const links = navLinksForRole(user?.role);
   const currentActiveHref = activeNavHref(pathname, links);
+  const [themeMode, setThemeMode] = useState<"light" | "dark" | "system">("system");
+  const darkMode = themeMode === "dark" || (themeMode === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem("nyakizu-theme") as "light" | "dark" | "system" | null;
+    setThemeMode(saved || "system");
+    document.documentElement.classList.toggle("dark", saved === "dark" || (!saved && window.matchMedia("(prefers-color-scheme: dark)").matches));
+  }, []);
+
+  function toggleDarkMode() {
+    const next = themeMode === "system" ? "light" : themeMode === "light" ? "dark" : "system";
+    const enabled = next === "dark" || (next === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    setThemeMode(next);
+    document.documentElement.classList.toggle("dark", enabled);
+    window.localStorage.setItem("nyakizu-theme", next);
+  }
 
   // A buyer landing on /seller/* (or vice versa) — a stale bookmark, a
   // shared device, a link typed by hand — used to just hit the backend's
@@ -105,6 +122,15 @@ export function AppShell({
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {headerRight}
+            <button
+              type="button"
+              onClick={toggleDarkMode}
+              aria-label={`Theme: ${themeMode}. Activate to switch theme`}
+              title={`Theme: ${themeMode} (cycles Light, Dark, System)`}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-text-secondary transition hover:bg-slate-100"
+            >
+              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
             {user && (user.role === "seller" || user.role === "buyer") && <NotificationBell />}
           </div>
         </div>

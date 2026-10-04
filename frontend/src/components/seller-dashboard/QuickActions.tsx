@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Package, ShoppingBag, Users, BookOpen, Settings, type LucideIcon } from "lucide-react";
+import { Plus, ShoppingBag, Users, Wallet, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 interface ShortcutAction {
@@ -12,16 +12,14 @@ interface ShortcutAction {
 
 const ACTIONS: ShortcutAction[] = [
   { label: "Add Product", description: "List a new item", href: "/seller/dashboard/catalog/new", Icon: Plus, primary: true },
-  { label: "My Products", description: "See and edit what you sell", href: "/seller/dashboard/catalog", Icon: Package },
-  { label: "Orders", description: "See and pack orders", href: "/seller/dashboard/orders", Icon: ShoppingBag },
-  { label: "Buyers", description: "Approve buyer requests", href: "/seller/dashboard/buyers", Icon: Users },
-  { label: "Payments", description: "Money owed and paid", href: "/seller/dashboard/ledger", Icon: BookOpen },
-  { label: "My Account", description: "Your shop details", href: "/seller/dashboard/account", Icon: Settings },
+  { label: "Process Orders", description: "Pack and deliver", href: "/seller/dashboard/orders", Icon: ShoppingBag },
+  { label: "Confirm Payments", description: "Update your ledger", href: "/seller/dashboard/ledger", Icon: Wallet },
+  { label: "Manage Buyers", description: "Approve requests", href: "/seller/dashboard/buyers", Icon: Users },
 ];
 
 export const QuickActions: React.FC = () => {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {ACTIONS.map(({ label, description, href, Icon, primary }) => (
         <Link
           key={href}

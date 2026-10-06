@@ -62,34 +62,33 @@ const config = {
           "gold-light": "#FBBF24",
           "gold-subtle": "rgba(245, 158, 11, 0.15)",
         },
-        // Semantic Dark Palette (GitHub-inspired charcoal/slate canvas and surfaces)
-        // NOT pitch black (#000000): allows surface hierarchy, depth, and zero eye strain
+        // Semantic Canvas and Surfaces — Dynamic via CSS variables (Light & Dark)
         dark: {
-          deepest: "#010409",   // Inset canvas, deep inputs, wells
-          primary: "#0D1117",   // Default canvas/page body background
-          secondary: "#161B22", // Elevated canvas, cards, sidebars, headers
-          tertiary: "#21262D",  // Interactive elements, secondary buttons, hover states
-          accent: "#30363D",    // Standard borders, dividers
-          card: "#161B22",      // Card surfaces
+          deepest: "rgb(var(--canvas-deepest) / <alpha-value>)",
+          primary: "rgb(var(--canvas-primary) / <alpha-value>)",
+          secondary: "rgb(var(--canvas-secondary) / <alpha-value>)",
+          tertiary: "rgb(var(--canvas-tertiary) / <alpha-value>)",
+          accent: "rgb(var(--border-accent) / <alpha-value>)",
+          card: "rgb(var(--canvas-card) / <alpha-value>)",
         },
-        'dark-primary': '#0D1117',
-        'dark-secondary': '#161B22',
-        'dark-tertiary': '#21262D',
-        'dark-card': '#161B22',
-        'dark-accent': '#30363D',
-        'dark-deepest': '#010409',
-        success: "#3FB950",  // Accessible green on dark
-        warning: "#D29922",  // Accessible amber on dark
-        error: "#F85149",    // Accessible red on dark
-        info: "#58A6FF",     // Accessible blue on dark
-        // Semantic text tokens — crisp, clear, high contrast (15:1 for primary)
-        'text-primary': "#F0F6FC",
-        'text-secondary': "#9198A1",
-        'text-muted': "#8B949E",
+        'dark-primary': 'rgb(var(--canvas-primary) / <alpha-value>)',
+        'dark-secondary': 'rgb(var(--canvas-secondary) / <alpha-value>)',
+        'dark-tertiary': 'rgb(var(--canvas-tertiary) / <alpha-value>)',
+        'dark-card': 'rgb(var(--canvas-card) / <alpha-value>)',
+        'dark-accent': 'rgb(var(--border-accent) / <alpha-value>)',
+        'dark-deepest': 'rgb(var(--canvas-deepest) / <alpha-value>)',
+        success: "#10B981",
+        warning: "#F59E0B",
+        error: "#EF4444",
+        info: "#3B82F6",
+        // Semantic text tokens — Dynamic via CSS variables (Light & Dark)
+        'text-primary': "rgb(var(--text-primary-color) / <alpha-value>)",
+        'text-secondary': "rgb(var(--text-secondary-color) / <alpha-value>)",
+        'text-muted': "rgb(var(--text-muted-color) / <alpha-value>)",
         ink: {
-          bg: "#0D1117",
-          card: "#161B22",
-          border: "#30363D",
+          bg: "rgb(var(--canvas-primary) / <alpha-value>)",
+          card: "rgb(var(--canvas-card) / <alpha-value>)",
+          border: "rgb(var(--border-accent) / <alpha-value>)",
         },
         // Elevated surface for public cards / store previews
         surface: {

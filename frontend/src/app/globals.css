@@ -17,100 +17,156 @@
  * Borders (#30363D), Text (#F0F6FC), Muted (#8B949E).
  */
 :root {
-  --background: 215 28% 7%;         /* #0D1117 — canvas default */
-  --foreground: 213 100% 96%;       /* #F0F6FC — text-primary */
+  /* Dynamic Canvas & Surfaces for Light Theme */
+  --canvas-primary: 248 250 252;       /* Slate-50 (#F8FAFC) */
+  --canvas-secondary: 255 255 255;     /* Pure white (#FFFFFF) */
+  --canvas-tertiary: 241 245 249;      /* Slate-100 (#F1F5F9) */
+  --canvas-card: 255 255 255;          /* Pure white (#FFFFFF) */
+  --canvas-deepest: 241 245 249;       /* Slate-100 (#F1F5F9) */
+  --border-accent: 226 232 240;        /* Slate-200 (#E2E8F0) */
 
-  --card: 215 21% 11%;              /* #161B22 — canvas subtle/card */
-  --card-foreground: 213 100% 96%;
+  /* Dynamic Semantic Text for Light Theme */
+  --text-primary-color: 15 23 42;      /* Slate-900 (#0F172A) */
+  --text-secondary-color: 71 85 105;   /* Slate-600 (#475569) */
+  --text-muted-color: 100 116 139;     /* Slate-500 (#64748B) */
 
-  --popover: 215 21% 11%;           /* #161B22 */
-  --popover-foreground: 213 100% 96%;
-
-  --primary: 38 92% 50%;            /* brand gold #F59E0B */
-  --primary-foreground: 215 28% 7%; /* dark text on gold button */
-
-  --secondary: 215 14% 15%;         /* #21262D — canvas overlay */
-  --secondary-foreground: 213 100% 96%;
-
-  --muted: 215 14% 15%;             /* #21262D */
-  --muted-foreground: 215 8% 58%;   /* #8B949E — 5.8:1 contrast */
-
-  --accent: 215 14% 15%;            /* #21262D */
-  --accent-foreground: 213 100% 96%;
-
-  --destructive: 3 93% 63%;         /* #F85149 */
+  /* shadcn light theme variables */
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 38 92% 50%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 40% 96%;
+  --secondary-foreground: 222 47% 11%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 210 40% 96%;
+  --accent-foreground: 222 47% 11%;
+  --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
-
-  --border: 215 11% 21%;            /* #30363D — border default */
-  --input: 215 11% 21%;             /* #30363D */
-  --ring: 212 96% 61%;              /* #388BFD — focus ring */
-
-  --surface: 215 21% 11%;           /* #161B22 — dark card surface */
-  --surface-foreground: 213 100% 96%; /* #F0F6FC */
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 212 96% 61%;
+  --surface: 0 0% 100%;
+  --surface-foreground: 222 47% 11%;
 
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+.dark {
+  /* Dynamic Canvas & Surfaces for GitHub-grade Semantic Dark Theme */
+  --canvas-primary: 13 17 23;          /* #0D1117 (canvas default) */
+  --canvas-secondary: 22 27 34;        /* #161B22 (cards, elevated) */
+  --canvas-tertiary: 33 38 45;         /* #21262D (interactive hover) */
+  --canvas-card: 22 27 34;             /* #161B22 (card surface) */
+  --canvas-deepest: 1 4 9;             /* #010409 (deep wells) */
+  --border-accent: 48 54 61;           /* #30363D (dark accent border) */
+
+  /* Dynamic Semantic Text for Dark Theme */
+  --text-primary-color: 240 246 252;   /* #F0F6FC (crisp white) */
+  --text-secondary-color: 145 152 161; /* #9198A1 (slate-400) */
+  --text-muted-color: 139 148 158;     /* #8B949E (slate-400 muted) */
+
+  /* shadcn dark theme variables */
+  --background: 215 28% 7%;
+  --foreground: 213 100% 96%;
+  --card: 215 21% 11%;
+  --card-foreground: 213 100% 96%;
+  --popover: 215 21% 11%;
+  --popover-foreground: 213 100% 96%;
+  --primary: 38 92% 50%;
+  --primary-foreground: 215 28% 7%;
+  --secondary: 215 14% 15%;
+  --secondary-foreground: 213 100% 96%;
+  --muted: 215 14% 15%;
+  --muted-foreground: 215 8% 58%;
+  --accent: 215 14% 15%;
+  --accent-foreground: 213 100% 96%;
+  --destructive: 3 93% 63%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 215 11% 21%;
+  --input: 215 11% 21%;
+  --ring: 212 96% 61%;
+  --surface: 215 21% 11%;
+  --surface-foreground: 213 100% 96%;
+}
+
 html {
-  color-scheme: dark;
-  background-color: #0d1117;
-  color: #f0f6fc;
+  color-scheme: light;
+  background-color: rgb(var(--canvas-primary));
+  color: rgb(var(--text-primary-color));
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
 }
 
+html.dark {
+  color-scheme: dark;
+}
+
 body {
-  @apply min-h-screen bg-dark-primary text-text-primary antialiased;
-  background-color: #0d1117;
-  color: #f0f6fc;
+  min-height: 100vh;
+  background-color: rgb(var(--canvas-primary));
+  color: rgb(var(--text-primary-color));
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: none;
 }
 
-/* Global Semantic Dark Mappings for clean contrast and zero eye strain */
-.bg-white {
+/* Scoped Dark Mode Overrides for Legacy Slate/White utility classes */
+.dark .bg-white {
   background-color: #161b22;
 }
 
-.bg-slate-50,
-.bg-slate-100 {
+.dark .bg-slate-50,
+.dark .bg-slate-100 {
   background-color: #21262d;
 }
 
-.bg-slate-200 {
+.dark .bg-slate-200 {
   background-color: #30363d;
 }
 
-.border-slate-100,
-.border-slate-200,
-.border-slate-300 {
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark .border-slate-300 {
   border-color: #30363d;
 }
 
-.hover\:bg-slate-50:hover,
-.hover\:bg-slate-100:hover {
+.dark .hover\:bg-slate-50:hover,
+.dark .hover\:bg-slate-100:hover {
   background-color: #21262d;
 }
 
-.hover\:bg-slate-200:hover {
+.dark .hover\:bg-slate-200:hover {
   background-color: #30363d;
 }
 
-.hover\:border-slate-200:hover,
-.hover\:border-slate-300:hover,
-.hover\:border-slate-400:hover {
+.dark .hover\:border-slate-200:hover,
+.dark .hover\:border-slate-300:hover,
+.dark .hover\:border-slate-400:hover {
   border-color: #484f58;
 }
 
-.text-slate-900,
-.text-slate-950,
-.text-slate-800,
-.text-slate-700 {
+.dark .text-slate-900,
+.dark .text-slate-950,
+.dark .text-slate-800,
+.dark .text-slate-700 {
   color: #f0f6fc;
 }
 
-/* Text on brand gold buttons/badges must be crisp dark for 12:1 WCAG AAA readability */
+.dark .text-slate-600,
+.dark .text-slate-500 {
+  color: #9198a1;
+}
+
+.dark .text-slate-400 {
+  color: #8b949e;
+}
+
+/* Text on brand gold buttons/badges must be crisp dark for 12:1 WCAG AAA readability in both themes */
 .bg-brand-gold,
 .bg-brand-gold .text-slate-950,
 .bg-brand-gold.text-slate-950,
@@ -121,53 +177,52 @@ a.bg-brand-gold {
   color: #010409 !important;
 }
 
-.text-slate-600,
-.text-slate-500 {
-  color: #9198a1;
-}
-
-.text-slate-400 {
-  color: #8b949e;
-}
-
 header {
-  background-color: rgba(22, 27, 34, 0.92);
-  border-color: #30363d;
+  border-color: rgb(var(--border-accent));
 }
 
+/* Default form inputs */
 input,
 textarea,
 select {
+  background-color: rgb(var(--canvas-card));
+  color: rgb(var(--text-primary-color));
+  border-color: rgb(var(--border-accent));
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgb(var(--text-muted-color));
+}
+
+.dark input,
+.dark textarea,
+.dark select {
   background-color: #0d1117;
   color: #f0f6fc;
   border-color: #30363d;
 }
 
-input::placeholder,
-textarea::placeholder {
+.dark input::placeholder,
+.dark textarea::placeholder {
   color: #8b949e;
 }
 
-/* Scrollbar customization for dark theme */
-* {
+/* Scrollbars */
+.dark * {
   scrollbar-color: #30363d #0d1117;
 }
 
-*::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-*::-webkit-scrollbar-track {
+.dark *::-webkit-scrollbar-track {
   background: #0d1117;
 }
 
-*::-webkit-scrollbar-thumb {
+.dark *::-webkit-scrollbar-thumb {
   background: #30363d;
   border-radius: 4px;
 }
 
-*::-webkit-scrollbar-thumb:hover {
+.dark *::-webkit-scrollbar-thumb:hover {
   background: #484f58;
 }
 

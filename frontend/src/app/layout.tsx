@@ -142,6 +142,11 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className={`dark ${inter.variable} ${bricolage.variable}`}>
       <head>
         <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('nyakizu-theme');if(t==='light'){document.documentElement.classList.remove('dark')}else if(t==='dark'){document.documentElement.classList.add('dark')}}catch(e){}})()`,
+          }}
+        />
+        <script
           type="application/ld+json"
           // eslint-disable-next-line react/no-danger -- static, server-generated JSON, no user input
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

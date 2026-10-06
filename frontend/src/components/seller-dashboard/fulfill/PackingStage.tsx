@@ -50,7 +50,7 @@ export function PackingStage({
           />
         </CardSection>
 
-        <CardSection className="border-t border-slate-100 bg-slate-50/50">
+        <CardSection className="border-t border-dark-accent bg-dark-secondary/60">
           <div className="flex justify-between items-center">
             <span className="text-xs font-black text-text-muted uppercase tracking-widest">
               {pendingPricing ? "Total So Far" : "Total"}

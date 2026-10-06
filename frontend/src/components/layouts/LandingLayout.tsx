@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { ChevronDown, UserPlus, LogIn, Mail } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { SUPPORT_EMAIL, TAGLINE } from "@/lib/contact";
 
 /** Header's only interactive element besides the logo — a single "Get
@@ -91,7 +92,10 @@ export function LandingHeader() {
             </span>
           </Link>
 
-          <GetStartedMenu />
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <ThemeToggle />
+            <GetStartedMenu />
+          </div>
         </div>
       </div>
     </header>

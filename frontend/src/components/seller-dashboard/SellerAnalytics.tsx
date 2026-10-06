@@ -199,7 +199,51 @@ const PIPELINE = [
 ] as const;
 
 export function OrderPipeline({ orders }: { orders: ApiOrder[] }) {
-  return <div><div className="mb-4"><p className="text-xs font-bold uppercase tracking-wider text-role">Workflow</p><h2 className="text-xl font-black text-text-primary">Order pipeline</h2></div><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">{PIPELINE.map((column) => { const items = orders.filter((order) => column.statuses.includes(order.status as never)); return <div key={column.title} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3"><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-black text-text-primary">{column.title}</h3><span className="rounded-full bg-white px-2 py-0.5 text-xs font-black text-text-muted">{items.length}</span></div><div className="space-y-2">{items.slice(0, 5).map((order) => <Link key={order.id} href={`/seller/dashboard/orders/${order.id}/fulfill`} className="block rounded-xl border border-slate-100 bg-white p-3 shadow-sm transition hover:border-role/30"><div className="flex items-center justify-between gap-2"><span className="text-sm font-black text-text-primary">Order #{order.id}</span><ChevronRight size={14} className="text-text-muted" /></div><p className="mt-1 truncate text-xs text-text-muted">{buyerDisplayName(order)}</p><p className="mt-2 text-xs font-bold text-role">{fmtKES(orderValue(order))}</p></Link>)}{items.length > 5 && <p className="px-1 text-xs font-semibold text-text-muted">+{items.length - 5} more orders</p>}{items.length === 0 && <p className="py-5 text-center text-xs text-text-muted">Nothing here</p>}</div></div>; })}</div></div>;
+  return (
+    <div>
+      <div className="mb-4">
+        <p className="text-xs font-bold uppercase tracking-wider text-role">Workflow</p>
+        <h2 className="text-xl font-black text-text-primary">Order pipeline</h2>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {PIPELINE.map((column) => {
+          const items = orders.filter((order) => column.statuses.includes(order.status as never));
+          return (
+            <div key={column.title} className="rounded-2xl border border-dark-accent bg-dark-secondary/80 p-3.5 shadow-sm">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-black text-text-primary">{column.title}</h3>
+                <span className="rounded-full border border-dark-accent bg-dark-tertiary px-2.5 py-0.5 text-xs font-black text-text-secondary">
+                  {items.length}
+                </span>
+              </div>
+              <div className="space-y-2">
+                {items.slice(0, 5).map((order) => (
+                  <Link
+                    key={order.id}
+                    href={`/seller/dashboard/orders/${order.id}/fulfill`}
+                    className="block rounded-xl border border-dark-accent bg-dark-card p-3 shadow-xs transition hover:border-brand-gold/40 hover:bg-dark-tertiary/40"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-black text-text-primary">Order #{order.id}</span>
+                      <ChevronRight size={14} className="text-text-muted" />
+                    </div>
+                    <p className="mt-1 truncate text-xs text-text-muted">{buyerDisplayName(order)}</p>
+                    <p className="mt-2 text-xs font-bold text-brand-gold">{fmtKES(orderValue(order))}</p>
+                  </Link>
+                ))}
+                {items.length > 5 && (
+                  <p className="px-1 text-xs font-semibold text-text-muted">+{items.length - 5} more orders</p>
+                )}
+                {items.length === 0 && (
+                  <p className="py-5 text-center text-xs text-text-muted">Nothing here</p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 export function InventoryInsights({ products, onProductUpdated }: { products: ApiProduct[]; onProductUpdated?: (product: ApiProduct) => void }) {
@@ -232,5 +276,5 @@ export function CustomerIntelligence({ orders, relationships }: { orders: ApiOrd
   orders.filter((order) => ACTIVE_STATUSES.has(order.status)).forEach((order) => { const key = String(order.buyer ?? order.buyer_username ?? buyerDisplayName(order)); const current = customers.get(key) ?? { name: buyerDisplayName(order), orders: 0, value: 0 }; current.orders += 1; current.value += orderValue(order); customers.set(key, current); });
   const ranked = [...customers.values()].sort((a, b) => b.value - a.value).slice(0, 5);
   const repeat = [...customers.values()].filter((customer) => customer.orders > 1).length;
-  return <SectionCard><div className="mb-5 flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wider text-role">Customer intelligence</p><h2 className="text-xl font-black text-text-primary">Know your buyers</h2></div><Link href="/seller/dashboard/buyers" className="text-sm font-bold text-role-dark">Manage buyers <ChevronRight className="inline" size={14} /></Link></div><div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4"><div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-text-muted">Total customers</p><p className="mt-1 text-xl font-black text-text-primary">{Math.max(customers.size, relationships.filter((r) => r.status === "approved").length)}</p></div><div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-text-muted">Repeat buyers</p><p className="mt-1 text-xl font-black text-text-primary">{repeat}</p></div><div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-text-muted">Customer lifetime value</p><p className="mt-1 text-xl font-black text-text-primary">{fmtKES(customers.size ? [...customers.values()].reduce((sum, customer) => sum + customer.value, 0) / customers.size : 0)}</p></div><div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-text-muted">Recent reviews</p><p className="mt-1 text-sm font-bold text-text-secondary">Coming soon</p></div></div>{ranked.length ? <div className="space-y-2">{ranked.map((customer, index) => <div key={customer.name} className="flex items-center gap-3 rounded-xl border border-slate-100 p-3"><Avatar name={customer.name} size="sm" colorClassName="bg-role-dark" /><span className="flex-1 truncate text-sm font-bold text-text-primary">{index + 1}. {customer.name}</span><span className="text-xs text-text-muted">{customer.orders} order{customer.orders === 1 ? "" : "s"}</span><span className="text-sm font-black tabular-nums text-role">{fmtKES(customer.value)}</span></div>)}</div> : <div className="flex items-center gap-2 text-sm text-text-muted"><Star size={16} /> Your most valuable customers will appear here after orders.</div>}</SectionCard>;
+  return <SectionCard><div className="mb-5 flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wider text-role">Customer intelligence</p><h2 className="text-xl font-black text-text-primary">Know your buyers</h2></div><Link href="/seller/dashboard/buyers" className="text-sm font-bold text-role-dark">Manage buyers <ChevronRight className="inline" size={14} /></Link></div><div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4"><div className="rounded-xl border border-dark-accent bg-dark-secondary/60 p-3"><p className="text-xs text-text-muted">Total customers</p><p className="mt-1 text-xl font-black text-text-primary">{Math.max(customers.size, relationships.filter((r) => r.status === "approved").length)}</p></div><div className="rounded-xl border border-dark-accent bg-dark-secondary/60 p-3"><p className="text-xs text-text-muted">Repeat buyers</p><p className="mt-1 text-xl font-black text-text-primary">{repeat}</p></div><div className="rounded-xl border border-dark-accent bg-dark-secondary/60 p-3"><p className="text-xs text-text-muted">Customer lifetime value</p><p className="mt-1 text-xl font-black text-text-primary">{fmtKES(customers.size ? [...customers.values()].reduce((sum, customer) => sum + customer.value, 0) / customers.size : 0)}</p></div><div className="rounded-xl border border-dark-accent bg-dark-secondary/60 p-3"><p className="text-xs text-text-muted">Recent reviews</p><p className="mt-1 text-sm font-bold text-text-secondary">Coming soon</p></div></div>{ranked.length ? <div className="space-y-2">{ranked.map((customer, index) => <div key={customer.name} className="flex items-center gap-3 rounded-xl border border-dark-accent bg-dark-secondary/60 p-3"><Avatar name={customer.name} size="sm" colorClassName="bg-role-dark" /><span className="flex-1 truncate text-sm font-bold text-text-primary">{index + 1}. {customer.name}</span><span className="text-xs text-text-muted">{customer.orders} order{customer.orders === 1 ? "" : "s"}</span><span className="text-sm font-black tabular-nums text-brand-gold">{fmtKES(customer.value)}</span></div>)}</div> : <div className="flex items-center gap-2 text-sm text-text-muted"><Star size={16} /> Your most valuable customers will appear here after orders.</div>}</SectionCard>;
 }

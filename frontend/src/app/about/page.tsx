@@ -31,8 +31,8 @@ const VALUES = [
   },
   {
     icon: Heart,
-    title: "Free, always",
-    body: "No monthly fee, no hidden cost, for buyers or sellers. This is a community tool, not a product to sell back to the community.",
+    title: "Fair, transparent pricing",
+    body: "No monthly subscriptions or hidden fees. Wholesalers pay only KSh 50 to KSh 100 per packed carton. Retailers and hawkers use Nyakizu 100% free.",
   },
 ];
 

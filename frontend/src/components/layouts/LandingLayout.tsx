@@ -126,6 +126,7 @@ function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) 
 
 const PLATFORM_LINKS: FooterLink[] = [
   { href: "/#features", label: "Features" },
+  { href: "/pricing", label: "Pricing & Fees" },
   { href: "/register", label: "Sign Up" },
   { href: "/login", label: "Sign In" },
   { href: "/help", label: "Help" },

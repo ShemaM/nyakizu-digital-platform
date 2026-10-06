@@ -38,7 +38,7 @@ export function PricingContent() {
     },
     {
       q: "What happens if my prepaid M-Pesa balance runs out while I'm packing?",
-      a: "Nyakizu will never interrupt a live rush or lock you out in the middle of preparing a shuttle parcel. You are given a flexible grace period to top up via M-Pesa after completing your packing.",
+      a: "Nyakizu will never interrupt a live rush or lock you out in the middle of preparing an order. You are given a flexible grace period to top up via M-Pesa after completing your packing.",
     },
   ];
 
@@ -225,7 +225,7 @@ export function PricingContent() {
                     <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0" /> Instant top-up via M-Pesa
                   </li>
                   <li className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0" /> Shuttle parcel receipt notes
+                    <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0" /> Permanent locked order receipts
                   </li>
                 </ul>
               </div>
@@ -258,7 +258,7 @@ export function PricingContent() {
                     <CheckCircle2 className="w-4 h-4 text-success shrink-0" /> Order from multiple wholesalers
                   </li>
                   <li className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-success shrink-0" /> Real-time parcel waybill updates
+                    <CheckCircle2 className="w-4 h-4 text-success shrink-0" /> Shared credit &amp; payment claims
                   </li>
                 </ul>
               </div>

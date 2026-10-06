@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   // brand name on the homepage, not "<page> | Nyakizu Digital Market".
   title: { absolute: SITE_NAME },
   description:
-    "The digital counter book for Kenya's phone accessories trade. From Nairobi wholesale shops to traders across Kenya — digitize orders, stock, and credit records with zero monthly subscriptions.",
+    "Direct wholesale phone accessories trade platform for Nairobi suppliers and countrywide buyers. Track orders, sourcing, packing, and M-Pesa debt with zero monthly subscriptions.",
   alternates: { canonical: SITE_URL },
   openGraph: {
     url: SITE_URL,

@@ -4,13 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { motion, type Variants } from "motion/react";
 import {
-  BookX,
-  MessagesSquare,
   CheckCircle2,
   Lock,
   Wallet,
   Smartphone,
-  Truck,
   ArrowRight,
   Sparkles,
   ChevronDown,
@@ -18,14 +15,17 @@ import {
   Store,
   ShoppingBag,
   TrendingDown,
-  FileSpreadsheet,
+  Check,
   Package,
+  Plus,
+  FileText,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Container, Section, LandingHeader, LandingFooter } from "@/components/layouts";
 import CommunityActivity from "@/components/landing/CommunityActivity";
 
-// Shared spring and stagger transitions
+// Shared entrance choreographies
 const staggerContainer: Variants = {
   hidden: {},
   show: { transition: { staggerChildren: 0.08 } },
@@ -54,18 +54,30 @@ function SectionKicker({ index, label }: { index: string; label: string }) {
 }
 
 export function HomeContent() {
-  // --- Section 1 Hero: Interactive Live Two-Way Preview State ---
-  const [activeRoleView, setActiveRoleView] = useState<"seller" | "buyer">("seller");
-  const [orderLocked, setOrderLocked] = useState(true);
+  // --- Section 1 Hero: Real Backend Interactive Screen Explorer State ---
+  const [activeScreenTab, setActiveScreenTab] = useState<"fulfill" | "catalog" | "ledger">("fulfill");
 
-  // --- Section 4: Interactive Pricing Calculator State ---
-  const [sliderCartonValue, setSliderCartonValue] = useState<number>(24000);
+  // Interactive packing items inside the hero fulfill preview (real OrderItem.is_packed)
+  const [packedItems, setPackedItems] = useState<{ [key: string]: boolean }>({
+    item1: true,
+    item2: true,
+    item3: false,
+  });
 
-  // Pricing calculation:
-  // KSh 50 minimum up to KSh 100 maximum cap
-  // 0.5% calculation rounded to nearest 5 KES, clamped between 50 and 100
-  const computedFee = Math.min(100, Math.max(50, Math.round((sliderCartonValue * 0.005) / 5) * 5));
-  const effectivePercentage = ((computedFee / sliderCartonValue) * 100).toFixed(2);
+  const togglePacked = (key: string) => {
+    setPackedItems((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // --- Section 2: Before vs After Interactive Toggle ---
+  const [comparisonMode, setComparisonMode] = useState<"analog" | "nyakizu">("nyakizu");
+
+  // --- Section 4: Interactive Hostinger-Style Pricing Calculator State ---
+  const [cartonValue, setCartonValue] = useState<number>(24000);
+
+  // Real backend fee formula (FeeSchedule):
+  // 0.5% rate, rounded to nearest KES 5, clamped between KES 50 min and KES 100 max
+  const computedFee = Math.min(100, Math.max(50, Math.round((cartonValue * 0.005) / 5) * 5));
+  const effectivePercentage = ((computedFee / cartonValue) * 100).toFixed(2);
 
   // --- Section 7: FAQ Accordion State ---
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
@@ -76,255 +88,404 @@ export function HomeContent() {
 
   const FAQS = [
     {
-      question: "Why do wholesalers pay KSh 50 to KSh 100 per order instead of a monthly fee?",
-      answer:
-        "Fixed monthly subscriptions (like KSh 1,500/month) drain your working capital during slow weeks and demand payment even when trade is quiet. With Nyakizu, you only pay when you actually pack and lock a carton. Small orders pay KSh 50; large cartons (even KSh 80,000+) are strictly capped at KSh 100. If you don't pack, you pay KSh 0.",
+      q: "Why do wholesalers pay KSh 50 to KSh 100 per order instead of a monthly subscription?",
+      a: "Monthly subscriptions (like KSh 1,500/month) drain your cash even when business is slow. With Nyakizu, you only pay when you actually pack and lock a carton. Small orders pay KSh 50; large orders (even KSh 80,000+) are strictly capped at KSh 100. If you pack nothing, you pay zero.",
     },
     {
-      question: "Do retail shopkeepers and hawkers across Kenya have to pay anything?",
-      answer:
-        "No. Nyakizu is 100% free forever for all retail buyers, stall owners, and hawkers. Buyers never pay a sign-up fee, membership fee, or per-order fee. They browse catalogs, place orders, and view credit balances at zero cost.",
+      q: "Do retail buyers, stall owners, and hawkers across Kenya have to pay anything?",
+      a: "No. Nyakizu is 100% free forever for all retail buyers and hawkers. Buyers never pay any registration fee, monthly fee, or per-order fee. They browse catalogs, place orders, and track credit balances at zero cost.",
     },
     {
-      question: "How do sellers pay the per-order fee?",
-      answer:
-        "Sellers top up a small prepaid balance directly via M-Pesa Daraja (STK Push or Paybill) whenever convenient. Your first 3 orders are 100% free with zero deposit. When you lock a packed carton, the fee (KSh 50 to KSh 100) is deducted from your balance.",
+      q: "How do wholesale sellers pay the per-order fee?",
+      a: "Sellers maintain a prepaid billing balance topped up directly via M-Pesa Daraja (STK push or Paybill) whenever convenient. Your first 3 orders are 100% free with no deposit required. When you lock a packed order, the small fee is deducted from your balance.",
     },
     {
-      question: "Can competing wholesale shops on Luthuli Avenue see my prices?",
-      answer:
-        "Never. Nyakizu is not an open public directory where competitors can scrape your prices. Your catalog is private. Only verified buyers you personally approve can view your inventory and prices.",
+      q: "Can competing wholesale shops on Luthuli Avenue see my inventory and prices?",
+      a: "Never. Nyakizu is a private wholesale network, not an open public directory. Your catalog is private. Only verified buyers you personally approve can view your inventory and prices.",
     },
     {
-      question: "Does Nyakizu work when network data or CBD connectivity is unstable?",
-      answer:
-        "Yes. While we are continuously engineering offline sync, the platform is currently built ultra-lightweight. It loads in seconds, uses minimal Safaricom bundles, and reliably preserves your data even on fluctuating 3G/4G connections across wholesale streets and transit hubs.",
+      q: "How does Nyakizu handle orders when items need custom sourcing?",
+      a: "Buyers can add items from your catalog or use the built-in 'Can't find it? Ask us to source it' box. As the seller, you review the requested item on your fulfill screen, quote the price, check it off when packed, and lock the final total.",
     },
     {
-      question: "Can we record shuttle parcel waybills (e.g., North Rift, Guardian, Tahmeed)?",
-      answer:
-        "Yes! When packing an order, you can log the parcel shuttle name (North Rift, Guardian, Tahmeed, 2NK, etc.), booking receipt number, and destination stage. Both the wholesaler and the buyer get a synchronized receipt with parcel details.",
+      q: "How are partial payments and debt (madeni) tracked?",
+      a: "When a buyer sends money via M-Pesa, you log the payment amount and M-Pesa transaction reference directly against the order. The system calculates the remaining balance and tracks the promised payment date in real time.",
     },
   ];
 
   return (
-    <div className="min-h-screen bg-dark-primary text-text-primary selection:bg-brand-gold/20">
+    <div className="min-h-screen bg-dark-primary text-text-primary selection:bg-brand-gold/20 overflow-x-hidden">
       <LandingHeader />
 
       {/* ========================================================================= */}
-      {/* SECTION 1: HERO (High-Impact Hostinger-Style with Interactive Preview)    */}
+      {/* SECTION 1: HERO (Hostinger-Style Visual Rhythm & Interactive Screen Mockup)*/}
       {/* ========================================================================= */}
-      <section className="relative overflow-hidden bg-gradient-hero pt-24 pb-14 sm:pt-36 sm:pb-24 border-b border-dark-accent">
+      <section className="relative overflow-hidden pt-24 pb-16 sm:pt-36 sm:pb-28 border-b border-dark-accent">
+        {/* Radiant Ambient Mesh Glows */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-gradient-to-tr from-brand-gold/15 via-amber-500/10 to-transparent rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-10 right-10 w-96 h-96 bg-purple-600/10 rounded-full blur-[100px] pointer-events-none" />
+
         <Container size="xl" className="relative z-10">
-          <div className="grid lg:grid-cols-12 gap-10 lg:gap-8 items-center">
-            {/* Left Column: Messaging & Action */}
+          <div className="grid lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+            {/* Left Column: Messaging & CTAs */}
             <motion.div
               variants={staggerContainer}
               initial="hidden"
               animate="show"
               className="lg:col-span-7 text-center lg:text-left"
             >
-              {/* Trust Badge */}
-              <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-brand-gold/30 bg-brand-gold/10 text-brand-gold text-xs sm:text-sm font-bold mb-4 sm:mb-6">
-                <span className="w-2 h-2 rounded-full bg-brand-gold animate-pulse" aria-hidden="true" />
-                <span>🇰🇪 The Digital Counter Book for Kenya&apos;s Phone Accessories Trade</span>
-              </motion.div>
-
-              {/* Main Headline */}
-              <motion.h1
-                variants={fadeUp}
-                className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.12] text-text-primary"
-              >
-                From Nairobi Wholesale Shops to Traders Across Kenya —{" "}
-                <span className="text-brand-gold">Trade with 100% Trust.</span>
-              </motion.h1>
-
-              {/* Clarifying Subtitle */}
-              <motion.p
-                variants={fadeUp}
-                className="mt-4 sm:mt-6 text-base sm:text-xl text-text-secondary leading-relaxed max-w-2xl mx-auto lg:mx-0"
-              >
-                Digitize your orders, stock, and credit records. Keep your trusted suppliers, your loyal buyers, and your credit agreements — just leave the worn-out counter books and WhatsApp chaos behind.
-              </motion.p>
-
-              {/* Dual Action CTAs */}
+              {/* Hostinger-Style Tag Pill */}
               <motion.div
                 variants={fadeUp}
-                className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3 sm:gap-4"
+                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-brand-gold/40 bg-brand-gold/10 text-brand-gold text-xs sm:text-sm font-extrabold mb-5 sm:mb-6 shadow-sm backdrop-blur-md"
+              >
+                <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                <span>Direct Wholesale Trade Platform &middot; Pay Only When You Pack</span>
+              </motion.div>
+
+              {/* Punchy Main Headline */}
+              <motion.h1
+                variants={fadeUp}
+                className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1] text-text-primary"
+              >
+                The Trade You Already Do.{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-gold via-amber-400 to-brand-gold-light">
+                  Now Faster, Safer &amp; Digitized.
+                </span>
+              </motion.h1>
+
+              {/* Grounded Subtitle */}
+              <motion.p
+                variants={fadeUp}
+                className="mt-5 text-base sm:text-xl text-text-secondary leading-relaxed max-w-2xl mx-auto lg:mx-0 font-medium"
+              >
+                Nyakizu connects wholesale phone accessory suppliers with verified countrywide buyers. Track orders from sourcing to packing, lock final totals, and manage M-Pesa debt without paper notebooks or WhatsApp chaos.
+              </motion.p>
+
+              {/* Action Buttons */}
+              <motion.div
+                variants={fadeUp}
+                className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-4"
               >
                 <Button
                   size="lg"
-                  className="rounded-full bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-extrabold shadow-brand px-8 text-base h-14"
+                  className="rounded-full bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-black shadow-lg shadow-brand-gold/20 px-8 text-base h-14 transition-all hover:scale-[1.02] active:scale-[0.98]"
                   asChild
                 >
                   <Link href="/register?role=seller">
-                    Open Your Wholesale Shop — Free
-                    <ArrowRight className="w-5 h-5 ml-1.5" />
+                    Open Your Wholesale Shop
+                    <ArrowRight className="w-5 h-5 ml-2" />
                   </Link>
                 </Button>
                 <Button
                   variant="outline"
                   size="lg"
-                  className="rounded-full border-2 border-dark-accent hover:border-brand-gold/40 text-text-primary font-bold px-6 text-base h-14"
+                  className="rounded-full border-2 border-dark-accent hover:border-brand-gold/40 text-text-primary font-bold px-7 text-base h-14 backdrop-blur-md"
                   asChild
                 >
-                  <Link href="#pricing">See How Trade Syncs ↓</Link>
+                  <Link href="#pricing">Test Fee Calculator &darr;</Link>
                 </Button>
               </motion.div>
 
-              {/* Four Trust Badges */}
+              {/* Trust Indicators */}
               <motion.div
                 variants={fadeUp}
-                className="mt-6 sm:mt-8 flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2 text-xs sm:text-sm text-text-muted"
+                className="mt-8 flex flex-wrap items-center justify-center lg:justify-start gap-x-6 gap-y-2.5 text-xs sm:text-sm text-text-muted font-semibold"
               >
-                <span className="flex items-center gap-1.5 font-medium">
+                <span className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-success" /> Zero Monthly Subscription
                 </span>
-                <span className="flex items-center gap-1.5 font-medium">
+                <span className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-success" /> KSh 50–100 Only When Packed
                 </span>
-                <span className="flex items-center gap-1.5 font-medium">
+                <span className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-success" /> Retailers &amp; Hawkers Pay KSh 0
                 </span>
-                <span className="flex items-center gap-1.5 font-medium">
-                  <CheckCircle2 className="w-4 h-4 text-success" /> Runs Fast on Tecno &amp; Infinix
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-success" /> First 3 Orders 100% Free
                 </span>
               </motion.div>
             </motion.div>
 
-            {/* Right Column: Live Interactive Two-Way Preview Card */}
+            {/* Right Column: Interactive Real Backend Screen Explorer */}
             <motion.div
               variants={fadeUp}
               initial="hidden"
               animate="show"
-              className="lg:col-span-5 flex justify-center"
+              className="lg:col-span-5 relative"
             >
-              <div className="w-full max-w-md rounded-2xl border border-dark-accent bg-dark-card shadow-2xl overflow-hidden">
-                {/* Header with Switcher Tabs */}
-                <div className="p-3 bg-dark-secondary border-b border-dark-accent flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 bg-dark-tertiary p-1 rounded-xl">
+              {/* Floating Decorative Chips */}
+              <div className="absolute -top-4 -right-2 sm:-right-4 z-20 hidden sm:flex items-center gap-2 rounded-xl border border-dark-accent bg-dark-card/95 backdrop-blur-md px-3.5 py-2 shadow-xl animate-bounce-slow">
+                <CheckCircle2 className="w-4 h-4 text-success" />
+                <span className="text-xs font-bold text-text-primary">M-Pesa Verified &middot; KES 14,000</span>
+              </div>
+              <div className="absolute -bottom-4 -left-2 sm:-left-4 z-20 hidden sm:flex items-center gap-2 rounded-xl border border-brand-gold/40 bg-dark-card/95 backdrop-blur-md px-3.5 py-2 shadow-xl">
+                <Lock className="w-4 h-4 text-brand-gold" />
+                <span className="text-xs font-bold text-brand-gold">Order Locked &middot; Final KES 24,000</span>
+              </div>
+
+              {/* Main Card Container */}
+              <div className="w-full max-w-md mx-auto rounded-3xl border-2 border-dark-accent bg-dark-card/95 backdrop-blur-xl shadow-2xl overflow-hidden transition-all duration-300 hover:border-brand-gold/30">
+                {/* Real Screen Tab Switcher */}
+                <div className="p-3 bg-dark-secondary/80 border-b border-dark-accent flex items-center justify-between gap-1">
+                  <div className="flex items-center gap-1 bg-dark-tertiary p-1 rounded-xl w-full">
                     <button
                       type="button"
-                      onClick={() => setActiveRoleView("seller")}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                        activeRoleView === "seller"
+                      onClick={() => setActiveScreenTab("fulfill")}
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        activeScreenTab === "fulfill"
                           ? "bg-brand-gold text-slate-950 shadow-sm"
                           : "text-text-muted hover:text-text-primary"
                       }`}
                     >
-                      Wholesaler View (Nairobi)
+                      Fulfill Checklist
                     </button>
                     <button
                       type="button"
-                      onClick={() => setActiveRoleView("buyer")}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                        activeRoleView === "buyer"
+                      onClick={() => setActiveScreenTab("catalog")}
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        activeScreenTab === "catalog"
                           ? "bg-brand-gold text-slate-950 shadow-sm"
                           : "text-text-muted hover:text-text-primary"
                       }`}
                     >
-                      Buyer View (Kisumu)
+                      Buyer Catalog
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveScreenTab("ledger")}
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        activeScreenTab === "ledger"
+                          ? "bg-brand-gold text-slate-950 shadow-sm"
+                          : "text-text-muted hover:text-text-primary"
+                      }`}
+                    >
+                      Debt Ledger
                     </button>
                   </div>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-success px-2 py-0.5 rounded-full bg-success/10">
-                    <span className="w-1.5 h-1.5 rounded-full bg-success animate-ping" /> Live Sync
-                  </span>
                 </div>
 
-                {/* Content Area */}
-                <div className="p-5 space-y-4">
-                  {/* Order Header */}
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-text-muted">
-                        Carton Order #NYK-1084
+                {/* Tab 1: Fulfill Screen (Real Order & Packing Stage) */}
+                {activeScreenTab === "fulfill" && (
+                  <div className="p-5 space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-1.5 text-xs text-text-muted">
+                          <span>Order #1084</span>
+                          <span>&middot;</span>
+                          <span className="font-semibold text-text-secondary">Kisumu Mobile Zone</span>
+                        </div>
+                        <h4 className="text-base font-bold text-text-primary mt-0.5">
+                          Packing Stage (Sourcing)
+                        </h4>
+                      </div>
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-warning/15 text-warning border border-warning/30">
+                        <Package className="w-3 h-3" /> Packing
                       </span>
-                      <h4 className="text-base font-bold text-text-primary mt-0.5">
-                        {activeRoleView === "seller" ? "Buyer: Kisumu Mobile Zone" : "Wholesaler: Luthuli Apex Wholesale"}
-                      </h4>
-                      <p className="text-xs text-text-muted">
-                        {activeRoleView === "seller" ? "Dispatched from CBD Nairobi" : "Destination: Kisumu CBD Stage"}
+                    </div>
+
+                    {/* Interactive Packing Items Checklist */}
+                    <div className="rounded-2xl border border-dark-accent bg-dark-secondary/60 p-3 space-y-2.5">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-text-muted uppercase tracking-wider">
+                        <span>Items Checklist (Tap to pack)</span>
+                        <span>Price</span>
+                      </div>
+
+                      <div
+                        onClick={() => togglePacked("item1")}
+                        className={`flex items-center justify-between p-2 rounded-xl border cursor-pointer transition-all ${
+                          packedItems.item1
+                            ? "border-success/40 bg-success/10 text-text-primary"
+                            : "border-dark-accent bg-dark-card text-text-secondary"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`w-4 h-4 rounded flex items-center justify-center ${packedItems.item1 ? "bg-success text-slate-950" : "border border-dark-accent"}`}>
+                            {packedItems.item1 && <Check className="w-3 h-3 stroke-[3]" />}
+                          </div>
+                          <span className={`text-xs font-semibold truncate ${packedItems.item1 ? "line-through text-text-muted" : ""}`}>
+                            50&times; 65W Fast Type-C Charger
+                          </span>
+                        </div>
+                        <span className="text-xs font-bold tabular-nums">KES 12,500</span>
+                      </div>
+
+                      <div
+                        onClick={() => togglePacked("item2")}
+                        className={`flex items-center justify-between p-2 rounded-xl border cursor-pointer transition-all ${
+                          packedItems.item2
+                            ? "border-success/40 bg-success/10 text-text-primary"
+                            : "border-dark-accent bg-dark-card text-text-secondary"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`w-4 h-4 rounded flex items-center justify-center ${packedItems.item2 ? "bg-success text-slate-950" : "border border-dark-accent"}`}>
+                            {packedItems.item2 && <Check className="w-3 h-3 stroke-[3]" />}
+                          </div>
+                          <span className={`text-xs font-semibold truncate ${packedItems.item2 ? "line-through text-text-muted" : ""}`}>
+                            100&times; 9D Tempered Glass
+                          </span>
+                        </div>
+                        <span className="text-xs font-bold tabular-nums">KES 7,000</span>
+                      </div>
+
+                      <div
+                        onClick={() => togglePacked("item3")}
+                        className={`flex items-center justify-between p-2 rounded-xl border cursor-pointer transition-all ${
+                          packedItems.item3
+                            ? "border-success/40 bg-success/10 text-text-primary"
+                            : "border-dark-accent bg-dark-card text-text-secondary"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`w-4 h-4 rounded flex items-center justify-center ${packedItems.item3 ? "bg-success text-slate-950" : "border border-dark-accent"}`}>
+                            {packedItems.item3 && <Check className="w-3 h-3 stroke-[3]" />}
+                          </div>
+                          <span className={`text-xs font-semibold truncate ${packedItems.item3 ? "line-through text-text-muted" : ""}`}>
+                            30&times; Heavy-Duty Covers (Sourced)
+                          </span>
+                        </div>
+                        <span className="text-xs font-bold tabular-nums">KES 4,500</span>
+                      </div>
+                    </div>
+
+                    {/* Delivery & Buyer Notes (Real backend fields: delivery_address & buyer_notes) */}
+                    <div className="rounded-xl border border-dark-accent bg-dark-secondary p-3 text-xs space-y-1">
+                      <div className="flex justify-between text-text-muted">
+                        <span>Delivery Address:</span>
+                        <span className="text-text-primary font-medium">Kisumu CBD, Oginga Odinga St</span>
+                      </div>
+                      <div className="flex justify-between text-text-muted">
+                        <span>Buyer Note:</span>
+                        <span className="text-text-primary font-medium">&quot;Pack tight, call before dispatch&quot;</span>
+                      </div>
+                    </div>
+
+                    {/* Lock Price Action Bar */}
+                    <div className="pt-1 flex items-center justify-between">
+                      <div>
+                        <span className="text-[11px] text-text-muted block">Final Total</span>
+                        <span className="text-base font-extrabold text-brand-gold tabular-nums">KES 24,000</span>
+                      </div>
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-gold text-slate-950 font-bold text-xs shadow-sm">
+                        <Lock className="w-3.5 h-3.5" /> Lock Final Price
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab 2: Buyer Catalog & Sourcing */}
+                {activeScreenTab === "catalog" && (
+                  <div className="p-5 space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-1 text-xs text-brand-gold font-bold">
+                          <Store className="w-3 h-3" /> Sample Shop Wholesale &middot; Nairobi
+                        </div>
+                        <h4 className="text-base font-bold text-text-primary mt-0.5">
+                          Approved Wholesale Catalog
+                        </h4>
+                      </div>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-success/15 text-success">
+                        <ShieldCheck className="w-3 h-3" /> Approved Buyer
+                      </span>
+                    </div>
+
+                    {/* Catalog Items */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="rounded-xl border border-dark-accent bg-dark-secondary p-2.5 space-y-1">
+                        <p className="text-xs font-bold text-text-primary truncate">A2 Core Silicon Cover</p>
+                        <p className="text-[11px] text-text-muted">Wholesale Rate</p>
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="text-xs font-black text-brand-gold">KES 120</span>
+                          <span className="w-5 h-5 rounded-full bg-brand-gold/15 text-brand-gold flex items-center justify-center text-xs font-bold">+</span>
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-dark-accent bg-dark-secondary p-2.5 space-y-1">
+                        <p className="text-xs font-bold text-text-primary truncate">Hot 8 Screen Protectors</p>
+                        <p className="text-[11px] text-text-muted">Wholesale Rate</p>
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="text-xs font-black text-brand-gold">KES 34</span>
+                          <span className="w-5 h-5 rounded-full bg-brand-gold/15 text-brand-gold flex items-center justify-center text-xs font-bold">+</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Real backend Custom Sourcing Input feature */}
+                    <div className="rounded-xl border border-dashed border-dark-accent bg-dark-secondary/50 p-3">
+                      <span className="text-[11px] font-bold text-text-primary block">
+                        Can&apos;t find it? Ask us to source it
+                      </span>
+                      <p className="text-[10px] text-text-muted mt-0.5">
+                        Type any accessory model not in the catalog. The seller quotes a price upon packing.
                       </p>
                     </div>
-                    <span
-                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
-                        orderLocked
-                          ? "bg-brand-gold/15 text-brand-gold border border-brand-gold/30"
-                          : "bg-info/15 text-info border border-info/30"
-                      }`}
-                    >
-                      {orderLocked ? <Lock className="w-3 h-3" /> : <Package className="w-3 h-3" />}
-                      {orderLocked ? "Carton Locked" : "Packing in Progress"}
-                    </span>
-                  </div>
 
-                  {/* Packed Items List */}
-                  <div className="rounded-xl border border-dark-accent bg-dark-secondary/50 p-3 space-y-2">
-                    <div className="text-[11px] font-bold text-text-muted uppercase tracking-wider flex justify-between">
-                      <span>Itemized Packed Goods</span>
-                      <span>Subtotal</span>
-                    </div>
-                    <div className="text-xs flex justify-between items-center text-text-primary">
-                      <span>50x 65W Fast Type-C Chargers</span>
-                      <span className="font-semibold tabular-nums">KSh 12,500</span>
-                    </div>
-                    <div className="text-xs flex justify-between items-center text-text-primary">
-                      <span>100x 9D Tempered Glass (Tecno/Samsung)</span>
-                      <span className="font-semibold tabular-nums">KSh 7,000</span>
-                    </div>
-                    <div className="text-xs flex justify-between items-center text-text-primary">
-                      <span>30x Heavy-Duty Transparent Cases</span>
-                      <span className="font-semibold tabular-nums">KSh 4,500</span>
+                    {/* Cart Bar */}
+                    <div className="rounded-xl bg-brand-gold p-2.5 flex items-center justify-between text-slate-950 font-bold text-xs">
+                      <span className="flex items-center gap-1.5">
+                        <ShoppingBag className="w-4 h-4" /> 3 Items in Order
+                      </span>
+                      <span className="font-black">Submit Order &rarr;</span>
                     </div>
                   </div>
+                )}
 
-                  {/* Shuttle Parcel Dispatch Tag */}
-                  <div className="rounded-xl border border-dark-accent/80 bg-dark-secondary p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-brand-gold/15 text-brand-gold flex items-center justify-center">
-                        <Truck className="w-4 h-4" />
-                      </div>
+                {/* Tab 3: Debt Ledger (Real Order & Payment Record) */}
+                {activeScreenTab === "ledger" && (
+                  <div className="p-5 space-y-4">
+                    <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-xs font-bold text-text-primary">North Rift Shuttle</p>
-                        <p className="text-[11px] text-text-muted">Waybill #NR-9284 &middot; Kisumu Office</p>
+                        <div className="flex items-center gap-1 text-xs text-text-muted">
+                          <span>Order #1084</span>
+                          <span>&middot;</span>
+                          <span className="font-semibold text-text-secondary">Balance Owed</span>
+                        </div>
+                        <h4 className="text-base font-bold text-text-primary mt-0.5">
+                          Status: Debt Active
+                        </h4>
+                      </div>
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-warning/15 text-warning border border-warning/30">
+                        <Clock className="w-3 h-3" /> Debt Active
+                      </span>
+                    </div>
+
+                    {/* Shared Ledger Breakdown */}
+                    <div className="rounded-2xl border border-dark-accent bg-dark-secondary/60 p-3.5 space-y-2 text-xs">
+                      <div className="flex justify-between items-center">
+                        <span className="text-text-muted">Final Locked Total</span>
+                        <span className="font-bold text-text-primary tabular-nums">KES 24,000</span>
+                      </div>
+                      <div className="flex justify-between items-center text-success">
+                        <span className="font-medium">M-Pesa Payment Received</span>
+                        <span className="font-bold tabular-nums">- KES 14,000</span>
+                      </div>
+                      <div className="h-px bg-dark-accent" />
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-brand-gold">Outstanding Balance</span>
+                        <span className="font-black text-brand-gold tabular-nums text-sm">KES 10,000</span>
                       </div>
                     </div>
-                    <span className="text-xs font-semibold text-success">Dispatched</span>
-                  </div>
 
-                  {/* Shared Credit & Ledger Summary */}
-                  <div className="rounded-xl border border-dark-accent bg-dark-tertiary p-3 space-y-2">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-text-muted">Total Carton Value</span>
-                      <span className="font-bold text-text-primary tabular-nums">KSh 24,000</span>
+                    {/* Real PaymentRecord & Expected Date */}
+                    <div className="rounded-xl border border-dark-accent bg-dark-secondary p-3 space-y-1.5 text-xs">
+                      <div className="flex justify-between items-center">
+                        <span className="text-text-muted">M-Pesa Reference:</span>
+                        <span className="font-mono font-bold text-text-primary">QJK892KL01</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-text-muted">Expected Payment Date:</span>
+                        <span className="font-semibold text-text-secondary">Next Friday</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-text-muted">Paid via M-Pesa (Tranche 1)</span>
-                      <span className="font-bold text-success tabular-nums">- KSh 14,000</span>
-                    </div>
-                    <div className="h-px bg-dark-accent" />
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-brand-gold">Outstanding Credit (Chukua Uza)</span>
-                      <span className="font-extrabold text-brand-gold tabular-nums">KSh 10,000</span>
-                    </div>
-                  </div>
 
-                  {/* Fee Transparency Note */}
-                  <div className="flex items-center justify-between text-[11px] pt-1 text-text-muted">
-                    <span>
-                      {activeRoleView === "seller"
-                        ? "Wholesale Fee for this KSh 24k carton: KSh 70"
-                        : "Buyer Fee: KSh 0 (100% Free)"}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setOrderLocked(!orderLocked)}
-                      className="text-brand-gold hover:underline font-semibold"
-                    >
-                      Toggle Lock Status
-                    </button>
+                    {/* Fee Deducted from prepaid balance */}
+                    <div className="text-[11px] text-text-muted flex justify-between items-center pt-1">
+                      <span>Wholesale Fee: KSh 70 (Deducted from prepaid balance)</span>
+                      <span className="text-success font-semibold">Buyer Fee: KSh 0</span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </motion.div>
           </div>
@@ -332,159 +493,200 @@ export function HomeContent() {
       </section>
 
       {/* ========================================================================= */}
-      {/* SECTION 2: THE THREE ANALOG PAINS WE DIGITIZE (Before vs. After)          */}
+      {/* SECTION 2: BEFORE VS AFTER (Interactive Switcher)                         */}
       {/* ========================================================================= */}
-      <Section spacing="lg" className="bg-dark-secondary border-b border-dark-accent" id="pains">
+      <Section spacing="lg" className="bg-dark-secondary border-b border-dark-accent" id="comparison">
         <Container size="lg">
-          <SectionKicker index="01" label="Ground Reality" />
-          <div className="max-w-3xl mb-10 sm:mb-14">
-            <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-text-primary leading-snug sm:leading-tight">
-              The Counter Book &amp; WhatsApp Audio Notes Were Never Made for 50 Cartons a Week
+          <SectionKicker index="01" label="Direct Comparison" />
+          <div className="max-w-3xl mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-text-primary leading-tight">
+              Trade That Used to Break Friendships, Now Built on Certainty
             </h2>
-            <p className="mt-3 text-text-secondary text-base sm:text-xl leading-relaxed">
-              When orders flow daily between Nairobi, Mombasa, Kisumu, and Eldoret, small analog slips turn into lost money, missed shuttles, and broken trust between brothers.
+            <p className="mt-3 text-text-secondary text-base sm:text-lg">
+              Compare how phone accessory trade runs on paper and audio notes versus Nyakizu.
             </p>
+
+            {/* Interactive Toggle Switch */}
+            <div className="mt-6 inline-flex p-1 rounded-2xl bg-dark-tertiary border border-dark-accent">
+              <button
+                type="button"
+                onClick={() => setComparisonMode("analog")}
+                className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                  comparisonMode === "analog"
+                    ? "bg-error/20 text-error border border-error/30 shadow-sm"
+                    : "text-text-muted hover:text-text-primary"
+                }`}
+              >
+                The Analog Way (Paper &amp; Audio Notes)
+              </button>
+              <button
+                type="button"
+                onClick={() => setComparisonMode("nyakizu")}
+                className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                  comparisonMode === "nyakizu"
+                    ? "bg-brand-gold text-slate-950 font-black shadow-md"
+                    : "text-text-muted hover:text-text-primary"
+                }`}
+              >
+                The Nyakizu Way (Digital &amp; Locked)
+              </button>
+            </div>
           </div>
 
+          {/* Comparison Cards Grid */}
           <div className="grid md:grid-cols-3 gap-6">
-            {/* Comparison 1 */}
-            <div className="rounded-2xl border border-dark-accent bg-dark-card p-6 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-error/15 text-error flex items-center justify-center">
-                    <MessagesSquare className="w-5 h-5" />
-                  </div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-error px-2 py-0.5 rounded bg-error/10">
-                    Analog Chaos
-                  </span>
-                </div>
-                <h3 className="text-lg font-bold text-text-primary">The 20-Message Audio Mess</h3>
-                <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-                  Buyers send 15 voice notes, half-typed lists, and forwarded photos. In the rush of Luthuli Avenue, items get skipped and wrong models get packed.
-                </p>
+            {/* Card 1 */}
+            <div
+              className={`rounded-3xl border p-6 transition-all duration-300 ${
+                comparisonMode === "analog"
+                  ? "border-error/30 bg-error/5"
+                  : "border-brand-gold/30 bg-dark-card shadow-lg"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                  01 &middot; Order Submission
+                </span>
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                    comparisonMode === "analog" ? "bg-error/20 text-error" : "bg-success/20 text-success"
+                  }`}
+                >
+                  {comparisonMode === "analog" ? "Audio Note Chaos" : "1-Tap Itemized Orders"}
+                </span>
               </div>
-
-              <div className="mt-6 pt-5 border-t border-dark-accent">
-                <div className="flex items-center gap-2 text-success font-bold text-xs uppercase tracking-wider mb-1.5">
-                  <CheckCircle2 className="w-4 h-4" /> Nyakizu Digital Fix
-                </div>
-                <p className="text-sm font-medium text-text-primary">
-                  1-Tap Itemized Orders with exact models, quantities, and agreed prices. Zero missed items.
-                </p>
-              </div>
+              <h3 className="text-lg font-bold text-text-primary">
+                {comparisonMode === "analog"
+                  ? "15 WhatsApp voice notes and blurry pictures"
+                  : "Structured catalog items with custom sourcing notes"}
+              </h3>
+              <p className="mt-2 text-sm text-text-secondary leading-relaxed">
+                {comparisonMode === "analog"
+                  ? "Sellers spend hours listening to voice notes in noisy shops. Items get forgotten, wrong phone models get packed, and buyers complain."
+                  : "Buyers select exact accessories and quantities. Custom sourcing requests are priced clearly before packing begins."}
+              </p>
             </div>
 
-            {/* Comparison 2 */}
-            <div className="rounded-2xl border border-dark-accent bg-dark-card p-6 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-warning/15 text-warning flex items-center justify-center">
-                    <Package className="w-5 h-5" />
-                  </div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-warning px-2 py-0.5 rounded bg-warning/10">
-                    Packing Disputes
-                  </span>
-                </div>
-                <h3 className="text-lg font-bold text-text-primary">Changed Minds at the Shuttle Stage</h3>
-                <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-                  You spend 45 minutes sealing a carton, carry it to the North Rift or Guardian office, and the buyer calls wanting to edit items or renegotiate price.
-                </p>
+            {/* Card 2 */}
+            <div
+              className={`rounded-3xl border p-6 transition-all duration-300 ${
+                comparisonMode === "analog"
+                  ? "border-error/30 bg-error/5"
+                  : "border-brand-gold/30 bg-dark-card shadow-lg"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                  02 &middot; Price &amp; Packing
+                </span>
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                    comparisonMode === "analog" ? "bg-error/20 text-error" : "bg-success/20 text-success"
+                  }`}
+                >
+                  {comparisonMode === "analog" ? "Changed Minds & Arguments" : "Locked Final Total"}
+                </span>
               </div>
-
-              <div className="mt-6 pt-5 border-t border-dark-accent">
-                <div className="flex items-center gap-2 text-success font-bold text-xs uppercase tracking-wider mb-1.5">
-                  <Lock className="w-4 h-4" /> Nyakizu Digital Fix
-                </div>
-                <p className="text-sm font-medium text-text-primary">
-                  Locked Cartons. Once packed and locked, the item list and carton total are permanent. Neither party can alter history.
-                </p>
-              </div>
+              <h3 className="text-lg font-bold text-text-primary">
+                {comparisonMode === "analog"
+                  ? "Renegotiating after the carton is sealed"
+                  : "Permanent lock once packing is verified"}
+              </h3>
+              <p className="mt-2 text-sm text-text-secondary leading-relaxed">
+                {comparisonMode === "analog"
+                  ? "A seller spends 40 minutes packing a carton only for the buyer to call demanding to swap models or remove priced items."
+                  : "Once the seller finishes the packing checklist and clicks Lock Price, the total and items are permanent. Neither party can tamper with history."}
+              </p>
             </div>
 
-            {/* Comparison 3 */}
-            <div className="rounded-2xl border border-dark-accent bg-dark-card p-6 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-violet-500/15 text-violet-400 flex items-center justify-center">
-                    <BookX className="w-5 h-5" />
-                  </div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-violet-400 px-2 py-0.5 rounded bg-violet-500/10">
-                    Lost Records
-                  </span>
-                </div>
-                <h3 className="text-lg font-bold text-text-primary">Daftari Imepotea (Torn Debt Pages)</h3>
-                <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-                  Trade runs on credit (<em>chukua uza, lipa baadaye</em>). Counter books get water damage, worn pages go missing, and traders argue about who owes what.
-                </p>
+            {/* Card 3 */}
+            <div
+              className={`rounded-3xl border p-6 transition-all duration-300 ${
+                comparisonMode === "analog"
+                  ? "border-error/30 bg-error/5"
+                  : "border-brand-gold/30 bg-dark-card shadow-lg"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                  03 &middot; Credit Records
+                </span>
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                    comparisonMode === "analog" ? "bg-error/20 text-error" : "bg-success/20 text-success"
+                  }`}
+                >
+                  {comparisonMode === "analog" ? "Torn Counter Books" : "Shared M-Pesa Ledger"}
+                </span>
               </div>
-
-              <div className="mt-6 pt-5 border-t border-dark-accent">
-                <div className="flex items-center gap-2 text-success font-bold text-xs uppercase tracking-wider mb-1.5">
-                  <Wallet className="w-4 h-4" /> Nyakizu Digital Fix
-                </div>
-                <p className="text-sm font-medium text-text-primary">
-                  Shared Live Ledger. Both seller and buyer see the exact same balance and M-Pesa payments in real-time.
-                </p>
-              </div>
+              <h3 className="text-lg font-bold text-text-primary">
+                {comparisonMode === "analog"
+                  ? "Lost pages and disputed remaining balance"
+                  : "Real-time balance with M-Pesa codes"}
+              </h3>
+              <p className="mt-2 text-sm text-text-secondary leading-relaxed">
+                {comparisonMode === "analog"
+                  ? "Counter books get water stains or mislaid. Months later, partners fight over whether an old M-Pesa installment was 5,000 or 8,000."
+                  : "Every payment is logged with its M-Pesa reference code. Both seller and buyer see the exact same balance and promised date in real time."}
+              </p>
             </div>
           </div>
         </Container>
       </Section>
 
       {/* ========================================================================= */}
-      {/* SECTION 3: DUAL TRADE HUB (Wholesalers ⟷ Countrywide Retailers)           */}
+      {/* SECTION 3: DUAL TRADE ROLES (Wholesalers ⟷ Countrywide Buyers)            */}
       {/* ========================================================================= */}
-      <Section spacing="lg" className="bg-dark-primary border-b border-dark-accent" id="network">
+      <Section spacing="lg" className="bg-dark-primary border-b border-dark-accent" id="roles">
         <Container size="lg">
-          <SectionKicker index="02" label="Two Sides of the Trade" />
+          <SectionKicker index="02" label="Built for Both Roles" />
           <div className="max-w-2xl mb-10 sm:mb-14">
-            <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-text-primary leading-snug sm:leading-tight">
-              Tailored for Nairobi Wholesalers &amp; Countrywide Retailers
+            <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-text-primary leading-tight">
+              Tailored for Wholesale Shops &amp; Countrywide Retailers
             </h2>
-            <p className="mt-2.5 sm:mt-3 text-text-secondary text-base sm:text-xl">
-              Nyakizu connects wholesale shops in Nairobi CBD with stalls, repair shops, and hawkers across Kenya.
+            <p className="mt-2.5 text-text-secondary text-base sm:text-lg">
+              Dedicated interfaces designed for the distinct daily routines of wholesale sellers and retail buyers.
             </p>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-8">
-            {/* Wholesalers Card */}
-            <div className="rounded-3xl border-2 border-brand-gold/30 bg-dark-card p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-36 h-36 bg-brand-gold/5 rounded-full blur-2xl pointer-events-none" />
+            {/* Wholesaler Card */}
+            <div className="rounded-3xl border-2 border-brand-gold/30 bg-dark-card p-7 sm:p-9 flex flex-col justify-between relative overflow-hidden shadow-xl">
               <div>
                 <div className="flex items-center justify-between mb-6">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-gold/15 text-brand-gold font-bold text-xs">
-                    <Store className="w-3.5 h-3.5" /> For Wholesale Shop Owners
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-gold/15 text-brand-gold font-extrabold text-xs">
+                    <Store className="w-3.5 h-3.5" /> Wholesale Shop Owners
                   </span>
-                  <span className="text-xs text-text-muted">Nairobi CBD &middot; Luthuli &middot; Eastleigh</span>
+                  <span className="text-xs text-text-muted">Nairobi CBD &middot; Luthuli &middot; Regional Hubs</span>
                 </div>
 
                 <h3 className="text-xl sm:text-2xl font-bold text-text-primary">
-                  Protect Your Margin, Speed Up Packing, and Secure Your Credit
+                  Manage Catalogs, Packing Checklists, and Customer Credit
                 </h3>
 
                 <ul className="mt-6 space-y-4 text-sm sm:text-base text-text-secondary">
                   <li className="flex items-start gap-3">
                     <ShieldCheck className="w-5 h-5 text-brand-gold shrink-0 mt-0.5" />
                     <span>
-                      <strong className="text-text-primary">Private wholesale pricing:</strong> Competitors on the same street cannot see your prices. Only buyers you personally verify get catalog access.
+                      <strong className="text-text-primary">Protected wholesale pricing:</strong> Your wholesale catalog is hidden from outsiders. Only buyers you personally review and approve get access.
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle2 className="w-5 h-5 text-brand-gold shrink-0 mt-0.5" />
                     <span>
-                      <strong className="text-text-primary">Fast carton packing:</strong> Turn 10 scattered WhatsApp audio notes into 1 clean packing list. Pack and lock cartons in half the time.
+                      <strong className="text-text-primary">Operational packing checklist:</strong> Check off items as you source and pack. Quote custom accessory requests directly in the order.
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
                     <Wallet className="w-5 h-5 text-brand-gold shrink-0 mt-0.5" />
                     <span>
-                      <strong className="text-text-primary">Accurate debt records:</strong> Log partial M-Pesa installments with 2 taps. Know your total market receivables instantly.
+                      <strong className="text-text-primary">Two-tap M-Pesa payment records:</strong> Log installment payments with transaction reference codes. Outstanding debt is calculated automatically.
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
                     <TrendingDown className="w-5 h-5 text-brand-gold shrink-0 mt-0.5" />
                     <span>
-                      <strong className="text-text-primary">Pay only when you pack:</strong> KSh 50 to KSh 100 per carton. No monthly rent or fixed deductions.
+                      <strong className="text-text-primary">Pay only when you pack:</strong> KSh 50 to KSh 100 per locked order. Zero monthly rent or fixed deductions.
                     </span>
                   </li>
                 </ul>
@@ -493,45 +695,45 @@ export function HomeContent() {
               <div className="mt-8 pt-6 border-t border-dark-accent">
                 <Button
                   size="lg"
-                  className="w-full rounded-full bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-bold shadow-md"
+                  className="w-full rounded-full bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-bold shadow-md h-12"
                   asChild
                 >
-                  <Link href="/register?role=seller">Open Wholesale Shop (3 Orders Free)</Link>
+                  <Link href="/register?role=seller">Open Wholesale Shop (First 3 Orders Free)</Link>
                 </Button>
               </div>
             </div>
 
-            {/* Retailers & Hawkers Card */}
-            <div className="rounded-3xl border border-dark-accent bg-dark-secondary p-6 sm:p-8 flex flex-col justify-between">
+            {/* Buyer Card */}
+            <div className="rounded-3xl border border-dark-accent bg-dark-secondary p-7 sm:p-9 flex flex-col justify-between shadow-xl">
               <div>
                 <div className="flex items-center justify-between mb-6">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-success/15 text-success font-bold text-xs">
-                    <ShoppingBag className="w-3.5 h-3.5" /> For Retailers &amp; Hawkers
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-success/15 text-success font-extrabold text-xs">
+                    <ShoppingBag className="w-3.5 h-3.5" /> Retailers, Stalls &amp; Hawkers
                   </span>
                   <span className="text-xs text-success font-bold">100% Free Forever</span>
                 </div>
 
                 <h3 className="text-xl sm:text-2xl font-bold text-text-primary">
-                  Order from Nairobi at Wholesale Rates with Total Transparency
+                  Order from Trusted Suppliers with Transparent Debt Records
                 </h3>
 
                 <ul className="mt-6 space-y-4 text-sm sm:text-base text-text-secondary">
                   <li className="flex items-start gap-3">
                     <CheckCircle2 className="w-5 h-5 text-success shrink-0 mt-0.5" />
                     <span>
-                      <strong className="text-text-primary">Direct Nairobi wholesale access:</strong> Browse genuine stock from trusted suppliers without having to travel to Nairobi in person.
+                      <strong className="text-text-primary">Direct access to approved wholesalers:</strong> Browse product catalogs and stock from your verified wholesale partners.
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <Truck className="w-5 h-5 text-success shrink-0 mt-0.5" />
+                    <Plus className="w-5 h-5 text-success shrink-0 mt-0.5" />
                     <span>
-                      <strong className="text-text-primary">Instant shuttle waybill tracking:</strong> Know the exact booking receipt and stage (North Rift, Guardian, Tahmeed) the minute your carton is dispatched.
+                      <strong className="text-text-primary">Custom sourcing requests:</strong> Can&apos;t find a specific screen protector or cover? Type it in the sourcing box and the seller quotes it for you.
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <FileSpreadsheet className="w-5 h-5 text-success shrink-0 mt-0.5" />
+                    <FileText className="w-5 h-5 text-success shrink-0 mt-0.5" />
                     <span>
-                      <strong className="text-text-primary">Proof of payment &amp; credit:</strong> Protect your standing and reputation. Every shilling paid on M-Pesa is recorded so credit disputes never arise.
+                      <strong className="text-text-primary">Payment claims &amp; debt visibility:</strong> Submit your M-Pesa transaction reference directly to the order and view agreed payment due dates.
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
@@ -547,7 +749,7 @@ export function HomeContent() {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="w-full rounded-full border-2 border-dark-accent hover:border-success/50 text-text-primary font-bold"
+                  className="w-full rounded-full border-2 border-dark-accent hover:border-success/50 text-text-primary font-bold h-12"
                   asChild
                 >
                   <Link href="/register?role=buyer">Join as Countrywide Buyer (Free)</Link>
@@ -563,25 +765,25 @@ export function HomeContent() {
       {/* ========================================================================= */}
       <Section spacing="lg" className="bg-dark-secondary border-b border-dark-accent" id="pricing">
         <Container size="lg">
-          <SectionKicker index="03" label="Transparent Pricing" />
+          <SectionKicker index="03" label="Transparent Fee Structure" />
           <div className="max-w-3xl mb-10 sm:mb-12">
-            <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-text-primary leading-snug sm:leading-tight">
+            <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-text-primary leading-tight">
               Pay Only When You Pack. Zero Monthly Subscriptions.
             </h2>
-            <p className="mt-3 text-text-secondary text-base sm:text-xl leading-relaxed">
-              No KSh 1,500/month deduction. Keep 100% of your money when trade is slow. Pay just KSh 50 to KSh 100 only when you lock and dispatch a real carton.
+            <p className="mt-3 text-text-secondary text-base sm:text-lg">
+              No KSh 1,500/month recurring drain. Keep 100% of your earnings when trade is slow. Pay just KSh 50 to KSh 100 only when you lock a real order.
             </p>
           </div>
 
-          {/* Interactive Calculator Slider Card */}
+          {/* Interactive Calculator Card */}
           <div className="rounded-3xl border-2 border-brand-gold/30 bg-dark-card p-6 sm:p-10 shadow-2xl mb-12">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-dark-accent">
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-brand-gold">
-                  Interactive Fee Calculator
+                  Live Fee Calculator
                 </span>
                 <h3 className="text-xl sm:text-2xl font-bold text-text-primary mt-1">
-                  See how small your fee is per carton
+                  Estimate Your Fee Per Locked Order
                 </h3>
               </div>
               <div className="text-left md:text-right">
@@ -590,48 +792,48 @@ export function HomeContent() {
                   KSh {computedFee}
                 </span>
                 <span className="text-xs text-text-muted block mt-0.5">
-                  ({effectivePercentage}% of carton value &middot; Capped at KSh 100)
+                  ({effectivePercentage}% of order total &middot; Capped at KSh 100 max)
                 </span>
               </div>
             </div>
 
-            {/* Slider Control */}
+            {/* Interactive Slider */}
             <div className="py-8">
               <div className="flex justify-between items-center mb-3">
-                <label htmlFor="carton-value-slider" className="text-sm font-bold text-text-primary">
+                <label htmlFor="order-value-slider" className="text-sm font-bold text-text-primary">
                   Order / Carton Value:{" "}
                   <span className="text-brand-gold font-extrabold text-base">
-                    KSh {sliderCartonValue.toLocaleString()}
+                    KSh {cartonValue.toLocaleString()}
                   </span>
                 </label>
                 <span className="text-xs text-text-muted">Min KSh 2,000 &mdash; Max KSh 80,000+</span>
               </div>
 
               <input
-                id="carton-value-slider"
+                id="order-value-slider"
                 type="range"
                 min={2000}
                 max={80000}
                 step={1000}
-                value={sliderCartonValue}
-                onChange={(e) => setSliderCartonValue(Number(e.target.value))}
+                value={cartonValue}
+                onChange={(e) => setCartonValue(Number(e.target.value))}
                 className="w-full h-3 bg-dark-secondary rounded-lg appearance-none cursor-pointer accent-brand-gold focus:outline-none"
               />
 
               <div className="flex justify-between text-xs text-text-muted mt-2">
-                <span>KSh 2k (Small parcel)</span>
-                <span>KSh 25k (Standard carton)</span>
-                <span>KSh 50k (Master carton)</span>
-                <span>KSh 80k+ (Bulk order)</span>
+                <span>KSh 2,000 (Small order)</span>
+                <span>KSh 25,000 (Standard carton)</span>
+                <span>KSh 50,000 (Master carton)</span>
+                <span>KSh 80,000+ (Bulk order)</span>
               </div>
             </div>
 
-            {/* 4 Quick Stat Metric Tiles */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
+            {/* Metric Tiles */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
               <div className="rounded-2xl border border-dark-accent bg-dark-secondary/60 p-4 text-center">
-                <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider block">Carton Value</span>
+                <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider block">Order Value</span>
                 <span className="text-lg sm:text-xl font-bold text-text-primary tabular-nums mt-1 block">
-                  KSh {sliderCartonValue.toLocaleString()}
+                  KSh {cartonValue.toLocaleString()}
                 </span>
               </div>
               <div className="rounded-2xl border border-brand-gold/40 bg-brand-gold/10 p-4 text-center">
@@ -659,33 +861,30 @@ export function HomeContent() {
             </p>
           </div>
 
-          {/* 3 Hostinger-Style Plan Cards */}
+          {/* Three Tier Cards */}
           <div className="grid md:grid-cols-3 gap-6">
-            {/* Card 1: Free Trial */}
-            <div className="rounded-3xl border border-dark-accent bg-dark-card p-6 flex flex-col justify-between">
+            {/* Tier 1 */}
+            <div className="rounded-3xl border border-dark-accent bg-dark-card p-6 sm:p-8 flex flex-col justify-between shadow-lg">
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-text-muted">Test Risk-Free</span>
                 <h3 className="text-xl font-bold text-text-primary mt-1">First 3 Orders Free</h3>
                 <div className="mt-4 flex items-baseline gap-1">
                   <span className="text-3xl font-extrabold text-text-primary">KSh 0</span>
-                  <span className="text-xs text-text-muted">/ first 3 cartons</span>
+                  <span className="text-xs text-text-muted">/ first 3 orders</span>
                 </div>
                 <p className="mt-3 text-sm text-text-secondary leading-relaxed">
-                  Every new wholesale account gets 3 complete order lockups completely free. Experience the speed before spending a shilling.
+                  Every new wholesale account receives 3 complete order lockups completely free. Experience the workflow before making any M-Pesa deposit.
                 </p>
 
                 <ul className="mt-6 space-y-3 text-sm text-text-secondary">
                   <li className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-success shrink-0" /> 3 Full carton lockups
+                    <CheckCircle2 className="w-4 h-4 text-success shrink-0" /> 3 Full order lockups included
                   </li>
                   <li className="flex items-center gap-2.5">
                     <CheckCircle2 className="w-4 h-4 text-success shrink-0" /> Zero deposit or credit card
                   </li>
                   <li className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-success shrink-0" /> Full access to live ledger
-                  </li>
-                  <li className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-success shrink-0" /> Shuttle dispatch receipts
+                    <CheckCircle2 className="w-4 h-4 text-success shrink-0" /> Full access to live debt ledger
                   </li>
                 </ul>
               </div>
@@ -697,9 +896,9 @@ export function HomeContent() {
               </div>
             </div>
 
-            {/* Card 2: Wholesale Pay-As-You-Pack (Featured) */}
-            <div className="rounded-3xl border-2 border-brand-gold bg-dark-card p-6 flex flex-col justify-between relative shadow-xl">
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-brand-gold text-slate-950 font-extrabold text-xs tracking-wide shadow-sm">
+            {/* Tier 2: Wholesale (Featured) */}
+            <div className="rounded-3xl border-2 border-brand-gold bg-dark-card p-6 sm:p-8 flex flex-col justify-between relative shadow-2xl">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-brand-gold text-slate-950 font-black text-xs tracking-wide shadow-sm">
                 Most Popular for Wholesalers
               </div>
 
@@ -708,10 +907,10 @@ export function HomeContent() {
                 <h3 className="text-xl font-bold text-text-primary mt-1">Wholesale Per-Order Fee</h3>
                 <div className="mt-4 flex items-baseline gap-1">
                   <span className="text-3xl sm:text-4xl font-black text-brand-gold">KSh 50 &ndash; 100</span>
-                  <span className="text-xs text-text-muted">/ packed carton</span>
+                  <span className="text-xs text-text-muted">/ locked order</span>
                 </div>
                 <p className="mt-3 text-sm text-text-secondary leading-relaxed">
-                  Only charged when you lock an order and dispatch. Zero charges during quiet seasons. Never a monthly bill.
+                  Only charged when you lock an order and prepare to dispatch. Zero charges during quiet weeks.
                 </p>
 
                 <ul className="mt-6 space-y-3 text-sm text-text-secondary">
@@ -722,26 +921,23 @@ export function HomeContent() {
                     <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0" /> Zero monthly subscription
                   </li>
                   <li className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0" /> Instant top-up via M-Pesa
+                    <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0" /> Instant top-up via M-Pesa Daraja
                   </li>
                   <li className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0" /> Locked permanent carton record
-                  </li>
-                  <li className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0" /> Shared buyer debt ledger
+                    <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0" /> Locked permanent order record
                   </li>
                 </ul>
               </div>
 
               <div className="mt-8 pt-5 border-t border-dark-accent">
-                <Button className="w-full rounded-full bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-extrabold shadow-brand" asChild>
+                <Button className="w-full rounded-full bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-black shadow-brand" asChild>
                   <Link href="/register?role=seller">Open Wholesale Shop</Link>
                 </Button>
               </div>
             </div>
 
-            {/* Card 3: Retailers & Hawkers */}
-            <div className="rounded-3xl border border-dark-accent bg-dark-card p-6 flex flex-col justify-between">
+            {/* Tier 3: Buyers & Hawkers */}
+            <div className="rounded-3xl border border-dark-accent bg-dark-card p-6 sm:p-8 flex flex-col justify-between shadow-lg">
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-success">For Countrywide Buyers</span>
                 <h3 className="text-xl font-bold text-text-primary mt-1">Retailers &amp; Hawkers</h3>
@@ -761,10 +957,7 @@ export function HomeContent() {
                     <CheckCircle2 className="w-4 h-4 text-success shrink-0" /> Order from multiple wholesalers
                   </li>
                   <li className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-success shrink-0" /> Real-time parcel waybill updates
-                  </li>
-                  <li className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-success shrink-0" /> Clear record of debt and payments
+                    <CheckCircle2 className="w-4 h-4 text-success shrink-0" /> Track M-Pesa payment claims
                   </li>
                 </ul>
               </div>
@@ -780,17 +973,17 @@ export function HomeContent() {
       </Section>
 
       {/* ========================================================================= */}
-      {/* SECTION 5: BENTO GRID (Ground-Engineered Features for Kenyan Realities)    */}
+      {/* SECTION 5: BENTO GRID (Ground Realities & Real Backend Capabilities)       */}
       {/* ========================================================================= */}
       <Section spacing="lg" className="bg-dark-primary border-b border-dark-accent" id="features">
         <Container size="lg">
           <SectionKicker index="04" label="Ground Realities" />
           <div className="max-w-2xl mb-10 sm:mb-14">
-            <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-text-primary leading-snug sm:leading-tight">
-              Engineered for Nairobi Streets, Transit Shuttles &amp; Brotherhood
+            <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-text-primary leading-tight">
+              Engineered for Real Wholesale Street Operations
             </h2>
-            <p className="mt-2.5 sm:mt-3 text-text-secondary text-base sm:text-xl">
-              Generic software fails on Luthuli Avenue. Nyakizu is built around the real customs of Kenya&apos;s phone accessory trade.
+            <p className="mt-2.5 text-text-secondary text-base sm:text-lg">
+              Generic software fails on busy wholesale streets. Nyakizu is built around the real customs of Kenya&apos;s phone accessory trade.
             </p>
           </div>
 
@@ -801,55 +994,54 @@ export function HomeContent() {
             viewport={{ once: true, margin: "-80px" }}
             className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"
           >
-            {/* Bento Card 1: Shuttle & Parcel Dispatch Logging (Spans 2 cols on lg) */}
+            {/* Bento Card 1: Fulfill & Packing Checklist */}
             <motion.div
               variants={fadeUp}
-              className="lg:col-span-2 rounded-3xl border border-dark-accent bg-dark-card p-6 sm:p-8 flex flex-col justify-between hover:border-brand-gold/40 transition-colors"
+              className="lg:col-span-2 rounded-3xl border border-dark-accent bg-dark-card p-7 sm:p-8 flex flex-col justify-between hover:border-brand-gold/40 transition-colors shadow-lg"
             >
               <div>
                 <div className="w-12 h-12 rounded-2xl bg-brand-gold/15 text-brand-gold flex items-center justify-center mb-5">
-                  <Truck className="w-6 h-6" />
+                  <Package className="w-6 h-6" />
                 </div>
                 <h3 className="text-xl sm:text-2xl font-bold text-text-primary">
-                  Shuttle &amp; Courier Parcel Logging
+                  Operational Fulfill &amp; Packing Checklist
                 </h3>
                 <p className="mt-2 text-sm sm:text-base text-text-secondary leading-relaxed">
-                  Log the parcel courier name (North Rift Shuttle, Guardian Coach, Tahmeed, 2NK, Modern Coast, etc.), waybill receipt number, and drop-off stage right into the locked order. Both buyer and seller have an immediate digital record before the vehicle leaves Nairobi.
+                  Turn scattered WhatsApp voice notes into a structured packing checklist. Mark items as packed on your phone, quote custom-sourced accessories on the fly, and lock the final price before dispatch.
                 </p>
               </div>
               <div className="mt-6 flex flex-wrap gap-2 text-xs font-semibold text-text-muted">
-                <span className="px-3 py-1 rounded-full bg-dark-secondary border border-dark-accent">North Rift Shuttle</span>
-                <span className="px-3 py-1 rounded-full bg-dark-secondary border border-dark-accent">Guardian Coach</span>
-                <span className="px-3 py-1 rounded-full bg-dark-secondary border border-dark-accent">Tahmeed Express</span>
-                <span className="px-3 py-1 rounded-full bg-dark-secondary border border-dark-accent">2NK Sacco</span>
+                <span className="px-3 py-1 rounded-full bg-dark-secondary border border-dark-accent">Checklist Tracking</span>
+                <span className="px-3 py-1 rounded-full bg-dark-secondary border border-dark-accent">Custom Item Sourcing</span>
+                <span className="px-3 py-1 rounded-full bg-dark-secondary border border-dark-accent">Immutable Price Lock</span>
               </div>
             </motion.div>
 
-            {/* Bento Card 2: Shared Credit Ledger */}
+            {/* Bento Card 2: Shared M-Pesa Debt Ledger */}
             <motion.div
               variants={fadeUp}
-              className="rounded-3xl border border-dark-accent bg-dark-card p-6 sm:p-8 flex flex-col justify-between hover:border-brand-gold/40 transition-colors"
+              className="rounded-3xl border border-dark-accent bg-dark-card p-7 sm:p-8 flex flex-col justify-between hover:border-brand-gold/40 transition-colors shadow-lg"
             >
               <div>
                 <div className="w-12 h-12 rounded-2xl bg-success/15 text-success flex items-center justify-center mb-5">
                   <Wallet className="w-6 h-6" />
                 </div>
                 <h3 className="text-xl font-bold text-text-primary">
-                  Shared Credit Ledger (Chukua Uza)
+                  Shared Debt &amp; M-Pesa Ledger
                 </h3>
                 <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-                  Trade runs on trust. Track balances and partial M-Pesa installments so partners never argue over missing counter book pages or old debt.
+                  Log partial payments with real M-Pesa reference codes. Both parties see the remaining balance and promised due date so business partners never dispute old debt.
                 </p>
               </div>
               <div className="mt-6 pt-4 border-t border-dark-accent text-xs font-bold text-brand-gold">
-                Protects brotherhood &amp; business trust
+                Protects trust &amp; creditworthiness
               </div>
             </motion.div>
 
             {/* Bento Card 3: Lightweight on Budget Android Phones */}
             <motion.div
               variants={fadeUp}
-              className="rounded-3xl border border-dark-accent bg-dark-card p-6 sm:p-8 flex flex-col justify-between hover:border-brand-gold/40 transition-colors"
+              className="rounded-3xl border border-dark-accent bg-dark-card p-7 sm:p-8 flex flex-col justify-between hover:border-brand-gold/40 transition-colors shadow-lg"
             >
               <div>
                 <div className="w-12 h-12 rounded-2xl bg-sky-500/15 text-sky-400 flex items-center justify-center mb-5">
@@ -859,7 +1051,7 @@ export function HomeContent() {
                   Fast on Tecno, Infinix &amp; Itel
                 </h3>
                 <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-                  Designed with low data consumption in mind. Optimized to open fast on budget smartphones and stay responsive under unstable CBD connectivity.
+                  Engineered with minimal asset overhead. Consumes virtually zero data bundles and stays responsive on budget smartphones under fluctuating network conditions.
                 </p>
               </div>
               <div className="mt-6 pt-4 border-t border-dark-accent text-xs font-bold text-text-muted">
@@ -867,28 +1059,28 @@ export function HomeContent() {
               </div>
             </motion.div>
 
-            {/* Bento Card 4: Private Wholesale Network (Spans 2 cols on lg) */}
+            {/* Bento Card 4: Private & Closed Wholesale Network */}
             <motion.div
               variants={fadeUp}
-              className="lg:col-span-2 rounded-3xl border border-dark-accent bg-dark-card p-6 sm:p-8 flex flex-col justify-between hover:border-brand-gold/40 transition-colors"
+              className="lg:col-span-2 rounded-3xl border border-dark-accent bg-dark-card p-7 sm:p-8 flex flex-col justify-between hover:border-brand-gold/40 transition-colors shadow-lg"
             >
               <div>
                 <div className="w-12 h-12 rounded-2xl bg-violet-500/15 text-violet-400 flex items-center justify-center mb-5">
                   <ShieldCheck className="w-6 h-6" />
                 </div>
                 <h3 className="text-xl sm:text-2xl font-bold text-text-primary">
-                  Closed &amp; Protected Wholesale Network
+                  Private Wholesale Network
                 </h3>
                 <p className="mt-2 text-sm sm:text-base text-text-secondary leading-relaxed">
-                  Your wholesale prices are your trade secret. Nyakizu is not an open directory where competitors on your street can see what you charge. Only verified retail buyers you manually approve can access your catalog.
+                  Your wholesale prices are your trade secret. Nyakizu is not an open directory where competitors on your street can see what you charge. Only buyers you personally verify can access your catalog.
                 </p>
               </div>
-              <div className="mt-6 flex items-center gap-3 text-xs font-semibold text-text-secondary">
+              <div className="mt-6 flex items-center gap-4 text-xs font-semibold text-text-secondary">
                 <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-success" /> Seller approves every buyer
+                  <CheckCircle2 className="w-4 h-4 text-success" /> Manual buyer approval
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-success" /> Prices hidden from outsiders
+                  <CheckCircle2 className="w-4 h-4 text-success" /> Hidden wholesale prices
                 </span>
               </div>
             </motion.div>
@@ -897,70 +1089,65 @@ export function HomeContent() {
       </Section>
 
       {/* ========================================================================= */}
-      {/* SECTION 6: THE 3-STEP JOURNEY (Nairobi to Countrywide in 60 Seconds)       */}
+      {/* SECTION 6: 3-STEP WORKFLOW                                                */}
       {/* ========================================================================= */}
       <Section spacing="lg" className="bg-dark-secondary border-b border-dark-accent" id="how-it-works">
         <Container size="lg">
-          <SectionKicker index="05" label="How It Works" />
+          <SectionKicker index="05" label="Simple Process" />
           <div className="max-w-2xl mb-12 sm:mb-16">
-            <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-text-primary leading-snug sm:leading-tight">
-              From Counter Book to Dispatched Carton in 3 Steps
+            <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-text-primary leading-tight">
+              Start Trading in 3 Simple Steps
             </h2>
-            <p className="mt-2.5 sm:mt-3 text-text-secondary text-base sm:text-xl">
-              Start in about two minutes. No complicated software setup or training required.
+            <p className="mt-2.5 text-text-secondary text-base sm:text-lg">
+              No complicated training or hardware required. Set up your shop right from your mobile browser.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 relative">
-            {/* Step 1 */}
-            <div className="rounded-2xl border border-dark-accent bg-dark-card p-6 relative">
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="rounded-2xl border border-dark-accent bg-dark-card p-6 shadow-md">
               <div className="w-10 h-10 rounded-full bg-brand-gold text-slate-950 font-black text-lg flex items-center justify-center mb-4">
                 1
               </div>
-              <h3 className="text-lg font-bold text-text-primary">Add Your Accessories</h3>
+              <h3 className="text-lg font-bold text-text-primary">List Your Accessories</h3>
               <p className="mt-2 text-sm text-text-secondary leading-relaxed">
                 Add chargers, screen protectors, cables, and covers with your wholesale prices. Takes about 2 minutes from your phone.
               </p>
             </div>
 
-            {/* Step 2 */}
-            <div className="rounded-2xl border border-dark-accent bg-dark-card p-6 relative">
+            <div className="rounded-2xl border border-dark-accent bg-dark-card p-6 shadow-md">
               <div className="w-10 h-10 rounded-full bg-brand-gold text-slate-950 font-black text-lg flex items-center justify-center mb-4">
                 2
               </div>
               <h3 className="text-lg font-bold text-text-primary">Approve Your Buyers</h3>
               <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-                Share your private shop link on WhatsApp. Review and approve the buyers from Kisumu, Mombasa, or Nairobi you already trust.
+                Share your private shop link on WhatsApp. Review and approve the buyers from Kisumu, Mombasa, or Nairobi you already know.
               </p>
             </div>
 
-            {/* Step 3 */}
-            <div className="rounded-2xl border border-dark-accent bg-dark-card p-6 relative">
+            <div className="rounded-2xl border border-dark-accent bg-dark-card p-6 shadow-md">
               <div className="w-10 h-10 rounded-full bg-brand-gold text-slate-950 font-black text-lg flex items-center justify-center mb-4">
                 3
               </div>
-              <h3 className="text-lg font-bold text-text-primary">Pack, Lock &amp; Sync</h3>
+              <h3 className="text-lg font-bold text-text-primary">Pack, Lock &amp; Record</h3>
               <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-                Receive clear itemized orders. Pack, lock the carton, record the shuttle parcel waybill, and track credit on the shared ledger.
+                Receive clear itemized orders. Pack goods, lock the final price, and log partial M-Pesa payments on the shared ledger.
               </p>
             </div>
           </div>
 
           <div className="mt-12 text-center">
-            <Button size="lg" className="rounded-full bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-bold px-8" asChild>
+            <Button size="lg" className="rounded-full bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-black px-8 h-12 shadow-md" asChild>
               <Link href="/register">Start Now &mdash; Free Account</Link>
             </Button>
           </div>
         </Container>
       </Section>
 
-      {/* ========================================================================= */}
-      {/* SECTION: COMMUNITY ACTIVITY & PILOT NUMBERS                               */}
-      {/* ========================================================================= */}
+      {/* Community Proof */}
       <CommunityActivity />
 
       {/* ========================================================================= */}
-      {/* SECTION 7: FAQ ACCORDION (Interactive Collapsible)                        */}
+      {/* SECTION 7: INTERACTIVE FAQ ACCORDION                                      */}
       {/* ========================================================================= */}
       <Section spacing="lg" className="bg-dark-primary border-b border-dark-accent" id="faq">
         <Container size="md">
@@ -970,7 +1157,7 @@ export function HomeContent() {
               Frequently Asked Questions
             </h2>
             <p className="mt-2 text-text-secondary text-sm sm:text-base">
-              Everything you need to know about pricing, privacy, and how Nyakizu works.
+              Everything you need to know about fees, catalog privacy, and how Nyakizu works.
             </p>
           </div>
 
@@ -979,7 +1166,7 @@ export function HomeContent() {
               const isOpen = openFaqIndex === idx;
               return (
                 <div
-                  key={faq.question}
+                  key={faq.q}
                   className="rounded-2xl border border-dark-accent bg-dark-card overflow-hidden transition-colors"
                 >
                   <button
@@ -987,7 +1174,7 @@ export function HomeContent() {
                     onClick={() => toggleFaq(idx)}
                     className="w-full px-5 py-4 sm:px-6 sm:py-5 text-left flex items-center justify-between gap-4 font-bold text-text-primary text-base sm:text-lg hover:text-brand-gold transition-colors"
                   >
-                    <span>{faq.question}</span>
+                    <span>{faq.q}</span>
                     <ChevronDown
                       className={`w-5 h-5 shrink-0 transition-transform duration-200 ${
                         isOpen ? "rotate-180 text-brand-gold" : "text-text-muted"
@@ -996,7 +1183,7 @@ export function HomeContent() {
                   </button>
                   {isOpen && (
                     <div className="px-5 pb-5 sm:px-6 sm:pb-6 text-sm sm:text-base text-text-secondary leading-relaxed border-t border-dark-accent/60 pt-4">
-                      {faq.answer}
+                      {faq.a}
                     </div>
                   )}
                 </div>
@@ -1007,7 +1194,7 @@ export function HomeContent() {
       </Section>
 
       {/* ========================================================================= */}
-      {/* SECTION 8: HIGH-CONVERSION CLOSING CTA BANNER                             */}
+      {/* SECTION 8: CLOSING CTA BANNER                                             */}
       {/* ========================================================================= */}
       <Section spacing="lg" className="bg-dark-secondary relative overflow-hidden">
         <Container size="lg">
@@ -1016,22 +1203,22 @@ export function HomeContent() {
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-brand-gold/10 rounded-full blur-3xl pointer-events-none" />
 
             <div className="relative z-10 max-w-2xl mx-auto space-y-4 sm:space-y-6">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-gold/15 text-brand-gold font-extrabold text-xs uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5" /> Start Digitizing Your Business Today
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-brand-gold/15 text-brand-gold font-extrabold text-xs uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5" /> Start Digitizing Your Trade Today
               </span>
 
               <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-text-primary leading-tight">
-                Put Your Wholesale Counter Book on Your Phone Today.
+                Put Your Wholesale Orders &amp; Ledger on Your Phone.
               </h2>
 
               <p className="text-text-secondary text-base sm:text-lg leading-relaxed">
-                Join Kenyan phone accessories wholesalers and countrywide retailers already eliminating packing mistakes and lost debt records. Your first 3 orders are completely free.
+                Join Kenyan phone accessory wholesalers and countrywide buyers already eliminating packing mistakes and lost debt records. Your first 3 orders are completely free.
               </p>
 
               <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Button
                   size="lg"
-                  className="w-full sm:w-auto rounded-full bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-extrabold shadow-brand px-9 text-base h-14"
+                  className="w-full sm:w-auto rounded-full bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-black shadow-brand px-9 text-base h-14"
                   asChild
                 >
                   <Link href="/register">

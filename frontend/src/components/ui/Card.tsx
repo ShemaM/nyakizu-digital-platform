@@ -11,10 +11,10 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
   ({ className, variant = "default", interactive = false, ...props }, ref) => {
     const variants = {
       default:
-        "bg-white border border-slate-100 rounded-2xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-8px_rgba(15,23,42,0.08)]",
+        "bg-dark-card border border-dark-accent rounded-2xl shadow-sm text-text-primary",
       elevated:
-        "bg-white border border-slate-100 rounded-2xl shadow-[0_2px_4px_rgba(15,23,42,0.06),0_16px_40px_-8px_rgba(15,23,42,0.14)]",
-      outlined: "bg-transparent border border-slate-200 rounded-2xl",
+        "bg-dark-card border border-dark-accent rounded-2xl shadow-md text-text-primary",
+      outlined: "bg-transparent border border-dark-accent rounded-2xl text-text-primary",
     };
 
     return (
@@ -24,7 +24,7 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
           variants[variant],
           "transition-all duration-200",
           interactive &&
-            "cursor-pointer hover:-translate-y-0.5 hover:border-slate-200 hover:shadow-[0_4px_8px_rgba(15,23,42,0.06),0_20px_48px_-8px_rgba(15,23,42,0.18)]",
+            "cursor-pointer hover:-translate-y-0.5 hover:border-brand-gold/40 hover:shadow-card-hover",
           className
         )}
         {...props}
@@ -39,7 +39,7 @@ const CardHeader = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("border-b border-slate-100 px-6 py-5 sm:px-8", className)}
+      className={cn("border-b border-dark-accent px-6 py-5 sm:px-8", className)}
       {...props}
     />
   )
@@ -87,7 +87,7 @@ const CardFooter = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("border-t border-slate-100 flex items-center justify-between gap-3 px-6 py-4 sm:px-8", className)}
+      className={cn("border-t border-dark-accent flex items-center justify-between gap-3 px-6 py-4 sm:px-8", className)}
       {...props}
     />
   )

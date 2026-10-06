@@ -17,7 +17,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && <label htmlFor={inputId} className="text-label">{label}</label>}
         <div className="relative">
           {icon && (
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-text-muted">
               {icon}
             </div>
           )}
@@ -25,10 +25,10 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             className={cn(
-              "flex h-11 w-full rounded-md border border-slate-200 bg-white px-4 text-body text-text-primary placeholder:text-slate-400 transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info focus-visible:ring-offset-2 focus-visible:ring-offset-dark-primary",
+              "flex h-11 w-full rounded-md border border-dark-accent bg-dark-deepest px-4 text-body text-text-primary placeholder:text-text-muted transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info focus-visible:ring-offset-1 focus-visible:ring-offset-dark-primary focus-visible:border-info",
               "disabled:cursor-not-allowed disabled:opacity-50",
-              "read-only:cursor-default read-only:bg-slate-50",
+              "read-only:cursor-default read-only:bg-dark-secondary",
               icon && "pl-10",
               endAdornment && "pr-10",
               error && "border-error focus-visible:ring-error",
@@ -37,7 +37,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
           {endAdornment && (
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400">
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-text-muted">
               {endAdornment}
             </div>
           )}

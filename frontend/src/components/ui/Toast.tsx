@@ -76,7 +76,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               key={id}
               role={variant === "error" ? "alert" : "status"}
               className={cn(
-                "pointer-events-auto flex items-start gap-3 rounded-xl border bg-white p-3 shadow-2xl animate-toast-in",
+                "pointer-events-auto flex items-start gap-3 rounded-xl border border-dark-accent bg-dark-card p-3 shadow-2xl animate-toast-in",
                 BORDER_STYLES[variant]
               )}
             >
@@ -85,7 +85,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               <button
                 onClick={() => dismiss(id)}
                 aria-label="Dismiss notification"
-                className="shrink-0 rounded-md p-1 text-slate-400 transition-colors hover:text-slate-600"
+                className="shrink-0 rounded-md p-1 text-text-muted transition-colors hover:text-text-primary"
               >
                 <X size={14} />
               </button>

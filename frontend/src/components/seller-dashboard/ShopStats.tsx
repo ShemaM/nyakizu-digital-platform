@@ -30,14 +30,14 @@ export const ShopStats: React.FC<ShopStatsProps> = ({ newOrders, newBuyerRequest
       Icon: ShoppingBag,
       value: String(newOrders),
       label: newOrders === 1 ? "New Order" : "New Orders",
-      tint: "bg-orange-100 text-orange-600",
+      tint: "bg-orange-500/15 text-orange-400",
     },
     {
       href: "/seller/dashboard/buyers",
       Icon: Users,
       value: String(newBuyerRequests),
       label: newBuyerRequests === 1 ? "Buyer Request" : "Buyer Requests",
-      tint: "bg-blue-100 text-blue-600",
+      tint: "bg-blue-500/15 text-blue-400",
     },
   ];
 
@@ -48,7 +48,7 @@ export const ShopStats: React.FC<ShopStatsProps> = ({ newOrders, newBuyerRequest
           <Link
             key={tile.label}
             href={tile.href}
-            className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4 sm:p-5 transition-all hover:-translate-y-0.5 hover:shadow-md"
+            className="rounded-2xl border border-dark-accent bg-dark-card shadow-sm p-4 sm:p-5 transition-all hover:-translate-y-0.5 hover:shadow-card-elevated"
           >
             <div className={cn("w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center mb-3", tile.tint)}>
               <tile.Icon className="w-5 h-5" />
@@ -65,7 +65,7 @@ export const ShopStats: React.FC<ShopStatsProps> = ({ newOrders, newBuyerRequest
           "relative overflow-hidden flex items-center gap-4 rounded-2xl p-4 sm:p-5 transition-all hover:-translate-y-0.5 hover:shadow-md",
           moneyOwed > 0
             ? "bg-warning/10 border border-warning/20 shadow-sm"
-            : "bg-white border border-slate-100 shadow-sm"
+            : "bg-dark-card border border-dark-accent shadow-sm"
         )}
       >
         <span className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-warning/10" aria-hidden="true" />

@@ -12,9 +12,9 @@ function StatCardSkeleton() {
   return (
     <Card className="animate-pulse">
       <CardContent className="pt-5 sm:pt-6 space-y-2.5 sm:space-y-3">
-        <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-blue-100" />
-        <div className="h-7 w-16 rounded bg-slate-200" />
-        <div className="h-4 w-24 rounded bg-slate-100" />
+        <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-brand-gold/15" />
+        <div className="h-7 w-16 rounded bg-dark-tertiary" />
+        <div className="h-4 w-24 rounded bg-dark-tertiary/70" />
       </CardContent>
     </Card>
   );
@@ -63,10 +63,10 @@ export default function CommunityActivity() {
   const isEmpty = !isLoading && (!data || (data.stats.members === 0 && data.stats.stores === 0));
 
   return (
-    <Section spacing="lg" className="bg-white" id="community">
+    <Section spacing="lg" className="bg-dark-primary" id="community">
       <Container size="lg">
         <div className="text-center space-y-3 sm:space-y-4 mb-6">
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-amber-800">
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-brand-gold">
             <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
             Pilot phase
           </span>
@@ -77,13 +77,13 @@ export default function CommunityActivity() {
         </div>
 
         {isEmpty ? (
-          <Card variant="elevated" className="max-w-xl mx-auto text-center">
+          <Card variant="elevated" className="max-w-xl mx-auto text-center border-dark-accent bg-dark-card">
             <CardContent className="pt-8 pb-8 space-y-4">
-              <h3 className="text-2xl font-bold text-slate-900">You&apos;re Among the First</h3>
-              <p className="text-slate-600">
+              <h3 className="text-2xl font-bold text-text-primary">You&apos;re Among the First</h3>
+              <p className="text-text-secondary">
                 Nyakizu is just getting started. Join now and help shape the marketplace from day one.
               </p>
-              <Button size="lg" className="w-full sm:w-auto rounded-full bg-brand-gold hover:bg-brand-gold-dark text-text-primary font-bold border-0 shadow-brand" asChild>
+              <Button size="lg" className="w-full sm:w-auto rounded-full bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-bold border-0 shadow-brand" asChild>
                 <Link href="/register">Sign Up</Link>
               </Button>
             </CardContent>

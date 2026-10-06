@@ -38,13 +38,13 @@ const VALUES = [
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-white text-text-primary">
+    <div className="min-h-screen bg-dark-primary text-text-primary">
       <LandingHeader />
 
       <Section spacing="lg" className="pt-32 sm:pt-40">
         <Container size="md">
           <div className="text-center mb-14">
-            <p className="text-sm font-bold uppercase tracking-widest text-brand-gold-dark">About Nyakizu</p>
+            <p className="text-sm font-bold uppercase tracking-widest text-brand-gold">About Nyakizu</p>
             <h1 className="mt-2 text-4xl sm:text-5xl font-extrabold tracking-tight text-text-primary">
               {TAGLINE}
             </h1>
@@ -78,9 +78,9 @@ export default function AboutPage() {
           <h2 className="text-2xl font-bold text-text-primary text-center mb-8">What we believe</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-14">
             {VALUES.map(({ icon: Icon, title, body }) => (
-              <div key={title} className="rounded-2xl border border-dark-accent bg-white p-6">
-                <div className="w-11 h-11 rounded-xl bg-brand-gold-subtle flex items-center justify-center mb-4">
-                  <Icon className="w-5 h-5 text-brand-gold-dark" aria-hidden="true" />
+              <div key={title} className="rounded-2xl border border-dark-accent bg-dark-card p-6">
+                <div className="w-11 h-11 rounded-xl bg-brand-gold/15 flex items-center justify-center mb-4">
+                  <Icon className="w-5 h-5 text-brand-gold" aria-hidden="true" />
                 </div>
                 <h3 className="font-bold text-text-primary">{title}</h3>
                 <p className="mt-1.5 text-text-secondary leading-relaxed">{body}</p>
@@ -88,13 +88,13 @@ export default function AboutPage() {
             ))}
           </div>
 
-          <div className="rounded-2xl bg-text-primary p-6 sm:p-10 text-center">
-            <h2 className="text-2xl font-bold text-white">Join the traders going digital</h2>
-            <p className="mt-1.5 text-white/70 max-w-md mx-auto">
+          <div className="rounded-2xl bg-dark-secondary border border-dark-accent p-6 sm:p-10 text-center">
+            <h2 className="text-2xl font-bold text-text-primary">Join the traders going digital</h2>
+            <p className="mt-1.5 text-text-secondary max-w-md mx-auto">
               Free for buyers and sellers, built around how you already trade.
             </p>
             <Button
-              className="mt-5 bg-brand-gold hover:bg-brand-gold-dark text-text-primary font-bold"
+              className="mt-5 bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-bold"
               size="lg"
               asChild
             >

@@ -27,7 +27,7 @@ function MiniProgress({ status }: { status: string }) {
           key={i}
           className={cn(
             "h-1.5 rounded-full transition-colors",
-            step.current ? "w-4 bg-role" : step.done ? "w-1.5 bg-success" : "w-1.5 bg-slate-200"
+            step.current ? "w-4 bg-role" : step.done ? "w-1.5 bg-success" : "w-1.5 bg-dark-accent"
           )}
         />
       ))}
@@ -125,7 +125,7 @@ export default function BuyerDashboard() {
           {/* Hero greeting — just the greeting. The primary action used to
               live inside this card too, competing with it for attention;
               now it's its own clear next step right below. */}
-          <div className="relative mb-4 overflow-hidden rounded-2xl bg-gradient-to-br from-[rgb(var(--role))] to-[rgb(var(--role)/0.78)] p-6 sm:p-8 shadow-[0_12px_32px_-8px_rgb(var(--role)/0.4)]">
+          <div className="relative mb-4 overflow-hidden rounded-2xl bg-linear-to-br from-[rgb(var(--role))] to-[rgb(var(--role)/0.85)] p-6 sm:p-8 shadow-[0_12px_32px_-8px_rgb(var(--role)/0.4)]">
             <span
               className="absolute -right-10 -top-10 w-44 h-44 rounded-full bg-white/10"
               aria-hidden="true"
@@ -135,8 +135,8 @@ export default function BuyerDashboard() {
               aria-hidden="true"
             />
             <div className="relative">
-              <h2 className="text-2xl sm:text-3xl font-bold text-white">{greeting}, {firstName}</h2>
-              <p className="text-sm text-white/80 mt-1.5">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-950">{greeting}, {firstName}</h2>
+              <p className="text-sm text-slate-950/80 font-medium mt-1.5">
                 Here&apos;s what&apos;s happening with your trade today.
               </p>
             </div>
@@ -169,7 +169,7 @@ export default function BuyerDashboard() {
 
           <Link
             href="/buyer/lists/new"
-            className="mb-8 flex items-center justify-center gap-1.5 w-full bg-role text-white font-semibold text-sm px-5 py-3.5 rounded-xl hover:opacity-90 active:scale-[0.98] transition-all shadow-sm"
+            className="mb-8 flex items-center justify-center gap-1.5 w-full bg-brand-gold text-slate-950 font-bold text-sm px-5 py-3.5 rounded-xl hover:bg-brand-gold-dark active:scale-[0.98] transition-all shadow-sm"
           >
             <Plus size={16} strokeWidth={2.5} /> Make a New Order
           </Link>
@@ -198,7 +198,7 @@ export default function BuyerDashboard() {
                         <Link
                           key={order.id}
                           href={`/buyer/orders/${order.id}`}
-                          className="flex items-center gap-3 py-3 border-b border-slate-100 last:border-0 hover:bg-slate-50 -mx-2 px-2 rounded-xl transition-colors"
+                          className="flex items-center gap-3 py-3 border-b border-dark-accent last:border-0 hover:bg-dark-tertiary -mx-2 px-2 rounded-xl transition-colors"
                         >
                           <Avatar name={sellerName} size="sm" />
                           <div className="flex-1 min-w-0 space-y-1">

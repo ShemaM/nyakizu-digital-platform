@@ -65,16 +65,16 @@ export function StoreProducts({ products }: Props) {
 
   if (products.length === 0) {
     return (
-      <div className="app-panel rounded-lg p-8 text-center">
-        <Package size={28} className="mx-auto mb-2 text-slate-300" />
-        <p className="text-body text-slate-500">This store has nothing listed yet.</p>
+      <div className="rounded-2xl border border-dark-accent bg-dark-card p-8 text-center">
+        <Package size={28} className="mx-auto mb-2 text-text-muted" />
+        <p className="text-body text-text-secondary">This store has nothing listed yet.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-5">
-      <div className="sticky top-0 z-10 -mx-4 border-b border-slate-200/80 bg-surface/90 px-4 py-2 backdrop-blur-xl">
+      <div className="sticky top-0 z-10 -mx-4 border-b border-dark-accent bg-dark-primary/90 px-4 py-2 backdrop-blur-xl">
         <CategoryFilter
           categories={categories}
           active={activeCat}
@@ -85,8 +85,8 @@ export function StoreProducts({ products }: Props) {
       {grouped.map(({ name, products: groupProducts }) => (
         <section key={name} className="space-y-3">
           <div className="flex items-center gap-2">
-            <span className="text-body font-extrabold text-slate-950">{name}</span>
-            <span className="text-caption text-slate-400">
+            <span className="text-body font-extrabold text-text-primary">{name}</span>
+            <span className="text-caption text-text-muted">
               ({groupProducts.length} item{groupProducts.length === 1 ? "" : "s"})
             </span>
           </div>
@@ -98,17 +98,17 @@ export function StoreProducts({ products }: Props) {
                 <div
                   key={p.id}
                   id={`product-${p.id}`}
-                  className="app-panel group overflow-hidden rounded-lg transition hover:border-slate-300 hover:shadow-md"
+                  className="group overflow-hidden rounded-2xl border border-dark-accent bg-dark-card transition hover:border-brand-gold/40 hover:shadow-card-elevated"
                 >
-                  <div className="relative aspect-square overflow-hidden bg-slate-100">
+                  <div className="relative aspect-square overflow-hidden bg-dark-secondary">
                     <ProductImage src={p.image_url} alt={p.name} />
                     <span className="absolute top-2 left-2">
                       <Badge variant={availability.variant}>{availability.label}</Badge>
                     </span>
                   </div>
                   <div className="p-3">
-                    <p className="font-bold text-body text-slate-950 leading-snug line-clamp-2">{p.name}</p>
-                    <p className="mt-1.5 text-body font-black text-slate-950">{fmtKES(p.price)}</p>
+                    <p className="font-bold text-body text-text-primary leading-snug line-clamp-2">{p.name}</p>
+                    <p className="mt-1.5 text-body font-black text-brand-gold">{fmtKES(p.price)}</p>
                   </div>
                 </div>
               );

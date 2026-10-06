@@ -89,7 +89,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#2563EB",
+  themeColor: "#0D1117",
 };
 
 // Organization + WebSite structured data — helps search engines understand
@@ -139,7 +139,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className={`${inter.variable} ${bricolage.variable}`}>
+    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className={`dark ${inter.variable} ${bricolage.variable}`}>
       <head>
         <script
           type="application/ld+json"

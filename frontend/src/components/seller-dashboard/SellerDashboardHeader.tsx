@@ -84,12 +84,12 @@ export function SellerDashboardHeader({
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
           placeholder="Search orders, products, buyers..."
-          className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm text-text-primary shadow-sm outline-none transition focus:border-role focus:ring-2 focus:ring-role/20"
+          className="h-12 w-full rounded-xl border border-dark-accent bg-dark-deepest pl-11 pr-4 text-sm text-text-primary shadow-sm outline-none transition focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20"
         />
         {matches.length > 0 && (
-          <div className="absolute left-0 right-0 top-14 z-30 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+          <div className="absolute left-0 right-0 top-14 z-30 overflow-hidden rounded-xl border border-dark-accent bg-dark-card shadow-xl">
             {matches.map((match) => (
-              <Link key={`${match.type}-${match.href}-${match.label}`} href={match.href} className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 text-sm hover:bg-role-soft/50">
+              <Link key={`${match.type}-${match.href}-${match.label}`} href={match.href} className="flex items-center justify-between gap-3 border-b border-dark-accent px-4 py-3 text-sm hover:bg-dark-tertiary">
                 <span className="truncate font-semibold text-text-primary">{match.label}</span>
                 <span className="shrink-0 text-xs font-bold text-text-muted">{match.type}</span>
               </Link>

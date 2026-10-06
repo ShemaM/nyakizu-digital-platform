@@ -14,10 +14,10 @@ export function PhoneMockup({ children, className }: PhoneMockupProps) {
       <span className="absolute -left-px top-32 w-[3px] h-10 rounded-l-sm bg-slate-700" aria-hidden="true" />
       <span className="absolute -right-px top-24 w-[3px] h-12 rounded-r-sm bg-slate-700" aria-hidden="true" />
 
-      <div className="relative w-full h-full rounded-[2rem] bg-slate-900 p-[7px] shadow-2xl">
-        <div className="relative w-full h-full rounded-[1.6rem] overflow-hidden bg-white">
+      <div className="relative w-full h-full rounded-[2rem] bg-dark-deepest border border-dark-accent p-[7px] shadow-2xl">
+        <div className="relative w-full h-full rounded-[1.6rem] overflow-hidden bg-dark-primary">
           <span
-            className="absolute left-1/2 top-2 -translate-x-1/2 w-2 h-2 rounded-full bg-slate-900 z-20"
+            className="absolute left-1/2 top-2 -translate-x-1/2 w-2 h-2 rounded-full bg-slate-950 z-20"
             aria-hidden="true"
           />
           {children}

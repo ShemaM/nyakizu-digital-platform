@@ -6,7 +6,7 @@ import { SellerScreenPreview, BuyerScreenPreview } from "./DashboardPreviews";
 
 function PhoneLabel({ label }: { label: string }) {
   return (
-    <span className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-dark-accent bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-text-secondary shadow-sm">
+    <span className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-dark-accent bg-dark-secondary px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-text-secondary shadow-sm">
       <span className="w-1.5 h-1.5 rounded-full bg-brand-gold" aria-hidden="true" />
       {label}
     </span>

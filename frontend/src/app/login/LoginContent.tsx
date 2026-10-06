@@ -139,7 +139,7 @@ function LoginForm() {
 
         <Button
           type="submit"
-          className="w-full bg-brand-gold hover:bg-brand-gold-dark text-text-primary font-bold"
+          className="w-full bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-bold"
           size="lg"
           loading={loading}
         >
@@ -164,13 +164,13 @@ function LoginForm() {
           <div className="w-full border-t border-dark-accent" />
         </div>
         <div className="relative flex justify-center text-xs">
-          <span className="px-2 bg-white font-bold uppercase tracking-widest text-brand-gold-dark">New to Nyakizu?</span>
+          <span className="px-2 bg-dark-primary font-bold uppercase tracking-widest text-brand-gold">New to Nyakizu?</span>
         </div>
       </div>
 
       <Button
         variant="outline"
-        className="w-full border-2 border-text-primary text-text-primary font-bold hover:bg-dark-secondary"
+        className="w-full border border-dark-accent bg-dark-tertiary text-text-primary font-bold hover:bg-dark-accent hover:text-text-primary"
         asChild
       >
         <Link href="/register">Create an account</Link>
@@ -178,7 +178,7 @@ function LoginForm() {
 
       <p className="text-center text-sm text-text-muted">
         Need help?{" "}
-        <Link href="/help" className="font-semibold text-brand-gold-dark hover:text-brand-gold underline underline-offset-4 decoration-dotted">
+        <Link href="/help" className="font-semibold text-brand-gold hover:underline underline-offset-4 decoration-dotted">
           Get help
         </Link>
       </p>

@@ -240,12 +240,12 @@ function RegisterForm() {
           <button
             type="button"
             onClick={() => chooseRole("buyer")}
-            className="w-full text-left rounded-xl border border-dark-accent p-5 hover:border-brand-gold hover:bg-brand-gold-subtle/40 transition-colors"
+            className="w-full text-left rounded-xl border border-dark-accent bg-dark-card p-5 hover:border-brand-gold hover:bg-dark-tertiary transition-colors"
           >
             <div className="flex items-center gap-2 mb-1.5">
-              <Receipt className="w-5 h-5 text-brand-gold-dark shrink-0" aria-hidden="true" />
+              <Receipt className="w-5 h-5 text-brand-gold shrink-0" aria-hidden="true" />
               <span className="font-bold text-text-primary">I am a Buyer</span>
-              <span className="ml-auto text-xs font-bold uppercase tracking-wide text-brand-gold-dark border border-brand-gold/40 rounded-full px-2 py-0.5 shrink-0">
+              <span className="ml-auto text-xs font-bold uppercase tracking-wide text-brand-gold border border-brand-gold/40 rounded-full px-2 py-0.5 shrink-0">
                 2 steps
               </span>
             </div>
@@ -257,12 +257,12 @@ function RegisterForm() {
           <button
             type="button"
             onClick={() => chooseRole("seller")}
-            className="w-full text-left rounded-xl border border-dark-accent p-5 hover:border-brand-gold hover:bg-brand-gold-subtle/40 transition-colors"
+            className="w-full text-left rounded-xl border border-dark-accent bg-dark-card p-5 hover:border-brand-gold hover:bg-dark-tertiary transition-colors"
           >
             <div className="flex items-center gap-2 mb-1.5">
-              <Package className="w-5 h-5 text-brand-gold-dark shrink-0" aria-hidden="true" />
+              <Package className="w-5 h-5 text-brand-gold shrink-0" aria-hidden="true" />
               <span className="font-bold text-text-primary">I am a Seller</span>
-              <span className="ml-auto text-xs font-bold uppercase tracking-wide text-brand-gold-dark border border-brand-gold/40 rounded-full px-2 py-0.5 shrink-0">
+              <span className="ml-auto text-xs font-bold uppercase tracking-wide text-brand-gold border border-brand-gold/40 rounded-full px-2 py-0.5 shrink-0">
                 3 steps
               </span>
             </div>

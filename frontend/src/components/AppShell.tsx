@@ -27,20 +27,20 @@ export function AppShell({
   const pathname = usePathname();
   const links = navLinksForRole(user?.role);
   const currentActiveHref = activeNavHref(pathname, links);
-  const [themeMode, setThemeMode] = useState<"light" | "dark" | "system">("system");
+  const [themeMode, setThemeMode] = useState<"light" | "dark" | "system">("dark");
   const darkMode = themeMode === "dark" || (themeMode === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("nyakizu-theme") as "light" | "dark" | "system" | null;
-    setThemeMode(saved || "system");
-    document.documentElement.classList.toggle("dark", saved === "dark" || (!saved && window.matchMedia("(prefers-color-scheme: dark)").matches));
+    const initialMode = saved || "dark";
+    setThemeMode(initialMode);
+    document.documentElement.classList.toggle("dark", initialMode !== "light");
   }, []);
 
   function toggleDarkMode() {
-    const next = themeMode === "system" ? "light" : themeMode === "light" ? "dark" : "system";
-    const enabled = next === "dark" || (next === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    const next = themeMode === "dark" ? "light" : "dark";
     setThemeMode(next);
-    document.documentElement.classList.toggle("dark", enabled);
+    document.documentElement.classList.toggle("dark", next === "dark");
     window.localStorage.setItem("nyakizu-theme", next);
   }
 
@@ -80,11 +80,11 @@ export function AppShell({
   return (
     <div
       data-role={user?.role ?? "buyer"}
-      className="min-h-screen w-full min-w-0 bg-dark-primary flex flex-col"
+      className="min-h-screen w-full min-w-0 bg-dark-primary flex flex-col text-text-primary"
     >
       {/* Header */}
       <header
-        className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur-sm"
+        className="sticky top-0 z-40 border-b border-dark-accent bg-dark-secondary/95 backdrop-blur-sm"
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
         <div className="flex items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
@@ -109,7 +109,7 @@ export function AppShell({
                       "flex items-center gap-2 rounded-lg px-4 py-2.5 text-body-lg font-medium transition-colors duration-150",
                       active
                         ? "bg-role-soft text-role-dark"
-                        : "text-text-muted hover:text-text-primary hover:bg-slate-100"
+                        : "text-text-muted hover:text-text-primary hover:bg-dark-tertiary"
                     )}
                   >
                     <Icon size={18} strokeWidth={active ? 2.5 : 1.8} aria-hidden="true" />
@@ -126,8 +126,8 @@ export function AppShell({
               type="button"
               onClick={toggleDarkMode}
               aria-label={`Theme: ${themeMode}. Activate to switch theme`}
-              title={`Theme: ${themeMode} (cycles Light, Dark, System)`}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-text-secondary transition hover:bg-slate-100"
+              title={`Theme: ${themeMode}`}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-text-secondary transition hover:bg-dark-tertiary hover:text-text-primary"
             >
               {darkMode ? <Sun size={18} /> : <Moon size={18} />}
             </button>

@@ -26,32 +26,32 @@ export default async function StoreDirectoryPage() {
   const linkableStores = storeList.filter((seller) => Boolean(usernameOf(seller)));
 
   return (
-    <div className="min-h-screen bg-white text-text-primary">
+    <div className="min-h-screen bg-dark-primary text-text-primary">
       <LandingHeader />
 
       {/* Dark banner instead of plain white — gives the directory a page
           identity of its own rather than reading as a bare content dump
           under the marketing nav. */}
-      <div className="relative overflow-hidden bg-text-primary pt-28 pb-16 sm:pt-36 sm:pb-20">
+      <div className="relative overflow-hidden bg-dark-deepest border-b border-dark-accent pt-28 pb-16 sm:pt-36 sm:pb-20">
         <div
           className="pointer-events-none absolute inset-0"
           aria-hidden="true"
           style={{
             background:
-              "radial-gradient(ellipse 700px 420px at 85% -15%, rgba(200,134,10,0.22), transparent 60%)",
+              "radial-gradient(ellipse 700px 420px at 85% -15%, rgba(245,158,11,0.15), transparent 60%)",
           }}
         />
         <Container size="lg" className="relative text-center">
           <p className="text-sm font-bold uppercase tracking-widest text-brand-gold">Browse</p>
-          <h1 className="mt-2 text-4xl sm:text-5xl font-extrabold tracking-tight text-white">
+          <h1 className="mt-2 text-4xl sm:text-5xl font-extrabold tracking-tight text-text-primary">
             Stores on Nyakizu
           </h1>
-          <p className="mt-4 text-white/70 text-xl leading-relaxed max-w-2xl mx-auto">
+          <p className="mt-4 text-text-secondary text-xl leading-relaxed max-w-2xl mx-auto">
             Every store here is an approved wholesaler. Browse freely — sign in only when you're
             ready to place an order.
           </p>
           {linkableStores.length > 0 && (
-            <p className="mt-6 text-sm font-bold text-white/50">
+            <p className="mt-6 text-sm font-bold text-text-muted">
               {linkableStores.length} approved store{linkableStores.length !== 1 ? "s" : ""} and counting
             </p>
           )}
@@ -77,11 +77,11 @@ export default async function StoreDirectoryPage() {
                 <Link
                   key={seller.id}
                   href={`/store/${usernameOf(seller)}`}
-                  className="group relative flex flex-col gap-4 rounded-2xl border border-dark-accent bg-white p-6 transition-all hover:-translate-y-0.5 hover:border-brand-gold/50 hover:shadow-[0_16px_32px_-12px_rgba(20,18,14,0.12)]"
+                  className="group relative flex flex-col gap-4 rounded-2xl border border-dark-accent bg-dark-card p-6 transition-all hover:-translate-y-0.5 hover:border-brand-gold/50 hover:shadow-card-elevated"
                 >
                   <div className="flex items-start justify-between">
                     <StoreMark name={storeLabel} imageUrl={seller.user?.avatar_url} size="md" />
-                    <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2.5 py-1 text-xs font-bold text-success">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2.5 py-1 text-xs font-bold text-success">
                       <ShieldCheck size={12} aria-hidden="true" />
                       Approved
                     </span>
@@ -100,14 +100,14 @@ export default async function StoreDirectoryPage() {
                   {categories.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {categories.map((cat) => (
-                        <span key={cat} className="rounded-full bg-dark-secondary px-2.5 py-1 text-xs font-semibold text-text-secondary">
+                        <span key={cat} className="rounded-full bg-dark-tertiary px-2.5 py-1 text-xs font-semibold text-text-secondary">
                           {cat}
                         </span>
                       ))}
                     </div>
                   )}
 
-                  <div className="mt-auto flex items-center gap-1 text-sm font-bold text-brand-gold-dark opacity-0 transition-opacity group-hover:opacity-100">
+                  <div className="mt-auto flex items-center gap-1 text-sm font-bold text-brand-gold opacity-0 transition-opacity group-hover:opacity-100">
                     Visit store
                     <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
                   </div>
@@ -117,14 +117,14 @@ export default async function StoreDirectoryPage() {
           </div>
         )}
 
-        <div className="mt-14 rounded-2xl bg-text-primary p-6 sm:p-10 text-center">
-          <h2 className="text-2xl font-bold text-white">Selling wholesale phone accessories?</h2>
-          <p className="mt-1.5 text-white/70 max-w-md mx-auto">
+        <div className="mt-14 rounded-2xl bg-dark-secondary border border-dark-accent p-6 sm:p-10 text-center">
+          <h2 className="text-2xl font-bold text-text-primary">Selling wholesale phone accessories?</h2>
+          <p className="mt-1.5 text-text-secondary max-w-md mx-auto">
             List your store on Nyakizu, free — approved sellers show up here automatically.
           </p>
           <Link
             href="/register"
-            className="mt-5 inline-flex items-center gap-2 rounded-lg bg-brand-gold px-5 py-3 text-sm font-black text-text-primary transition hover:bg-brand-gold-dark"
+            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-brand-gold px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-brand-gold-dark"
           >
             Create your store
             <ArrowRight size={16} aria-hidden="true" />

@@ -173,19 +173,19 @@ export function RevenueAnalytics({ orders }: { orders: ApiOrder[] }) {
       <SectionCard>
         <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
           <div><p className="text-xs font-bold uppercase tracking-wider text-role">Revenue trends</p><h2 className="text-xl font-black text-text-primary">Revenue vs orders</h2></div>
-          <div className="flex rounded-lg bg-slate-100 p-1">
-            {([7, 30] as const).map((value) => <button key={value} type="button" onClick={() => setTab(value)} className={cn("rounded-md px-3 py-1.5 text-xs font-bold", tab === value ? "bg-white text-text-primary shadow-sm" : "text-text-muted")}>{value} days</button>)}
+          <div className="flex rounded-lg bg-dark-secondary border border-dark-accent p-1">
+            {([7, 30] as const).map((value) => <button key={value} type="button" onClick={() => setTab(value)} className={cn("rounded-md px-3 py-1.5 text-xs font-bold", tab === value ? "bg-dark-card border border-dark-accent text-text-primary shadow-sm" : "text-text-muted hover:text-text-primary")}>{value} days</button>)}
           </div>
         </div>
         <RevenueChart orders={active} days={tab} />
-        <div className="mt-5 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4">
+        <div className="mt-5 grid grid-cols-2 gap-3 border-t border-dark-accent pt-4">
           <div><p className="text-xs text-text-muted">Revenue</p><p className="text-lg font-black text-text-primary">{fmtKES(revenue)}</p></div>
           <div><p className="text-xs text-text-muted">Orders</p><p className="text-lg font-black text-text-primary">{orderCount}</p></div>
         </div>
       </SectionCard>
       <SectionCard>
         <div className="mb-5"><p className="text-xs font-bold uppercase tracking-wider text-role">What sells</p><h2 className="text-xl font-black text-text-primary">Best-selling products</h2></div>
-        {bestSelling.length === 0 ? <p className="text-sm text-text-muted">Product sales will appear here after your first order.</p> : <div className="space-y-4">{bestSelling.map(([name, count], index) => <div key={name}><div className="mb-1 flex justify-between gap-3 text-sm"><span className="truncate font-semibold text-text-primary">{index + 1}. {name}</span><span className="shrink-0 font-bold text-text-muted">{count} sold</span></div><div className="h-2 rounded-full bg-slate-100"><div className="h-2 rounded-full bg-role" style={{ width: `${(count / maxProduct) * 100}%` }} /></div></div>)}</div>}
+        {bestSelling.length === 0 ? <p className="text-sm text-text-muted">Product sales will appear here after your first order.</p> : <div className="space-y-4">{bestSelling.map(([name, count], index) => <div key={name}><div className="mb-1 flex justify-between gap-3 text-sm"><span className="truncate font-semibold text-text-primary">{index + 1}. {name}</span><span className="shrink-0 font-bold text-text-muted">{count} sold</span></div><div className="h-2 rounded-full bg-dark-secondary"><div className="h-2 rounded-full bg-role" style={{ width: `${(count / maxProduct) * 100}%` }} /></div></div>)}</div>}
       </SectionCard>
     </div>
   );

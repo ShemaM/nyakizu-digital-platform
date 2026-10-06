@@ -37,14 +37,14 @@ export default async function PublicStorePage({ params }: { params: Promise<{ sl
 
   if (!seller) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-surface px-6">
-        <div className="app-panel max-w-sm rounded-lg p-6 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+      <main className="flex min-h-screen items-center justify-center bg-dark-primary px-6">
+        <div className="rounded-2xl border border-dark-accent bg-dark-card max-w-sm p-6 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-dark-tertiary text-text-muted">
             <Store size={22} />
           </div>
-          <p className="mt-4 text-title font-black text-slate-950">Store not found</p>
-          <p className="mt-1 text-body text-slate-500">This store link is not active.</p>
-          <Link href="/" className="mt-5 inline-flex text-body font-bold text-info hover:underline">
+          <p className="mt-4 text-title font-black text-text-primary">Store not found</p>
+          <p className="mt-1 text-body text-text-secondary">This store link is not active.</p>
+          <Link href="/" className="mt-5 inline-flex text-body font-bold text-brand-gold hover:underline">
             Go back home
           </Link>
         </div>
@@ -66,21 +66,21 @@ export default async function PublicStorePage({ params }: { params: Promise<{ sl
   };
 
   return (
-    <main className="min-h-screen bg-surface text-slate-950">
+    <main className="min-h-screen bg-dark-primary text-text-primary">
       <script
         type="application/ld+json"
         // eslint-disable-next-line react/no-danger -- JSON-LD, but store_name/description/location are
         // seller-controlled free text, so `<` is escaped below to block a `</script>` breakout (stored XSS).
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
-      <header className="border-b border-slate-200/80 bg-white/85 backdrop-blur-xl">
+      <header className="border-b border-dark-accent bg-dark-secondary/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
           <Logo size="sm" />
           <div className="flex items-center gap-2">
-            <Link href="/login" className="rounded-lg px-3 py-2 text-body font-bold text-slate-700 transition hover:bg-slate-100">
+            <Link href="/login" className="rounded-lg px-3 py-2 text-body font-bold text-text-secondary transition hover:bg-dark-tertiary hover:text-text-primary">
               Sign in
             </Link>
-            <Link href="/register" className="rounded-lg bg-slate-950 px-3 py-2 text-body font-bold text-white transition hover:bg-slate-800">
+            <Link href="/register" className="rounded-lg bg-brand-gold px-3 py-2 text-body font-bold text-slate-950 transition hover:bg-brand-gold-dark">
               Join
             </Link>
           </div>
@@ -88,14 +88,14 @@ export default async function PublicStorePage({ params }: { params: Promise<{ sl
       </header>
 
       <section className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-        <div className="app-panel overflow-hidden rounded-lg">
-          <div className="relative overflow-hidden bg-slate-950 p-6 text-white sm:p-8">
+        <div className="overflow-hidden rounded-2xl border border-dark-accent bg-dark-card shadow-card">
+          <div className="relative overflow-hidden bg-dark-deepest p-6 text-text-primary sm:p-8">
             <div
               className="pointer-events-none absolute inset-0"
               aria-hidden="true"
               style={{
                 background:
-                  "radial-gradient(ellipse 600px 400px at 90% -10%, rgba(200,134,10,0.18), transparent 60%)",
+                  "radial-gradient(ellipse 600px 400px at 90% -10%, rgba(245,158,11,0.15), transparent 60%)",
               }}
             />
             <div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
@@ -106,36 +106,36 @@ export default async function PublicStorePage({ params }: { params: Promise<{ sl
                   size="xl"
                 />
                 <div>
-                  <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-caption font-bold text-slate-200">
+                  <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-brand-gold/15 border border-brand-gold/30 px-3 py-1 text-caption font-bold text-brand-gold">
                     <Store size={14} />
                     Approved wholesaler
                   </div>
-                  <h1 className="text-display font-black tracking-normal">{seller.store_name}</h1>
-                  <div className="mt-3 flex items-center gap-1 text-body font-semibold text-slate-300">
+                  <h1 className="text-display font-black tracking-normal text-text-primary">{seller.store_name}</h1>
+                  <div className="mt-3 flex items-center gap-1 text-body font-semibold text-text-secondary">
                     <MapPin size={14} />
                     <span>{seller.location}</span>
                   </div>
                   {seller.store_description && (
-                    <p className="mt-3 max-w-2xl text-body leading-6 text-slate-300">{seller.store_description}</p>
+                    <p className="mt-3 max-w-2xl text-body leading-6 text-text-secondary">{seller.store_description}</p>
                   )}
-                  <p className="mt-2 text-caption font-bold text-slate-400">Trading since {joinedDate}</p>
+                  <p className="mt-2 text-caption font-bold text-text-muted">Trading since {joinedDate}</p>
                 </div>
               </div>
               <div className="relative grid gap-2 sm:min-w-64">
-                <Link href="/login" className="inline-flex items-center justify-center gap-2 rounded-lg bg-info px-4 py-3 text-body font-black text-white transition hover:bg-info/90">
+                <Link href="/login" className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-gold px-4 py-3 text-body font-bold text-slate-950 transition hover:bg-brand-gold-dark shadow-sm">
                   Sign in to order
                   <ArrowRight size={16} />
                 </Link>
-                <Link href="/register" className="inline-flex items-center justify-center rounded-lg bg-white/10 px-4 py-3 text-body font-black text-white transition hover:bg-white/15">
+                <Link href="/register" className="inline-flex items-center justify-center rounded-xl bg-dark-tertiary border border-dark-accent px-4 py-3 text-body font-bold text-text-primary transition hover:bg-dark-tertiary/80">
                   Create account
                 </Link>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 border-t border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <div className="flex flex-col gap-2 border-t border-dark-accent bg-dark-secondary p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <CopyStoreLink url={storeUrl} />
-            <p className="shrink-0 text-center text-caption text-slate-500 sm:text-right">
+            <p className="shrink-0 text-center text-caption text-text-muted sm:text-right">
               Sign in as an approved buyer to order.
             </p>
           </div>

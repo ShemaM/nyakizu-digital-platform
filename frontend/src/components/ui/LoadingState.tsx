@@ -1,7 +1,7 @@
 import { cn } from "@/lib/cn";
 
 // Base skeleton animation class
-const SKELETON_BASE = "animate-pulse bg-slate-200/80 rounded";
+const SKELETON_BASE = "animate-pulse bg-white/[0.08] rounded";
 
 // Generic skeleton component for any element
 interface SkeletonProps {
@@ -23,7 +23,7 @@ export function CardSkeleton({ className, showAvatar = false, lines = 3 }: CardS
   return (
     <div
       className={cn(
-        "bg-white rounded-2xl border border-slate-100 p-4 shadow-sm",
+        "bg-dark-card rounded-2xl border border-dark-accent p-4 shadow-sm",
         className
       )}
     >
@@ -80,7 +80,7 @@ export function KPICardSkeleton({ className }: KPICardSkeletonProps) {
   return (
     <div
       className={cn(
-        "bg-white rounded-2xl border border-slate-100 p-5 shadow-sm",
+        "bg-dark-card rounded-2xl border border-dark-accent p-5 shadow-sm",
         className
       )}
     >

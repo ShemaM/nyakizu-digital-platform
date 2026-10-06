@@ -55,49 +55,46 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Premium Nyakizu Brand — gold is the one hero accent (the ledger +
-        // the market building story). Kept as "brand.gold" for the hundreds
-        // of existing call sites.
+        // Premium Nyakizu Brand — radiant and legible on dark backgrounds
         brand: {
-          gold: "#C8860A",
-          "gold-dark": "#A97706",
-          "gold-light": "#E8B234",
-          "gold-subtle": "rgba(200, 134, 10, 0.1)",
+          gold: "#F59E0B",
+          "gold-dark": "#D97706",
+          "gold-light": "#FBBF24",
+          "gold-subtle": "rgba(245, 158, 11, 0.15)",
         },
-        // Foundation surfaces — warm paper, not cool slate. "dark.*" names are
-        // kept (hundreds of call sites reference them) but hold LIGHT, warm
-        // values; the app is a light theme. Elevation increases toward white:
-        // deepest/tertiary/card (floating headers, cards) are pure white,
-        // primary/secondary (ambient page background) are warm off-whites.
+        // Semantic Dark Palette (GitHub-inspired charcoal/slate canvas and surfaces)
+        // NOT pitch black (#000000): allows surface hierarchy, depth, and zero eye strain
         dark: {
-          deepest: "#FFFFFF",
-          primary: "#FAF9F6",   // bg.app — warm paper
-          secondary: "#F4F1EA", // bg.muted
-          tertiary: "#FFFFFF",
-          accent: "#E6E1D7",    // border
-          card: "#FFFFFF",      // bg.surface
+          deepest: "#010409",   // Inset canvas, deep inputs, wells
+          primary: "#0D1117",   // Default canvas/page body background
+          secondary: "#161B22", // Elevated canvas, cards, sidebars, headers
+          tertiary: "#21262D",  // Interactive elements, secondary buttons, hover states
+          accent: "#30363D",    // Standard borders, dividers
+          card: "#161B22",      // Card surfaces
         },
-        'dark-primary': '#FAF9F6', // Compatibility alias
-        success: "#15803D",  // money-cleared, darkened from #16A34A for 4.5:1 text contrast on white
-        warning: "#B45309",  // money-owed
-        error: "#DC2626",
-        info: "#2563EB",
-        // Semantic text tokens — warm ink, not cool slate
-        'text-primary': "#14120E",
-        'text-secondary': "#4A4438",
-        'text-muted': "#6B6459",  // ~5:1 on paper/white — passes WCAG AA for normal text
-        // Literal dark-navy palette for marketing/auth pages (the "dark.*" tokens
-        // above now hold LIGHT values for the in-app theme, so marketing pages
-        // that need an actual dark background use these instead).
+        'dark-primary': '#0D1117',
+        'dark-secondary': '#161B22',
+        'dark-tertiary': '#21262D',
+        'dark-card': '#161B22',
+        'dark-accent': '#30363D',
+        'dark-deepest': '#010409',
+        success: "#3FB950",  // Accessible green on dark
+        warning: "#D29922",  // Accessible amber on dark
+        error: "#F85149",    // Accessible red on dark
+        info: "#58A6FF",     // Accessible blue on dark
+        // Semantic text tokens — crisp, clear, high contrast (15:1 for primary)
+        'text-primary': "#F0F6FC",
+        'text-secondary': "#9198A1",
+        'text-muted': "#8B949E",
         ink: {
-          bg: "#0B0F1A",
-          card: "#111827",
-          border: "#1E293B",
+          bg: "#0D1117",
+          card: "#161B22",
+          border: "#30363D",
         },
-        // Light "paper" surface for print/public-facing pages (receipts, store preview)
+        // Elevated surface for public cards / store previews
         surface: {
-          DEFAULT: "hsl(var(--surface, 48 20% 97%))",
-          foreground: "hsl(var(--surface-foreground, 30 15% 6%))",
+          DEFAULT: "hsl(var(--surface, 215 21% 11%))",
+          foreground: "hsl(var(--surface-foreground, 213 100% 96%))",
         },
       },
       borderRadius: {
@@ -113,27 +110,24 @@ const config = {
         '3xl': "1rem",
       },
       backgroundImage: {
-        'gradient-dark': 'linear-gradient(180deg, #0F172A 0%, #111827 100%)',
-        'gradient-cta': 'linear-gradient(135deg, #C8860A 0%, #A97706 100%)',
-        'gradient-hero': 'radial-gradient(ellipse at top right, rgba(200, 134, 10, 0.10), transparent 50%), radial-gradient(ellipse at bottom left, rgba(217, 119, 6, 0.08), transparent 50%)',
-        'gradient-card': 'linear-gradient(180deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)',
-        'gradient-glow': 'radial-gradient(50% 50% at 50% 50%, rgba(200, 134, 10, 0.12) 0%, transparent 100%)',
+        'gradient-dark': 'linear-gradient(180deg, #0D1117 0%, #161B22 100%)',
+        'gradient-cta': 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+        'gradient-hero': 'radial-gradient(ellipse at top right, rgba(245, 158, 11, 0.12), transparent 50%), radial-gradient(ellipse at bottom left, rgba(217, 119, 6, 0.08), transparent 50%)',
+        'gradient-card': 'linear-gradient(180deg, rgba(33, 38, 45, 0.8) 0%, rgba(22, 27, 34, 0.9) 100%)',
+        'gradient-glow': 'radial-gradient(50% 50% at 50% 50%, rgba(245, 158, 11, 0.15) 0%, transparent 100%)',
       },
       boxShadow: {
-        // 3-step, soft, warm-tinted shadows (rgba against #14120E ink, not
-        // pure black) — collapsed the same way as radius so shadow-sm through
-        // shadow-2xl all resolve to one of 3 real elevation steps.
-        sm: '0 1px 2px rgba(20,18,14,0.04), 0 4px 12px rgba(20,18,14,0.05)',
-        DEFAULT: '0 1px 2px rgba(20,18,14,0.04), 0 4px 12px rgba(20,18,14,0.05)',
-        md: '0 4px 8px rgba(20,18,14,0.06), 0 12px 32px rgba(20,18,14,0.10)',
-        lg: '0 4px 8px rgba(20,18,14,0.06), 0 12px 32px rgba(20,18,14,0.10)',
-        xl: '0 8px 16px rgba(20,18,14,0.08), 0 24px 64px rgba(20,18,14,0.14)',
-        '2xl': '0 8px 16px rgba(20,18,14,0.08), 0 24px 64px rgba(20,18,14,0.14)',
-        inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.06)',
-        brand: '0 15px 40px rgba(200, 134, 10, 0.2)',
-        'brand-lg': '0 20px 60px rgba(200, 134, 10, 0.15)',
-        card: '0 1px 2px rgba(20,18,14,0.04), 0 4px 12px rgba(20,18,14,0.05)',
-        'card-hover': '0 4px 8px rgba(20,18,14,0.06), 0 12px 32px rgba(20,18,14,0.10)',
+        sm: '0 1px 2px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.3)',
+        DEFAULT: '0 1px 2px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.3)',
+        md: '0 4px 8px rgba(0,0,0,0.3), 0 12px 32px rgba(0,0,0,0.4)',
+        lg: '0 4px 8px rgba(0,0,0,0.3), 0 12px 32px rgba(0,0,0,0.4)',
+        xl: '0 8px 16px rgba(0,0,0,0.4), 0 24px 64px rgba(0,0,0,0.5)',
+        '2xl': '0 8px 16px rgba(0,0,0,0.4), 0 24px 64px rgba(0,0,0,0.5)',
+        inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.3)',
+        brand: '0 15px 40px rgba(245, 158, 11, 0.25)',
+        'brand-lg': '0 20px 60px rgba(245, 158, 11, 0.2)',
+        card: '0 1px 2px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.3)',
+        'card-hover': '0 4px 8px rgba(0,0,0,0.3), 0 12px 32px rgba(0,0,0,0.4)',
       },
       spacing: {
         '18': '4.5rem',

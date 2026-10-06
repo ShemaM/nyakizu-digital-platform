@@ -27,16 +27,16 @@ export const QuickActions: React.FC = () => {
           className={cn(
             "flex flex-col items-center text-center gap-2 rounded-2xl border p-4 sm:p-5 transition-all active:scale-[0.98]",
             primary
-              ? "bg-role-dark text-white border-transparent hover:opacity-90 shadow-md"
-              : "bg-white text-text-primary border-slate-100 shadow-sm hover:border-role/30 hover:bg-role-soft/40"
+              ? "bg-brand-gold text-slate-950 font-bold border-transparent hover:bg-brand-gold-dark shadow-md"
+              : "bg-dark-card text-text-primary border-dark-accent shadow-sm hover:border-brand-gold/40 hover:bg-dark-tertiary"
           )}
         >
-          <div className={cn("w-11 h-11 rounded-full flex items-center justify-center", primary ? "bg-white/20" : "bg-role-soft")}>
-            <Icon className={cn("w-5 h-5", primary ? "text-white" : "text-role-dark")} />
+          <div className={cn("w-11 h-11 rounded-full flex items-center justify-center", primary ? "bg-slate-950/15" : "bg-brand-gold/15")}>
+            <Icon className={cn("w-5 h-5", primary ? "text-slate-950" : "text-brand-gold")} />
           </div>
           <div>
             <p className="text-sm font-bold leading-tight">{label}</p>
-            <p className={cn("text-xs mt-0.5", primary ? "text-white/80" : "text-text-muted")}>{description}</p>
+            <p className={cn("text-xs mt-0.5", primary ? "text-slate-950/80 font-medium" : "text-text-muted")}>{description}</p>
           </div>
         </Link>
       ))}

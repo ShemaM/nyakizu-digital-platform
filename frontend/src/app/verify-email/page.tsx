@@ -148,7 +148,7 @@ function VerifyEmailContent() {
               </AlertDescription>
             </Alert>
 
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <div className="rounded-xl border border-dark-accent bg-dark-secondary p-4">
               <p className="text-sm text-text-secondary">
                 {errorCode === "missing"
                   ? "Open the verification link again from your email."

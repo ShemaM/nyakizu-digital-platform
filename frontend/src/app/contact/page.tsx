@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function ContactPage() {
   return (
-    <div className="min-h-screen bg-white text-text-primary">
+    <div className="min-h-screen bg-dark-primary text-text-primary">
       <LandingHeader />
 
       <Section spacing="lg" className="pt-32 sm:pt-40">
@@ -27,15 +27,15 @@ export default function ContactPage() {
             </p>
           </div>
 
-          <div className="rounded-2xl bg-text-primary p-6 sm:p-10 text-center mb-6">
+          <div className="rounded-2xl bg-dark-secondary border border-dark-accent p-6 sm:p-10 text-center mb-6">
             <div className="w-12 h-12 rounded-xl bg-brand-gold flex items-center justify-center mx-auto mb-4">
-              <Mail className="w-6 h-6 text-text-primary" aria-hidden="true" />
+              <Mail className="w-6 h-6 text-slate-950" aria-hidden="true" />
             </div>
-            <h2 className="text-xl font-bold text-white">Email us</h2>
-            <p className="mt-1.5 text-white/70">A real person reads every message.</p>
+            <h2 className="text-xl font-bold text-text-primary">Email us</h2>
+            <p className="mt-1.5 text-text-secondary">A real person reads every message.</p>
             <a
               href={`mailto:${SUPPORT_EMAIL}`}
-              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand-gold hover:bg-brand-gold-dark text-text-primary font-bold px-6 py-3 transition-colors"
+              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-bold px-6 py-3 transition-colors"
             >
               <Mail className="w-4 h-4" aria-hidden="true" />
               {SUPPORT_EMAIL}
@@ -43,23 +43,23 @@ export default function ContactPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <div className="rounded-2xl border border-dark-accent bg-white p-6">
-              <div className="w-10 h-10 rounded-lg bg-brand-gold-subtle flex items-center justify-center mb-3">
-                <Clock className="w-5 h-5 text-brand-gold-dark" aria-hidden="true" />
+            <div className="rounded-2xl border border-dark-accent bg-dark-card p-6">
+              <div className="w-10 h-10 rounded-lg bg-brand-gold/15 flex items-center justify-center mb-3">
+                <Clock className="w-5 h-5 text-brand-gold" aria-hidden="true" />
               </div>
               <h3 className="font-bold text-text-primary">Response time</h3>
               <p className="mt-1.5 text-text-secondary leading-relaxed">
                 We usually reply within a day or two. Account and order questions get priority.
               </p>
             </div>
-            <div className="rounded-2xl border border-dark-accent bg-white p-6">
-              <div className="w-10 h-10 rounded-lg bg-brand-gold-subtle flex items-center justify-center mb-3">
-                <MessageCircle className="w-5 h-5 text-brand-gold-dark" aria-hidden="true" />
+            <div className="rounded-2xl border border-dark-accent bg-dark-card p-6">
+              <div className="w-10 h-10 rounded-lg bg-brand-gold/15 flex items-center justify-center mb-3">
+                <MessageCircle className="w-5 h-5 text-brand-gold" aria-hidden="true" />
               </div>
               <h3 className="font-bold text-text-primary">Common questions first</h3>
               <p className="mt-1.5 text-text-secondary leading-relaxed">
                 Signing in, verifying your email, or buyer approval. Check the{" "}
-                <Link href="/help" className="font-semibold text-brand-gold-dark underline underline-offset-2">
+                <Link href="/help" className="font-semibold text-brand-gold underline underline-offset-2">
                   Help page
                 </Link>{" "}
                 first. It may already have your answer.

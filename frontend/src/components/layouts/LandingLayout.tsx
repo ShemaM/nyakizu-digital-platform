@@ -38,18 +38,18 @@ function GetStartedMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-slate-100 bg-white shadow-2xl overflow-hidden animate-scale-in z-50">
+        <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-dark-accent bg-dark-card shadow-2xl overflow-hidden animate-scale-in z-50 text-text-primary">
           <Link
             href="/register"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 px-4 py-3.5 text-sm font-bold text-text-primary hover:bg-slate-50 transition-colors border-b border-slate-100"
+            className="flex items-center gap-2.5 px-4 py-3.5 text-sm font-bold text-text-primary hover:bg-dark-tertiary transition-colors border-b border-dark-accent"
           >
-            <UserPlus size={16} className="text-brand-gold-dark" aria-hidden="true" /> Create Account
+            <UserPlus size={16} className="text-brand-gold" aria-hidden="true" /> Create Account
           </Link>
           <Link
             href="/login"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 px-4 py-3.5 text-sm font-semibold text-text-secondary hover:bg-slate-50 hover:text-text-primary transition-colors"
+            className="flex items-center gap-2.5 px-4 py-3.5 text-sm font-semibold text-text-secondary hover:bg-dark-tertiary hover:text-text-primary transition-colors"
           >
             <LogIn size={16} aria-hidden="true" /> Log In
           </Link>
@@ -73,11 +73,8 @@ export function LandingHeader() {
 
   return (
     <header
-      // Solid background always — the previous bg-white/60 (unscrolled)
-      // sat translucent over the hero's imagery, so text contrast varied
-      // with whatever was behind it and became hard to read on mobile.
-      className={`fixed top-0 left-0 right-0 z-50 bg-white transition-shadow duration-300 ${
-        scrolled ? "border-b border-slate-200 shadow-sm" : "border-b border-slate-100"
+      className={`fixed top-0 left-0 right-0 z-50 bg-dark-secondary/95 backdrop-blur-md transition-shadow duration-300 ${
+        scrolled ? "border-b border-dark-accent shadow-md" : "border-b border-dark-accent/60"
       }`}
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >

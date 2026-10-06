@@ -19,7 +19,7 @@ const TONE_CLASSES: Record<NonNullable<MetricCardProps["tone"]>, string> = {
 /** A single overview number — distinct from ShopStats' action cards, this row is "how's business", not "what needs me". */
 export function MetricCard({ Icon, label, value, hint, tone = "role" }: MetricCardProps) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 sm:p-5">
+    <div className="bg-dark-card rounded-2xl border border-dark-accent shadow-sm p-4 sm:p-5">
       <div className="flex items-center justify-between">
         <span className="text-xs font-bold uppercase tracking-wider text-text-muted">{label}</span>
         <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", TONE_CLASSES[tone])}>

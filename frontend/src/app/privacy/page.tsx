@@ -23,7 +23,7 @@ function PolicySection({ title, children }: { title: string; children: ReactNode
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-white text-text-primary">
+    <div className="min-h-screen bg-dark-primary text-text-primary">
       <LandingHeader />
 
       <Section spacing="lg" className="pt-32 sm:pt-40">
@@ -35,7 +35,7 @@ export default function PrivacyPage() {
             <p className="mt-3 text-text-secondary">Last updated {LAST_UPDATED}</p>
           </div>
 
-          <div className="rounded-2xl border border-dark-accent bg-white px-6 sm:px-8">
+          <div className="rounded-2xl border border-dark-accent bg-dark-card px-6 sm:px-8">
             <PolicySection title="1. What this covers">
               <p>
                 Nyakizu Digital Market (&quot;Nyakizu&quot;, &quot;we&quot;, &quot;us&quot;) is a community platform
@@ -106,7 +106,7 @@ export default function PrivacyPage() {
                 We keep your account and order history for as long as your account is active, since
                 order and debt history is the record both buyers and sellers rely on. If you want your
                 account deleted, email us at{" "}
-                <a href={`mailto:${SUPPORT_EMAIL}`} className="font-semibold text-brand-gold-dark underline underline-offset-2">
+                <a href={`mailto:${SUPPORT_EMAIL}`} className="font-semibold text-brand-gold underline underline-offset-2">
                   {SUPPORT_EMAIL}
                 </a>{" "}
                 and we will handle your request.
@@ -127,7 +127,7 @@ export default function PrivacyPage() {
             <PolicySection title="10. Contact us">
               <p>
                 Questions about this policy or your data? Email{" "}
-                <a href={`mailto:${SUPPORT_EMAIL}`} className="font-semibold text-brand-gold-dark underline underline-offset-2">
+                <a href={`mailto:${SUPPORT_EMAIL}`} className="font-semibold text-brand-gold underline underline-offset-2">
                   {SUPPORT_EMAIL}
                 </a>
                 .

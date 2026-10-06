@@ -98,9 +98,9 @@ export function Dialog({
         // Cancel buttons reachable no matter how tall `children` turns out
         // to be — a fixed-height-unaware panel here is exactly what let
         // the buyer order-confirm dialog get cut off behind the bottom nav.
-        className="relative flex w-full max-w-sm max-h-[85dvh] flex-col rounded-2xl border border-slate-100 bg-white shadow-2xl animate-scale-in outline-none overflow-hidden"
+        className="relative flex w-full max-w-sm max-h-[85dvh] flex-col rounded-2xl border border-dark-accent bg-dark-card shadow-2xl animate-scale-in outline-none overflow-hidden text-text-primary"
       >
-        <div className="absolute left-1/2 top-3 h-1 w-8 -translate-x-1/2 rounded-full bg-slate-200 sm:hidden" />
+        <div className="absolute left-1/2 top-3 h-1 w-8 -translate-x-1/2 rounded-full bg-dark-accent sm:hidden" />
 
         <div className="flex-1 overflow-y-auto overscroll-contain p-6 space-y-2">
           <h2 id={titleId} className="text-title font-black text-text-primary pt-2 sm:pt-0">

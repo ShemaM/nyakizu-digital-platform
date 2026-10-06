@@ -43,7 +43,7 @@ function summarizeItems(items?: ApiOrderItem[]): string {
 export const RecentOrders: React.FC<RecentOrdersProps> = ({ orders }) => {
   if (orders.length === 0) {
     return (
-      <div className="bg-white p-10 rounded-2xl border border-slate-100 shadow-sm text-center flex flex-col justify-center items-center min-h-[220px]">
+      <div className="bg-dark-card p-10 rounded-2xl border border-dark-accent shadow-sm text-center flex flex-col justify-center items-center min-h-[220px]">
         <div className="w-14 h-14 rounded-2xl bg-role-soft flex items-center justify-center mb-3">
           <Package className="w-6 h-6 text-role" />
         </div>
@@ -54,14 +54,14 @@ export const RecentOrders: React.FC<RecentOrdersProps> = ({ orders }) => {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-100">
+    <div className="bg-dark-card rounded-2xl border border-dark-accent shadow-sm overflow-hidden divide-y divide-dark-accent">
       {orders.map((order) => (
-        <div key={order.id} className="p-4 sm:p-5 flex items-center gap-4 hover:bg-slate-50 transition-colors">
+        <div key={order.id} className="p-4 sm:p-5 flex items-center gap-4 hover:bg-dark-tertiary transition-colors">
           <Link
             href={`/seller/dashboard/orders/${order.id}/fulfill`}
             className="flex items-center gap-4 flex-1 min-w-0"
           >
-            <Avatar name={buyerDisplayName(order)} size="lg" colorClassName="bg-role-dark" className="shrink-0" />
+            <Avatar name={buyerDisplayName(order)} size="lg" colorClassName="bg-brand-gold text-slate-950" className="shrink-0" />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-body font-bold text-text-primary truncate">{buyerDisplayName(order)}</p>

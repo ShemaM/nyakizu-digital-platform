@@ -23,7 +23,7 @@ function TermsSection({ title, children }: { title: string; children: ReactNode 
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-white text-text-primary">
+    <div className="min-h-screen bg-dark-primary text-text-primary">
       <LandingHeader />
 
       <Section spacing="lg" className="pt-32 sm:pt-40">
@@ -35,7 +35,7 @@ export default function TermsPage() {
             <p className="mt-3 text-text-secondary">Last updated {LAST_UPDATED}</p>
           </div>
 
-          <div className="rounded-2xl border border-dark-accent bg-white px-6 sm:px-8">
+          <div className="rounded-2xl border border-dark-accent bg-dark-card px-6 sm:px-8">
             <TermsSection title="1. Agreement">
               <p>
                 Nyakizu Digital Market is a free community platform for phone accessories wholesalers
@@ -118,7 +118,7 @@ export default function TermsPage() {
             <TermsSection title="10. Contact us">
               <p>
                 Questions about these terms? Email{" "}
-                <a href={`mailto:${SUPPORT_EMAIL}`} className="font-semibold text-brand-gold-dark underline underline-offset-2">
+                <a href={`mailto:${SUPPORT_EMAIL}`} className="font-semibold text-brand-gold underline underline-offset-2">
                   {SUPPORT_EMAIL}
                 </a>
                 .

@@ -31,7 +31,7 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-slate-100 bg-white p-12 text-center shadow-sm",
+        "rounded-2xl border border-dark-accent bg-dark-card p-12 text-center shadow-sm text-text-primary",
         "animate-fade-in-up",
         className
       )}

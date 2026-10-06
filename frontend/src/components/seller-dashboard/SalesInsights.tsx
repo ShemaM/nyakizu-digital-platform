@@ -131,14 +131,14 @@ export function SalesInsights({ orders }: SalesInsightsProps) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6 space-y-6">
+    <div className="bg-dark-card rounded-2xl border border-dark-accent shadow-sm p-5 sm:p-6 space-y-6">
       {/* Date picker */}
       <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={() => shiftDay(-1)}
           aria-label="Previous day"
-          className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-text-secondary hover:bg-slate-100 transition-colors"
+          className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-text-secondary hover:bg-dark-tertiary transition-colors"
         >
           <ChevronLeft size={18} />
         </button>
@@ -151,7 +151,7 @@ export function SalesInsights({ orders }: SalesInsightsProps) {
             value={dateValue}
             max={toInputValue(today)}
             onChange={(e) => e.target.value && setDateValue(e.target.value)}
-            className="w-full rounded-full border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3 text-sm font-semibold text-text-primary focus:outline-none focus:ring-2 focus:ring-role/40"
+            className="w-full rounded-full border border-dark-accent bg-dark-deepest py-2.5 pl-10 pr-3 text-sm font-semibold text-text-primary focus:outline-none focus:ring-2 focus:ring-role/40"
           />
         </label>
 
@@ -160,7 +160,7 @@ export function SalesInsights({ orders }: SalesInsightsProps) {
           onClick={() => shiftDay(1)}
           disabled={isToday}
           aria-label="Next day"
-          className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-text-secondary hover:bg-slate-100 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+          className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-text-secondary hover:bg-dark-tertiary transition-colors disabled:opacity-30 disabled:pointer-events-none"
         >
           <ChevronRight size={18} />
         </button>
@@ -201,13 +201,13 @@ export function SalesInsights({ orders }: SalesInsightsProps) {
         <>
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-text-muted mb-1">This day&apos;s orders</p>
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-dark-accent">
               {dayOrders.map((order) => (
                 <DayOrderRow key={order.id} order={order} />
               ))}
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2 border-t border-slate-100">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2 border-t border-dark-accent">
             <RankedList title="Best-selling products" rows={topProducts} unit="count" />
             <RankedList title="Buyers who ordered" rows={topBuyers} unit="count" />
           </div>

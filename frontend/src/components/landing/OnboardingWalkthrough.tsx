@@ -44,11 +44,11 @@ const SELLER_STEPS: Step[] = [
 // throughout the real app now, so the walkthrough shouldn't invent a
 // blue/violet split that doesn't exist anywhere past the sign-up form.
 const GOLD_ACCENT = {
-  chip: "bg-brand-gold",
-  chipLast: "bg-brand-gold ring-4 ring-brand-gold/20",
+  chip: "bg-brand-gold text-slate-950",
+  chipLast: "bg-brand-gold ring-4 ring-brand-gold/20 text-slate-950",
   line: "bg-brand-gold/25",
   lineFill: "bg-brand-gold",
-  header: "from-brand-gold to-brand-gold-light",
+  header: "from-brand-gold to-brand-gold-dark",
 } as const;
 
 function StepColumn({
@@ -71,12 +71,12 @@ function StepColumn({
       viewport={{ once: true, margin: "-60px" }}
       transition={{ duration: 0.5, ease: "easeOut" }}
       whileHover={{ y: -4 }}
-      className="rounded-3xl border border-slate-200 bg-white overflow-hidden flex flex-col transition-shadow duration-300 shadow-sm hover:shadow-glow-gold"
+      className="rounded-3xl border border-dark-accent bg-dark-card overflow-hidden flex flex-col transition-shadow duration-300 shadow-sm hover:shadow-glow-gold"
     >
       {/* Colored header banner */}
-      <div className={`bg-gradient-to-br ${a.header} px-6 sm:px-8 py-5`}>
-        <h3 className="text-xl font-extrabold text-white">{role}</h3>
-        <p className="text-sm text-white/80 mt-0.5">{tagline}</p>
+      <div className={`bg-linear-to-br ${a.header} px-6 sm:px-8 py-5`}>
+        <h3 className="text-xl font-extrabold text-slate-950">{role}</h3>
+        <p className="text-sm text-slate-950/80 font-medium mt-0.5">{tagline}</p>
       </div>
 
       <motion.div
@@ -103,13 +103,13 @@ function StepColumn({
                 </span>
               )}
               <span
-                className={`absolute left-0 top-0 w-10 h-10 rounded-full ${isLast ? a.chipLast : a.chip} text-white flex items-center justify-center font-bold text-sm shadow-sm`}
+                className={`absolute left-0 top-0 w-10 h-10 rounded-full ${isLast ? a.chipLast : a.chip} flex items-center justify-center font-bold text-sm shadow-sm`}
                 aria-hidden="true"
               >
                 {isLast ? <step.icon className="w-4 h-4" /> : i + 1}
               </span>
-              <h4 className="font-bold text-slate-900 text-base">{step.title}</h4>
-              <p className="text-sm text-slate-600 mt-1 leading-relaxed">{step.description}</p>
+              <h4 className="font-bold text-text-primary text-base">{step.title}</h4>
+              <p className="text-sm text-text-secondary mt-1 leading-relaxed">{step.description}</p>
             </motion.div>
           );
         })}

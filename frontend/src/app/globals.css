@@ -9,103 +9,176 @@
  * Values are the dark palette's HSL equivalents, kept in lockstep with the
  * literal hex tokens in tailwind.config.ts (dark.primary, brand.gold, etc).
  */
+/*
+ * shadcn/Radix primitives (Select, Popover, etc.) read these CSS variables
+ * through the color tokens declared in tailwind.config.ts.
+ * Values are HSL representations of GitHub-grade semantic dark colors:
+ * Canvas (#0D1117), Card/Surfaces (#161B22), Secondary (#21262D),
+ * Borders (#30363D), Text (#F0F6FC), Muted (#8B949E).
+ */
 :root {
-  --background: 48 33% 97%;         /* dark.primary #FAF9F6 — warm paper */
-  --foreground: 40 20% 6%;          /* text-primary #14120E */
+  --background: 215 28% 7%;         /* #0D1117 — canvas default */
+  --foreground: 213 100% 96%;       /* #F0F6FC — text-primary */
 
-  --card: 0 0% 100%;                /* dark.card #FFFFFF */
-  --card-foreground: 40 20% 6%;
+  --card: 215 21% 11%;              /* #161B22 — canvas subtle/card */
+  --card-foreground: 213 100% 96%;
 
-  --popover: 0 0% 100%;             /* #FFFFFF */
-  --popover-foreground: 40 20% 6%;
+  --popover: 215 21% 11%;           /* #161B22 */
+  --popover-foreground: 213 100% 96%;
 
-  --primary: 221 83% 53%;           /* info/buyer blue #2563EB */
-  --primary-foreground: 0 0% 100%;
+  --primary: 38 92% 50%;            /* brand gold #F59E0B */
+  --primary-foreground: 215 28% 7%; /* dark text on gold button */
 
-  --secondary: 43 27% 93%;          /* dark.secondary #F4F1EA */
-  --secondary-foreground: 40 20% 6%;
+  --secondary: 215 14% 15%;         /* #21262D — canvas overlay */
+  --secondary-foreground: 213 100% 96%;
 
-  --muted: 43 27% 93%;              /* #F4F1EA */
-  --muted-foreground: 35 13% 36%;   /* text-muted #6B6459 — ~5:1 on paper/white */
+  --muted: 215 14% 15%;             /* #21262D */
+  --muted-foreground: 215 8% 58%;   /* #8B949E — 5.8:1 contrast */
 
-  --accent: 43 27% 93%;             /* #F4F1EA */
-  --accent-foreground: 40 20% 6%;
+  --accent: 215 14% 15%;            /* #21262D */
+  --accent-foreground: 213 100% 96%;
 
-  --destructive: 0 74% 51%;         /* error #DC2626 */
+  --destructive: 3 93% 63%;         /* #F85149 */
   --destructive-foreground: 0 0% 100%;
 
-  --border: 39 26% 86%;             /* dark.accent #E6E1D7 */
-  --input: 39 26% 86%;              /* #E6E1D7 */
-  --ring: 221 83% 53%;              /* blue #2563EB */
+  --border: 215 11% 21%;            /* #30363D — border default */
+  --input: 215 11% 21%;             /* #30363D */
+  --ring: 212 96% 61%;              /* #388BFD — focus ring */
 
-  /* Soft back-out curve — gives button/badge press feedback a livelier,
-     spring-like feel without needing a JS animation library. */
+  --surface: 215 21% 11%;           /* #161B22 — dark card surface */
+  --surface-foreground: 213 100% 96%; /* #F0F6FC */
+
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 html {
-  color-scheme: light;
+  color-scheme: dark;
+  background-color: #0d1117;
+  color: #f0f6fc;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
 }
 
-html.dark {
-  color-scheme: dark;
-  --background: 30 12% 9%;
-  --foreground: 40 33% 95%;
-  --card: 30 12% 14%;
-  --card-foreground: 40 33% 95%;
-  --popover: 30 12% 14%;
-  --popover-foreground: 40 33% 95%;
-  --muted: 30 10% 20%;
-  --muted-foreground: 38 18% 72%;
-  --secondary: 30 10% 20%;
-  --secondary-foreground: 40 33% 95%;
-  --accent: 30 10% 20%;
-  --accent-foreground: 40 33% 95%;
-  --border: 32 14% 29%;
-  --input: 32 14% 29%;
-  --ring: 43 75% 52%;
-}
-
-html.dark body {
-  background: #171512;
-  color: #f7f3ea;
-}
-
-html.dark .bg-white { background-color: #25221d; }
-html.dark .bg-slate-50,
-html.dark .bg-slate-100 { background-color: #302c25; }
-html.dark .bg-dark-secondary { background-color: #25221d; }
-html.dark .border-slate-100,
-html.dark .border-slate-200 { border-color: #4a4338; }
-html.dark .text-text-primary { color: #f7f3ea; }
-html.dark .text-text-secondary { color: #ded6c8; }
-html.dark .text-text-muted { color: #afa595; }
-html.dark header { background-color: rgba(37, 34, 29, 0.95); border-color: #4a4338; }
-html.dark input,
-html.dark textarea,
-html.dark select { background-color: #25221d; color: #f7f3ea; border-color: #4a4338; }
-
 body {
   @apply min-h-screen bg-dark-primary text-text-primary antialiased;
+  background-color: #0d1117;
+  color: #f0f6fc;
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: none;
 }
 
-/* Momentum scrolling for any scrollable panel (modals, sticky lists, the
-   AppShell's main region) — without this, nested overflow containers can
-   feel stuttery/step-y on iOS instead of the native inertial glide. */
+/* Global Semantic Dark Mappings for clean contrast and zero eye strain */
+.bg-white {
+  background-color: #161b22;
+}
+
+.bg-slate-50,
+.bg-slate-100 {
+  background-color: #21262d;
+}
+
+.bg-slate-200 {
+  background-color: #30363d;
+}
+
+.border-slate-100,
+.border-slate-200,
+.border-slate-300 {
+  border-color: #30363d;
+}
+
+.hover\:bg-slate-50:hover,
+.hover\:bg-slate-100:hover {
+  background-color: #21262d;
+}
+
+.hover\:bg-slate-200:hover {
+  background-color: #30363d;
+}
+
+.hover\:border-slate-200:hover,
+.hover\:border-slate-300:hover,
+.hover\:border-slate-400:hover {
+  border-color: #484f58;
+}
+
+.text-slate-900,
+.text-slate-950,
+.text-slate-800,
+.text-slate-700 {
+  color: #f0f6fc;
+}
+
+/* Text on brand gold buttons/badges must be crisp dark for 12:1 WCAG AAA readability */
+.bg-brand-gold,
+.bg-brand-gold .text-slate-950,
+.bg-brand-gold.text-slate-950,
+[class*="bg-brand-gold"] .text-slate-950,
+[class*="bg-brand-gold"].text-slate-950,
+button.bg-brand-gold,
+a.bg-brand-gold {
+  color: #010409 !important;
+}
+
+.text-slate-600,
+.text-slate-500 {
+  color: #9198a1;
+}
+
+.text-slate-400 {
+  color: #8b949e;
+}
+
+header {
+  background-color: rgba(22, 27, 34, 0.92);
+  border-color: #30363d;
+}
+
+input,
+textarea,
+select {
+  background-color: #0d1117;
+  color: #f0f6fc;
+  border-color: #30363d;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #8b949e;
+}
+
+/* Scrollbar customization for dark theme */
+* {
+  scrollbar-color: #30363d #0d1117;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #0d1117;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #484f58;
+}
+
+/* Momentum scrolling for any scrollable panel */
 .overflow-y-auto,
 .overflow-auto,
 .overflow-x-auto {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Hides the scrollbar on horizontally-scrolling chip/pill rows — the
-   scroll gesture still works, it just doesn't need a visible track on
-   what's meant to read as a swipeable strip, not a document to scroll. */
+/* Hides the scrollbar on horizontally-scrolling chip/pill rows */
 .no-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -116,65 +189,61 @@ body {
 
 /*
  * Role-accent system: authenticated shells (AppShell) tag their root
- * element with data-role="buyer" | "seller" | "admin". Shared components
- * read the resulting --role/--role-soft custom properties instead of a
- * color prop threaded through every page. Buyer and seller both render the
- * brand gold from the logo (BRAND.accent in Logo.tsx) — one consistent
- * identity color across the whole logged-in app, not a per-role palette.
+ * element with data-role="buyer" | "seller" | "admin".
  */
 [data-role="buyer"] {
-  --role: 200 134 10; /* brand gold (#C8860A) — matches the logo mark */
-  --role-soft: 248 240 226; /* warm gold-tinted cream */
-  --role-dark: 169 119 6; /* brand-gold-dark (#A97706) — AA-passing text/fill for white-on-role and role-on-role-soft pairings, which fail at the lighter --role */
+  --role: 245 158 11; /* brand gold (#F59E0B) — vibrant on dark */
+  --role-soft: 33 38 45; /* dark surface (#21262D) */
+  --role-dark: 251 191 36; /* luminous gold text (#FBBF24) */
 }
 
 [data-role="seller"] {
-  --role: 200 134 10; /* brand gold (#C8860A) — matches the logo mark */
-  --role-soft: 248 240 226; /* warm gold-tinted cream */
-  --role-dark: 169 119 6; /* brand-gold-dark (#A97706) */
+  --role: 245 158 11; /* brand gold (#F59E0B) */
+  --role-soft: 33 38 45; /* dark surface (#21262D) */
+  --role-dark: 251 191 36; /* luminous gold text (#FBBF24) */
 }
 
 [data-role="admin"] {
-  --role: 51 65 85; /* slate-700 */
-  --role-soft: 241 245 249; /* slate-100 */
-  --role-dark: 51 65 85; /* slate-700 already passes AA at both weights, so it doesn't need a separate dark value */
+  --role: 88 166 255; /* #58A6FF */
+  --role-soft: 33 38 45; /* #21262D */
+  --role-dark: 121 192 255; /* #79C0FF */
 }
 
 .text-role {
-  color: rgb(var(--role, 37 99 235));
+  color: rgb(var(--role, 245 158 11));
 }
 
 .text-role-dark {
-  color: rgb(var(--role-dark, 29 78 216));
+  color: rgb(var(--role-dark, 251 191 36));
 }
 
 .bg-role {
-  background-color: rgb(var(--role, 37 99 235));
+  background-color: rgb(var(--role, 245 158 11));
 }
 
 .bg-role-dark {
-  background-color: rgb(var(--role-dark, 29 78 216));
+  background-color: rgb(var(--role-dark, 251 191 36));
 }
 
 .bg-role-soft {
-  background-color: rgb(var(--role-soft, 239 246 255));
+  background-color: rgb(var(--role-soft, 33 38 45));
 }
 
 .border-role {
-  border-color: rgb(var(--role, 37 99 235));
+  border-color: rgb(var(--role, 245 158 11));
 }
 
 .border-role-dark {
-  border-color: rgb(var(--role-dark, 29 78 216));
+  border-color: rgb(var(--role-dark, 251 191 36));
 }
 
 .btn-role-primary {
-  @apply btn-base text-white active:scale-95 shadow-md hover:shadow-lg;
-  background-color: rgb(var(--role-dark, 29 78 216));
+  @apply btn-base text-slate-950 font-bold active:scale-95 shadow-md hover:shadow-lg;
+  background-color: rgb(var(--role, 245 158 11));
 }
 
 .btn-role-primary:hover {
-  background-color: rgb(var(--role-dark, 29 78 216) / 0.9);
+  background-color: rgb(var(--role, 245 158 11) / 0.9);
 }
 
 /* Remove default focus outline; use custom ring-based focus */
@@ -200,9 +269,21 @@ select {
   @apply relative inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
-/* Light "paper" panel for print/public-facing pages (receipts, public store preview) */
+/* Elevated panel for cards, receipts, and public views */
 @utility app-panel {
-  @apply bg-surface text-surface-foreground rounded-lg border border-slate-200 shadow-sm;
+  @apply bg-dark-card text-text-primary rounded-2xl border border-dark-accent shadow-card;
+}
+
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+  .app-panel {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border-color: #e2e8f0 !important;
+  }
 }
 
 @utility badge {
@@ -222,15 +303,13 @@ select {
 
   /* Loading skeleton */
   .skeleton {
-    @apply animate-pulse rounded bg-black/[0.06];
+    @apply animate-pulse rounded bg-white/[0.08];
   }
 }
 
-/* Colored "glow" shadow — used on hover-lift cards instead of a neutral
-   gray shadow, so the lift reads as brand-tinted depth rather than a
-   generic elevation change. */
+/* Colored "glow" shadow — used on hover-lift cards */
 @utility shadow-glow-gold {
-  box-shadow: 0 12px 28px -8px rgba(200, 134, 10, 0.32);
+  box-shadow: 0 12px 28px -8px rgba(245, 158, 11, 0.32);
 }
 
 /* Accessibility: Reduce motion for users who prefer it */

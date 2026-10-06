@@ -115,33 +115,33 @@ export default function ReceiptPage() {
   const isCleared = order.status === "cleared";
 
   return (
-    <main className="min-h-screen bg-surface px-4 py-8">
+    <main className="min-h-screen bg-dark-primary px-4 py-8">
       <div className="mx-auto mb-4 flex max-w-md justify-end gap-2 no-print">
         <button
           onClick={handleDownload}
           disabled={downloading}
-          className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="flex cursor-pointer items-center gap-2 rounded-xl border border-dark-accent bg-dark-card px-4 py-2.5 text-sm font-bold text-text-primary hover:bg-dark-tertiary transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <Download size={16} />
           {downloading ? "Preparing…" : "Download"}
         </button>
       </div>
 
-      <article ref={articleRef} className="app-panel mx-auto max-w-md overflow-hidden rounded-lg print:shadow-none">
+      <article ref={articleRef} className="app-panel mx-auto max-w-md overflow-hidden rounded-2xl print:shadow-none">
         {/* The seller is who this receipt is actually from — a buyer paid
             their shop, not Nyakizu — so the seller's store name leads here,
             the way a shop's own name leads a supermarket receipt. */}
         <header className="bg-brand-gold px-6 py-5">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="truncate text-base font-black text-white">
+              <p className="truncate text-base font-extrabold text-slate-950">
                 {order.seller_store_name || "Seller"}
               </p>
-              <span className="text-xs font-bold uppercase tracking-wide text-white/80">
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-950/80">
                 Digital Receipt
               </span>
             </div>
-            <Logo size="sm" accent="#FFFFFF" inverted className="shrink-0" />
+            <Logo size="sm" accent="#010409" className="shrink-0" />
           </div>
         </header>
 

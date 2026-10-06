@@ -41,7 +41,7 @@ export function ProfileMenu({ user, onLogout }: ProfileMenuProps) {
         onClick={() => setOpen((v) => !v)}
         aria-label="Account menu"
         aria-expanded={open}
-        className="flex items-center gap-1.5 rounded-full pl-1 pr-2 py-1 hover:bg-slate-100 transition-colors cursor-pointer"
+        className="flex items-center gap-1.5 rounded-full pl-1 pr-2 py-1 hover:bg-dark-tertiary transition-colors cursor-pointer"
       >
         <Avatar name={displayName} imageUrl={user.avatar_url} size="xl" />
         <ChevronDown
@@ -52,8 +52,8 @@ export function ProfileMenu({ user, onLogout }: ProfileMenuProps) {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-100 bg-white shadow-2xl z-50 overflow-hidden animate-scale-in">
-          <div className="flex items-center gap-3 px-4 py-3.5 border-b border-slate-100">
+        <div className="absolute left-0 top-full mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-dark-accent bg-dark-card shadow-2xl z-50 overflow-hidden animate-scale-in text-text-primary">
+          <div className="flex items-center gap-3 px-4 py-3.5 border-b border-dark-accent">
             <Avatar name={displayName} imageUrl={user.avatar_url} size="xl" />
             <div className="min-w-0">
               <p className="text-body font-bold text-text-primary truncate">{displayName}</p>
@@ -66,7 +66,7 @@ export function ProfileMenu({ user, onLogout }: ProfileMenuProps) {
               <Link
                 href={accountHref}
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-2.5 px-4 py-2.5 text-body font-medium text-text-secondary hover:bg-slate-50 hover:text-text-primary transition-colors"
+                className="flex items-center gap-2.5 px-4 py-2.5 text-body font-medium text-text-secondary hover:bg-dark-tertiary hover:text-text-primary transition-colors"
               >
                 <UserIcon size={16} aria-hidden="true" /> Account details
               </Link>

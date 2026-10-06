@@ -54,7 +54,7 @@ export function HelpContent() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-text-primary">
+    <div className="min-h-screen bg-dark-primary text-text-primary">
       <LandingHeader />
 
       <Section spacing="lg" className="pt-32 sm:pt-40">
@@ -89,10 +89,10 @@ export function HelpContent() {
                   placeholder="e.g. amani@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="flex-1 h-12 bg-white w-full"
+                  className="flex-1 h-12 bg-dark-deepest border-dark-accent w-full"
                   required
                 />
-                <Button type="submit" loading={sending} className="h-12 sm:w-auto w-full">
+                <Button type="submit" loading={sending} className="h-12 sm:w-auto w-full bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-bold">
                   {sending ? "Sending…" : "Resend email"}
                 </Button>
               </form>
@@ -105,12 +105,12 @@ export function HelpContent() {
           </div>
 
           {/* Trouble signing in */}
-          <div className="rounded-2xl border border-dark-accent bg-white p-6 sm:p-8 mb-6">
+          <div className="rounded-2xl border border-dark-accent bg-dark-secondary p-6 sm:p-8 mb-6">
             <h2 className="text-xl font-bold text-text-primary">Trouble signing in?</h2>
             <p className="mt-1.5 text-text-secondary leading-relaxed">
               Forgot your password, or your account seems stuck? We do not have an automatic password reset yet.
               Email us at{" "}
-              <a href={`mailto:${SUPPORT_EMAIL}`} className="font-semibold text-brand-gold-dark underline underline-offset-2">
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="font-semibold text-brand-gold underline underline-offset-2">
                 {SUPPORT_EMAIL}
               </a>{" "}
               and we will get you back in.
@@ -122,7 +122,7 @@ export function HelpContent() {
             <h2 className="text-xl font-bold text-text-primary mb-4">Common questions</h2>
             <div className="divide-y divide-dark-accent rounded-2xl border border-dark-accent overflow-hidden">
               {FAQS.map(({ q, a }) => (
-                <div key={q} className="bg-white p-5 sm:p-6">
+                <div key={q} className="bg-dark-card p-5 sm:p-6">
                   <p className="font-bold text-text-primary">{q}</p>
                   <p className="mt-1.5 text-text-secondary leading-relaxed">{a}</p>
                 </div>
@@ -131,12 +131,12 @@ export function HelpContent() {
           </div>
 
           {/* Contact */}
-          <div className="rounded-2xl bg-text-primary p-6 sm:p-8 text-center">
-            <h2 className="text-xl font-bold text-white">Still stuck?</h2>
-            <p className="mt-1.5 text-white/70">Email us and a real person will help you.</p>
+          <div className="rounded-2xl bg-dark-secondary border border-dark-accent p-6 sm:p-8 text-center">
+            <h2 className="text-xl font-bold text-text-primary">Still stuck?</h2>
+            <p className="mt-1.5 text-text-secondary">Email us and a real person will help you.</p>
             <a
               href={`mailto:${SUPPORT_EMAIL}`}
-              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand-gold hover:bg-brand-gold-dark text-text-primary font-bold px-6 py-3 transition-colors"
+              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-bold px-6 py-3 transition-colors"
             >
               <Mail className="w-4 h-4" aria-hidden="true" />
               {SUPPORT_EMAIL}

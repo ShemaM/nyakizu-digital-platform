@@ -30,16 +30,16 @@ export function CopyStoreLink({ url, shareText }: CopyStoreLinkProps) {
           navigator.clipboard?.writeText(url);
           toast("Store link copied.", "success");
         }}
-        className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left transition hover:border-slate-300 hover:bg-slate-100"
+        className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-dark-accent bg-dark-deepest px-3 py-2 text-left transition hover:border-brand-gold/40 hover:bg-dark-tertiary"
       >
-        <p className="min-w-0 flex-1 truncate font-mono text-caption text-slate-500">{url}</p>
-        <Copy size={14} className="shrink-0 text-slate-400" />
+        <p className="min-w-0 flex-1 truncate font-mono text-caption text-text-secondary">{url}</p>
+        <Copy size={14} className="shrink-0 text-text-muted" />
       </button>
       <button
         type="button"
         onClick={handleShare}
         aria-label="Share store link"
-        className="shrink-0 flex items-center justify-center w-10 h-10 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 transition hover:border-slate-300 hover:bg-slate-100"
+        className="shrink-0 flex items-center justify-center w-10 h-10 rounded-xl border border-dark-accent bg-dark-deepest text-text-secondary transition hover:border-brand-gold/40 hover:bg-dark-tertiary hover:text-text-primary"
       >
         <Share2 size={15} />
       </button>

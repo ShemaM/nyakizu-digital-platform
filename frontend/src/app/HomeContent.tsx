@@ -189,7 +189,7 @@ export function HomeContent() {
                   <span className="w-3 h-3 rounded-full bg-[#FF5F56] inline-block" />
                   <span className="w-3 h-3 rounded-full bg-[#FFBD2E] inline-block" />
                   <span className="w-3 h-3 rounded-full bg-[#27C93F] inline-block" />
-                  <span className="text-xs text-text-muted font-mono ml-2 hidden sm:inline">nyakizu.app</span>
+                  <span className="text-xs text-text-muted font-mono ml-2 hidden sm:inline">nyakizudigital.me</span>
                 </div>
 
                 {/* Real Account Switcher Tabs */}

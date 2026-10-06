@@ -26,7 +26,7 @@ export function DualPhoneMockup() {
         <PhoneMockup>
           <SellerScreenPreview />
         </PhoneMockup>
-        <PhoneLabel label="Seller Dashboard" />
+        <PhoneLabel label="Sample Seller (Sample Shop · Nairobi)" />
       </motion.div>
 
       <motion.div
@@ -38,7 +38,7 @@ export function DualPhoneMockup() {
         <PhoneMockup>
           <BuyerScreenPreview />
         </PhoneMockup>
-        <PhoneLabel label="Buyer Dashboard" />
+        <PhoneLabel label="Sample Buyer (Kim Dreadlocks Kitengela)" />
       </motion.div>
     </div>
   );

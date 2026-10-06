@@ -12,10 +12,10 @@ import { Button } from "@/components/ui/Button";
 import { Container, Section, LandingHeader, LandingFooter } from "@/components/layouts";
 
 export function PricingContent() {
-  const [sliderCartonValue, setSliderCartonValue] = useState<number>(24000);
+  const [sliderCartonValue, setSliderCartonValue] = useState<number>(10000);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
-  // KSh 50 minimum to KSh 100 maximum cap
+  // KSh 50 minimum to KSh 100 maximum cap (capped at KSh 20,000 max order size)
   const computedFee = Math.min(100, Math.max(50, Math.round((sliderCartonValue * 0.005) / 5) * 5));
   const effectivePercentage = ((computedFee / sliderCartonValue) * 100).toFixed(2);
 
@@ -26,7 +26,7 @@ export function PricingContent() {
   const PRICING_FAQS = [
     {
       q: "Why did you replace monthly subscriptions with a pay-per-order fee?",
-      a: "Fixed subscriptions (like KSh 1,500 every month) punish wholesalers during quiet trading periods or election seasons when shipments drop. Pay-per-order ensures you only pay when you make real money. If you pack 1 carton, you pay KSh 50. If you pack a huge KSh 80,000 carton, the fee is capped at only KSh 100. If you don't pack, you pay zero.",
+      a: "Fixed subscriptions (like KSh 1,500 every month) punish wholesalers during quiet trading periods or election seasons when shipments drop. Pay-per-order ensures you only pay when you make real money. If you pack 1 carton, you pay KSh 50. Even for the maximum order of KSh 20,000, the fee is strictly capped at only KSh 100. If you don't pack, you pay zero.",
     },
     {
       q: "Do retail buyers or hawkers in Mombasa, Kisumu, or other towns pay anything?",
@@ -98,25 +98,25 @@ export function PricingContent() {
                     KSh {sliderCartonValue.toLocaleString()}
                   </span>
                 </label>
-                <span className="text-xs text-text-muted">KSh 2,000 to KSh 80,000+</span>
+                <span className="text-xs text-text-muted">KSh 1,000 to KSh 20,000 (Maximum order size)</span>
               </div>
 
               <input
                 id="pricing-slider"
                 type="range"
-                min={2000}
-                max={80000}
-                step={1000}
+                min={1000}
+                max={20000}
+                step={500}
                 value={sliderCartonValue}
                 onChange={(e) => setSliderCartonValue(Number(e.target.value))}
                 className="w-full h-3 bg-dark-secondary rounded-lg appearance-none cursor-pointer accent-brand-gold focus:outline-none"
               />
 
-              <div className="flex justify-between text-xs text-text-muted mt-2">
-                <span>KSh 2,000</span>
-                <span>KSh 25,000</span>
-                <span>KSh 50,000</span>
-                <span>KSh 80,000+</span>
+              <div className="flex justify-between text-xs text-text-muted mt-2 font-mono">
+                <span>KSh 1,000</span>
+                <span>KSh 5,000</span>
+                <span>KSh 10,000</span>
+                <span>KSh 20,000 (Max)</span>
               </div>
             </div>
 

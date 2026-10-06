@@ -22,6 +22,9 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Container, Section, LandingHeader, LandingFooter } from "@/components/layouts";
 import CommunityActivity from "@/components/landing/CommunityActivity";
+import { PhoneMockup } from "@/components/landing/PhoneMockup";
+import { SellerScreenPreview, BuyerScreenPreview } from "@/components/landing/DashboardPreviews";
+import { DualPhoneMockup } from "@/components/landing/DualPhoneMockup";
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 16 },
@@ -30,16 +33,16 @@ const fadeUp: Variants = {
 
 export function HomeContent() {
   // --- Section 1 Hero: Real Screenshot Showcase Tab State ---
-  const [activeMockupTab, setActiveMockupTab] = useState<"seller" | "pipeline" | "buyer">("seller");
+  const [activeMockupTab, setActiveMockupTab] = useState<"seller" | "pipeline" | "buyer" | "both">("seller");
 
   // --- Section 3: Before vs After Toggle State ---
   const [comparisonMode, setComparisonMode] = useState<"nyakizu" | "analog">("nyakizu");
 
   // --- Section 5: Hostinger-Style Interactive Pricing Calculator State ---
-  const [orderValue, setOrderValue] = useState<number>(24000);
+  const [orderValue, setOrderValue] = useState<number>(10000);
 
   // Real backend fee formula (FeeSchedule):
-  // 0.5% rate, rounded to nearest KES 5, clamped between KES 50 min and KES 100 max
+  // 0.5% rate, rounded to nearest KES 5, clamped between KES 50 min and KES 100 max (cap reached at KES 20,000 maximum order size)
   const computedFee = Math.min(100, Math.max(50, Math.round((orderValue * 0.005) / 5) * 5));
   const effectivePercentage = ((computedFee / orderValue) * 100).toFixed(2);
 
@@ -53,7 +56,7 @@ export function HomeContent() {
   const FAQS = [
     {
       q: "Why do wholesalers pay KSh 50 to KSh 100 per order instead of a monthly subscription?",
-      a: "Fixed monthly subscriptions (like KSh 1,500/month) drain your cash even during slow weeks or quiet shipping days. With Nyakizu, you only pay when you actually pack and lock a carton. Small orders pay KSh 50; large orders (even KSh 80,000+) are strictly capped at KSh 100 max. If you don't pack, you pay zero.",
+      a: "Fixed monthly subscriptions (like KSh 1,500/month) drain your cash even during slow weeks or quiet shipping days. With Nyakizu, you only pay when you actually pack and lock a carton. Small orders pay KSh 50; larger orders up to the KSh 20,000 maximum order size are strictly capped at KSh 100 max. If you don't pack, you pay zero.",
     },
     {
       q: "Do retail buyers, stall owners, and hawkers across Kenya have to pay anything?",
@@ -200,8 +203,8 @@ export function HomeContent() {
                   <span className="text-xs text-slate-400 font-mono ml-2 hidden sm:inline">nyakizu.app</span>
                 </div>
 
-                {/* Screenshot Switcher Tabs */}
-                <div className="flex items-center gap-1 bg-[#0F1222] p-1 rounded-xl border border-white/10">
+                {/* Real Account Switcher Tabs */}
+                <div className="flex flex-wrap items-center gap-1 bg-[#0F1222] p-1 rounded-xl border border-white/10">
                   <button
                     type="button"
                     onClick={() => setActiveMockupTab("seller")}
@@ -211,7 +214,7 @@ export function HomeContent() {
                         : "text-slate-400 hover:text-white"
                     }`}
                   >
-                    Wholesaler Dashboard (Bizoza)
+                    Sample Seller (Sample Shop)
                   </button>
                   <button
                     type="button"
@@ -233,88 +236,197 @@ export function HomeContent() {
                         : "text-slate-400 hover:text-white"
                     }`}
                   >
-                    Buyer Dashboard (Kamikazi)
+                    Sample Buyer (Kim Dreadlocks)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveMockupTab("both")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      activeMockupTab === "both"
+                        ? "bg-brand-gold text-slate-950 shadow-md font-black"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    Dual Phone View
                   </button>
                 </div>
 
                 <div className="hidden md:flex items-center gap-1.5 text-xs text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" /> Real App Screens
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" /> Real Verified Accounts
                 </div>
               </div>
 
-              {/* Viewport: Actual Screenshot Display */}
-              <div className="relative aspect-[16/10] sm:aspect-[16/9] w-full bg-[#0B0D18] overflow-hidden group">
+              {/* Viewport: Actual Dashboard & Real Pipeline Display */}
+              <div className="relative min-h-[480px] sm:min-h-[520px] w-full bg-[#0B0D18] overflow-hidden group flex items-center justify-center">
                 {activeMockupTab === "seller" && (
-                  <div className="relative w-full h-full">
-                    <Image
-                      src="/images/seller-dashboard-desktop.png"
-                      alt="Actual Nyakizu Seller Dashboard — Bizoza Phone Accessories on Luthuli Avenue"
-                      fill
-                      priority
-                      className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.01]"
-                    />
-                    {/* Floating Info Overlay Pill */}
-                    <div className="absolute bottom-4 left-4 right-4 sm:right-auto sm:max-w-md bg-slate-950/90 backdrop-blur-md border border-white/20 p-3 sm:p-4 rounded-2xl shadow-xl flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0">
-                        <Store className="w-5 h-5" />
+                  <div className="w-full p-4 sm:p-8 flex flex-col lg:flex-row items-center justify-center gap-6 sm:gap-10 bg-gradient-to-b from-[#0B0E20] to-[#080A15]">
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.96 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3 }}
+                      className="relative shrink-0"
+                    >
+                      <div className="absolute inset-0 bg-brand-gold/20 rounded-full blur-2xl pointer-events-none" />
+                      <PhoneMockup className="w-[190px] sm:w-[210px] lg:w-[230px]">
+                        <SellerScreenPreview />
+                      </PhoneMockup>
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: 0.08 }}
+                      className="max-w-md space-y-4 text-left"
+                    >
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-gold/15 border border-brand-gold/30 text-brand-gold text-xs font-black">
+                        <Store className="w-3.5 h-3.5" /> Verified Wholesale Supplier
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-extrabold text-white">Bizoza Phone Accessories &middot; Luthuli Ave</p>
-                        <p className="text-[11px] text-slate-300 truncate">
-                          2 New Orders &middot; 1 Buyer Request &middot; KES 13,600 Money Owed
-                        </p>
+                      <div>
+                        <h3 className="text-xl sm:text-2xl font-black text-white">Sample Shop &middot; Nairobi CBD</h3>
+                        <p className="text-xs font-mono text-slate-400 mt-0.5">shemanzabakamira@gmail.com</p>
                       </div>
-                    </div>
+
+                      <div className="grid grid-cols-3 gap-2 py-1">
+                        <div className="bg-[#141830] border border-white/10 rounded-xl p-3 text-center">
+                          <p className="text-lg font-black text-white">5</p>
+                          <p className="text-[10px] text-slate-400 font-bold">Total Orders</p>
+                        </div>
+                        <div className="bg-[#141830] border border-brand-gold/30 rounded-xl p-3 text-center">
+                          <p className="text-lg font-black text-brand-gold">13.2K</p>
+                          <p className="text-[10px] text-brand-gold font-bold">KES Volume</p>
+                        </div>
+                        <div className="bg-[#141830] border border-white/10 rounded-xl p-3 text-center">
+                          <p className="text-lg font-black text-white">11</p>
+                          <p className="text-[10px] text-slate-400 font-bold">Products</p>
+                        </div>
+                      </div>
+
+                      <div className="bg-[#141830]/80 border border-white/10 rounded-xl p-3.5 space-y-2 text-xs text-slate-300">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Ledger balance:</span>
+                          <span className="text-emerald-400 font-bold flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> All paid up (KES 0 debt)
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Real catalog items:</span>
+                          <span className="text-white font-medium">A2 Silicon (KES 120), Hot 8 (KES 34)</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Order fee:</span>
+                          <span className="text-brand-gold font-black">KSh 50 &ndash; 100 per carton (Max 20k)</span>
+                        </div>
+                      </div>
+
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        Actual live dashboard for Sample Shop on Luthuli Avenue. Wholesalers track catalog stock, check off items as they pack, and lock cartons with 1 tap.
+                      </p>
+                    </motion.div>
                   </div>
                 )}
 
                 {activeMockupTab === "pipeline" && (
-                  <div className="relative w-full h-full flex items-center justify-center p-2 sm:p-4 bg-[#090B14]">
-                    <div className="relative w-full h-full max-w-4xl">
+                  <div className="w-full p-3 sm:p-6 bg-[#090B14] flex flex-col items-center justify-center">
+                    <div className="relative w-full max-w-4xl aspect-[16/10] sm:aspect-[16/9] max-h-[460px]">
                       <Image
                         src="/images/order-pipeline.png"
                         alt="Actual Nyakizu Order Pipeline — Pending, Packing, Awaiting Payment, and Completed stages"
                         fill
                         priority
-                        className="object-contain transition-transform duration-500 group-hover:scale-[1.01]"
+                        className="object-contain rounded-xl shadow-2xl transition-transform duration-500 group-hover:scale-[1.01]"
                       />
                     </div>
                     {/* Floating Info Overlay Pill */}
-                    <div className="absolute bottom-4 left-4 right-4 sm:right-auto sm:max-w-md bg-slate-950/90 backdrop-blur-md border border-white/20 p-3 sm:p-4 rounded-2xl shadow-xl flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-brand-gold/20 text-brand-gold flex items-center justify-center shrink-0">
-                        <Layers className="w-5 h-5" />
+                    <div className="mt-4 max-w-2xl w-full bg-slate-950/90 backdrop-blur-md border border-white/20 p-3 sm:p-4 rounded-2xl shadow-xl flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-brand-gold/20 text-brand-gold flex items-center justify-center shrink-0">
+                          <Layers className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs sm:text-sm font-extrabold text-white">4-Stage Live Workflow Pipeline</p>
+                          <p className="text-[11px] sm:text-xs text-slate-300 truncate">
+                            Pending (2) &rarr; Packing (1) &rarr; Awaiting Payment (2) &rarr; Completed (8) &middot; Real backend orders
+                          </p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-extrabold text-white">4-Stage Workflow Pipeline</p>
-                        <p className="text-[11px] text-slate-300">
-                          Pending (2) &rarr; Packing (1) &rarr; Awaiting Payment (2) &rarr; Completed (8)
-                        </p>
-                      </div>
+                      <span className="hidden sm:inline-block text-xs font-mono text-brand-gold font-bold">
+                        Max order: KSh 20,000
+                      </span>
                     </div>
                   </div>
                 )}
 
                 {activeMockupTab === "buyer" && (
-                  <div className="relative w-full h-full">
-                    <Image
-                      src="/images/buyer-dashboard-desktop.png"
-                      alt="Actual Nyakizu Buyer Dashboard — Kamikazi order tracking"
-                      fill
-                      priority
-                      className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.01]"
-                    />
-                    {/* Floating Info Overlay Pill */}
-                    <div className="absolute bottom-4 left-4 right-4 sm:right-auto sm:max-w-md bg-slate-950/90 backdrop-blur-md border border-white/20 p-3 sm:p-4 rounded-2xl shadow-xl flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
-                        <ShoppingBag className="w-5 h-5" />
+                  <div className="w-full p-4 sm:p-8 flex flex-col lg:flex-row items-center justify-center gap-6 sm:gap-10 bg-gradient-to-b from-[#0B0E20] to-[#080A15]">
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.96 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3 }}
+                      className="relative shrink-0"
+                    >
+                      <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-2xl pointer-events-none" />
+                      <PhoneMockup className="w-[190px] sm:w-[210px] lg:w-[230px]">
+                        <BuyerScreenPreview />
+                      </PhoneMockup>
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: 0.08 }}
+                      className="max-w-md space-y-4 text-left"
+                    >
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-black">
+                        <ShoppingBag className="w-3.5 h-3.5" /> Verified Countrywide Buyer
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-extrabold text-white">Kamikazi Buyer Dashboard</p>
-                        <p className="text-[11px] text-slate-300 truncate">
-                          3 Active Orders &middot; Order #10 (KES 58,750) &middot; Order #12 (KES 16,600)
-                        </p>
+                      <div>
+                        <h3 className="text-xl sm:text-2xl font-black text-white">Kim Dreadlocks Kitengela</h3>
+                        <p className="text-xs font-mono text-slate-400 mt-0.5">kimdreadlockskitengela@gmail.com</p>
                       </div>
-                    </div>
+
+                      <div className="grid grid-cols-3 gap-2 py-1">
+                        <div className="bg-[#141830] border border-emerald-500/30 rounded-xl p-3 text-center">
+                          <p className="text-lg font-black text-emerald-400">KSh 0</p>
+                          <p className="text-[10px] text-slate-400 font-bold">Buyer Fee</p>
+                        </div>
+                        <div className="bg-[#141830] border border-blue-500/30 rounded-xl p-3 text-center">
+                          <p className="text-lg font-black text-blue-400">KES 154</p>
+                          <p className="text-[10px] text-blue-300 font-bold">Current Order</p>
+                        </div>
+                        <div className="bg-[#141830] border border-white/10 rounded-xl p-3 text-center">
+                          <p className="text-lg font-black text-white">2</p>
+                          <p className="text-[10px] text-slate-400 font-bold">Items in Cart</p>
+                        </div>
+                      </div>
+
+                      <div className="bg-[#141830]/80 border border-white/10 rounded-xl p-3.5 space-y-2 text-xs text-slate-300">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Approved supplier:</span>
+                          <span className="text-brand-gold font-bold">Sample Shop (Nairobi CBD)</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Order contents:</span>
+                          <span className="text-white font-medium">1x A2 Cover + 1x Hot 8 Protector</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Platform cost:</span>
+                          <span className="text-emerald-400 font-bold">100% Free Forever for Buyers</span>
+                        </div>
+                      </div>
+
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        Actual buyer dashboard for Kim Dreadlocks Kitengela. Countrywide retail shopkeepers and hawkers browse approved Nairobi wholesaler catalogs and submit orders with zero fees.
+                      </p>
+                    </motion.div>
+                  </div>
+                )}
+
+                {activeMockupTab === "both" && (
+                  <div className="w-full p-6 sm:p-10 bg-gradient-to-b from-[#0B0E20] to-[#080A15] flex flex-col items-center justify-center">
+                    <DualPhoneMockup />
+                    <p className="text-xs text-slate-400 text-center mt-6 max-w-lg">
+                      Both verified accounts running simultaneously: Sample Shop (Wholesale Seller in Nairobi CBD) and Kim Dreadlocks Kitengela (Retail Buyer countrywide).
+                    </p>
                   </div>
                 )}
               </div>
@@ -729,25 +841,25 @@ export function HomeContent() {
                     KSh {orderValue.toLocaleString()}
                   </span>
                 </label>
-                <span className="text-xs text-slate-400">Min KSh 2,000 &mdash; Max KSh 80,000+</span>
+                <span className="text-xs text-slate-400">Min KSh 1,000 &mdash; Max KSh 20,000 (Maximum order size)</span>
               </div>
 
               <input
                 id="order-value-slider"
                 type="range"
-                min={2000}
-                max={80000}
-                step={1000}
+                min={1000}
+                max={20000}
+                step={500}
                 value={orderValue}
                 onChange={(e) => setOrderValue(Number(e.target.value))}
                 className="w-full h-3 bg-[#1B203C] rounded-lg appearance-none cursor-pointer accent-brand-gold focus:outline-none"
               />
 
               <div className="flex justify-between text-xs text-slate-400 mt-2 font-mono">
-                <span>KSh 2,000</span>
-                <span>KSh 25,000</span>
-                <span>KSh 50,000</span>
-                <span>KSh 80,000+</span>
+                <span>KSh 1,000</span>
+                <span>KSh 5,000</span>
+                <span>KSh 10,000</span>
+                <span>KSh 20,000 (Max)</span>
               </div>
             </div>
 
@@ -780,7 +892,7 @@ export function HomeContent() {
             </div>
 
             <p className="text-xs text-slate-400 text-center mt-6">
-              * The fee is strictly capped at KSh 100 maximum, no matter how valuable the carton is. That is less than the margin on a single phone screen protector.
+              * The fee is strictly capped at KSh 100 maximum for all orders up to KSh 20,000 (maximum order size). That is less than the margin on a single phone screen protector.
             </p>
           </div>
 

@@ -1,7 +1,7 @@
 import "@/app/globals.css";
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
-import { Inter, Bricolage_Grotesque } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { MotionConfig } from "motion/react";
 import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/lib/auth-context";
@@ -11,17 +11,10 @@ import { PWARegister } from "@/components/PWARegister";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { SITE_URL, SITE_NAME } from "@/lib/seo";
 
-const inter = Inter({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-sans",
-  display: "swap",
-});
-
-// Wordmark-only display sans — everything else stays on Inter.
-const bricolage = Bricolage_Grotesque({
-  subsets: ["latin"],
-  variable: "--font-display",
-  weight: ["600", "700"],
+  weight: ["400", "500", "600", "700", "800"],
   display: "swap",
 });
 
@@ -139,7 +132,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className={`dark ${inter.variable} ${bricolage.variable}`}>
+    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className={`dark ${jakarta.variable}`}>
       <head>
         <script
           dangerouslySetInnerHTML={{

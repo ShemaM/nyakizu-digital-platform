@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Alert, AlertDescription } from "@/components/ui/Alert";
 import { auth, DJANGO_ADMIN_URL } from "@/lib/api";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 
 export function LoginContent() {
@@ -31,9 +31,9 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
+  const [takingLonger, setTakingLonger] = useState(false);
   const searchParams = useSearchParams();
-  const { setSessionUser } = useAuth();
+  const { user, setSessionUser } = useAuth();
 
   const nextUrl = searchParams.get("next") || "";
   // "/" alone isn't enough — "//evil.example" and "/\evil.example" both pass
@@ -41,37 +41,46 @@ function LoginForm() {
   const isSafeRedirect = (path: string) =>
     path.startsWith("/") && !path.startsWith("//") && !path.startsWith("/\\");
 
-  // Warm up the likely post-login destinations so the redirect after a
-  // successful sign-in doesn't sit on a fresh route compile/fetch — most of
-  // the perceived "slowness" here is that hop, not the login request itself.
+  // If already logged in, navigate straight to their role dashboard
   useEffect(() => {
-    router.prefetch("/buyer");
-    router.prefetch("/seller/dashboard");
-  }, [router]);
+    if (user) {
+      const roleHome = user.role === "seller" ? "/seller/dashboard" : user.role === "admin" ? DJANGO_ADMIN_URL : "/buyer";
+      const redirectTo = isSafeRedirect(nextUrl) ? nextUrl : roleHome;
+      window.location.href = redirectTo;
+    }
+  }, [user, nextUrl]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
+    setTakingLonger(false);
+
+    // If the backend is waking up (e.g. Render free-tier cold start), reassure the user
+    const timer = setTimeout(() => {
+      setTakingLonger(true);
+    }, 2500);
 
     try {
-      const user = await auth.login(identifier, password);
-      setSessionUser(user);
+      const loggedInUser = await auth.login(identifier, password);
+      clearTimeout(timer);
+      setSessionUser(loggedInUser);
 
-      if (user.role === "admin") {
-        // Different origin — a client-side router.push can't take them there.
+      if (loggedInUser.role === "admin") {
         window.location.href = DJANGO_ADMIN_URL;
         return;
       }
 
-      const roleHome = user.role === "seller" ? "/seller/dashboard" : "/buyer";
+      const roleHome = loggedInUser.role === "seller" ? "/seller/dashboard" : "/buyer";
       const redirectTo = isSafeRedirect(nextUrl) ? nextUrl : roleHome;
 
-      router.push(redirectTo);
-      // Deliberately leave `loading` true here — we're navigating away, and
-      // keeping the button in its loading state avoids a flash of "Sign In"
-      // re-enabling for the moment before the next route finishes rendering.
+      // Direct document navigation guarantees the newly minted session cookie is
+      // attached, avoids stale Next.js client router cache from unauthenticated prefetch,
+      // and completely prevents soft-navigation freezes.
+      window.location.href = redirectTo;
     } catch (err) {
+      clearTimeout(timer);
+      setTakingLonger(false);
       setError(err instanceof Error ? err.message : "Sign in did not work. Please try again.");
       setLoading(false);
     }
@@ -143,6 +152,11 @@ function LoginForm() {
             </>
           )}
         </Button>
+        {loading && takingLonger && (
+          <p className="text-center text-xs text-text-muted animate-pulse pt-1">
+            Connecting to server, please hold on…
+          </p>
+        )}
       </form>
 
       <div className="relative">

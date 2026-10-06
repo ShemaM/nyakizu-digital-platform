@@ -82,7 +82,7 @@ Manually attach payment references to orders for reconciliation.
 | Authentication  | JWT-based authentication                       |
 | Offline support | Progressive Web App features and local storage |
 | Notifications   | Nodemailer email notifications                 |
-| Hosting         | Vercel (frontend), Render (backend)            |
+| Hosting         | Vercel (frontend), Heroku (backend)            |
 
 The MVP intentionally avoids direct M-Pesa API integration, public seller discovery, automated stock counting, and advanced analytics to keep the initial scope focused and deliverable within a semester.
 

@@ -13,12 +13,17 @@ SECRET_KEY = config('SECRET_KEY', default='dev-insecure-key-change-in-production
 # deploy running in debug mode with CSRF/HSTS/secure-cookie checks relaxed.
 # Local dev sets DEBUG=True explicitly in backend/.env, so this only changes
 # behavior for the "env var forgotten" case.
-DEBUG      = config('DEBUG', default=False, cast=bool)
+def _safe_bool(val):
+    if isinstance(val, bool):
+        return val
+    return str(val).strip().lower() in ('1', 'true', 't', 'yes', 'y', 'on')
+
+DEBUG      = config('DEBUG', default=False, cast=_safe_bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
 # Automated M-Pesa Daraja top-ups stay disabled until production onboarding,
 # credentials, callbacks, and reconciliation requirements are complete.
-MPESA_DARAJA_ENABLED = config('MPESA_DARAJA_ENABLED', default=False, cast=bool)
+MPESA_DARAJA_ENABLED = config('MPESA_DARAJA_ENABLED', default=False, cast=_safe_bool)
 
 if not DEBUG and SECRET_KEY == 'dev-insecure-key-change-in-production':
     raise ValueError(

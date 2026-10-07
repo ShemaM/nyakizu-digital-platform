@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { CategoryFilter } from "@/components/CategoryFilter";
+import { ProductDetailModal } from "@/components/products/ProductDetailModal";
 import { sellers, products, categories, relationships, type ApiSeller, type ApiProduct, type ApiCategory, type ApiRelationship, fmtKES, ApiError } from "@/lib/api";
 import { CardSkeleton, ListSkeleton } from "@/components/ui/LoadingState";
 import { useToast } from "@/components/ui/Toast";
@@ -343,56 +344,68 @@ export default function StorefrontPage() {
 
 function ProductRow({ product }: { product: ApiProduct }) {
   const [imageFailed, setImageFailed] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   return (
-    <Card>
-      <div className="flex items-start gap-3 p-3">
-        <div className="relative w-10 h-10 rounded-xl bg-violet-50 overflow-hidden flex items-center justify-center shrink-0">
-          {product.image_url && !imageFailed ? (
-            <Image
-              src={product.image_url}
-              alt={product.name}
-              fill
-              unoptimized
-              className="object-cover"
-              onError={() => setImageFailed(true)}
-            />
-          ) : (
-            <Package size={18} className="text-violet-300" />
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm text-text-primary leading-snug">
-            {product.name}
-          </p>
-          {product.description && (
-            <p className="text-xs text-text-secondary mt-0.5 line-clamp-1">
-              {product.description}
+    <>
+      <Card
+        onClick={() => setDetailsOpen(true)}
+        className="cursor-pointer hover:border-role/40 hover:shadow-sm transition-all group"
+      >
+        <div className="flex items-start gap-3 p-3">
+          <div className="relative w-10 h-10 rounded-xl bg-violet-50 overflow-hidden flex items-center justify-center shrink-0">
+            {product.image_url && !imageFailed ? (
+              <Image
+                src={product.image_url}
+                alt={product.name}
+                fill
+                unoptimized
+                className="object-cover transition-transform group-hover:scale-105"
+                onError={() => setImageFailed(true)}
+              />
+            ) : (
+              <Package size={18} className="text-violet-300" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-text-primary leading-snug group-hover:text-role transition-colors">
+              {product.name}
             </p>
-          )}
-          <div className="flex items-center justify-between mt-2 flex-wrap gap-1">
-            <span className="text-sm font-bold text-role">
-              {fmtKES(product.price)}
-            </span>
-            <Badge
-              variant={
-                product.availability_label === "available"
-                  ? "success"
+            {product.description && (
+              <p className="text-xs text-text-secondary mt-0.5 line-clamp-1">
+                {product.description}
+              </p>
+            )}
+            <div className="flex items-center justify-between mt-2 flex-wrap gap-1">
+              <span className="text-sm font-bold text-role">
+                {fmtKES(product.price)}
+              </span>
+              <Badge
+                variant={
+                  product.availability_label === "available"
+                    ? "success"
+                    : product.availability_label === "can_be_sourced"
+                    ? "warning"
+                    : "error"
+                }
+                className="text-xs"
+              >
+                {product.availability_label === "available"
+                  ? "Available"
                   : product.availability_label === "can_be_sourced"
-                  ? "warning"
-                  : "error"
-              }
-              className="text-xs"
-            >
-              {product.availability_label === "available"
-                ? "Available"
-                : product.availability_label === "can_be_sourced"
-                ? "Can be sourced"
-                : "Not available"}
-            </Badge>
+                  ? "Can be sourced"
+                  : "Not available"}
+              </Badge>
+            </div>
           </div>
         </div>
-      </div>
-    </Card>
+      </Card>
+
+      <ProductDetailModal
+        product={product}
+        open={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+      />
+    </>
   );
 }

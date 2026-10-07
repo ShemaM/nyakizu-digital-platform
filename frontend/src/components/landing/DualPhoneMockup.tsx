@@ -6,8 +6,8 @@ import { SellerScreenPreview, BuyerScreenPreview } from "./DashboardPreviews";
 
 function PhoneLabel({ label }: { label: string }) {
   return (
-    <span className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-dark-accent bg-dark-secondary px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-text-secondary shadow-sm">
-      <span className="w-1.5 h-1.5 rounded-full bg-brand-gold" aria-hidden="true" />
+    <span className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-dark-accent/80 bg-dark-secondary/80 px-2.5 py-0.5 text-[11px] font-light font-mono lowercase tracking-normal text-text-muted shadow-sm">
+      <span className="w-1.5 h-1.5 rounded-full bg-brand-gold/80" aria-hidden="true" />
       {label}
     </span>
   );
@@ -26,7 +26,7 @@ export function DualPhoneMockup() {
         <PhoneMockup>
           <SellerScreenPreview />
         </PhoneMockup>
-        <PhoneLabel label="Sample Seller (Sample Shop · Nairobi)" />
+        <PhoneLabel label="sample seller (sample shop · nairobi)" />
       </motion.div>
 
       <motion.div
@@ -38,7 +38,7 @@ export function DualPhoneMockup() {
         <PhoneMockup>
           <BuyerScreenPreview />
         </PhoneMockup>
-        <PhoneLabel label="Sample Buyer (Kim Dreadlocks Kitengela)" />
+        <PhoneLabel label="sample buyer (kim dreadlocks kitengela)" />
       </motion.div>
     </div>
   );

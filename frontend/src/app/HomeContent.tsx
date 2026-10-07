@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { motion, type Variants } from "motion/react";
 import {
@@ -16,7 +15,6 @@ import {
   ShoppingBag,
   TrendingDown,
   Package,
-  Layers,
   Clock,
   Percent,
 } from "lucide-react";
@@ -34,7 +32,7 @@ const fadeUp: Variants = {
 
 export function HomeContent() {
   // --- Section 1 Hero: Real Screenshot Showcase Tab State ---
-  const [activeMockupTab, setActiveMockupTab] = useState<"seller" | "pipeline" | "buyer" | "both">("seller");
+  const [activeMockupTab, setActiveMockupTab] = useState<"seller" | "buyer" | "both">("both");
 
   // --- Section 3: Before vs After Toggle State ---
   const [comparisonMode, setComparisonMode] = useState<"nyakizu" | "analog">("nyakizu");
@@ -139,27 +137,6 @@ export function HomeContent() {
                 <Link href="/pricing">View Pricing &amp; Fees &rarr;</Link>
               </Button>
             </motion.div>
-
-            {/* Four Trust Badges */}
-            <motion.div
-              variants={fadeUp}
-              initial="hidden"
-              animate="show"
-              className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs sm:text-sm text-text-secondary font-semibold"
-            >
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Zero Monthly Subscription
-              </span>
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" /> KSh 50–100 Only When Packed
-              </span>
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Retailers &amp; Hawkers Pay KSh 0
-              </span>
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" /> First 3 Orders 100% Free
-              </span>
-            </motion.div>
           </div>
 
           {/* ======================================================================= */}
@@ -189,47 +166,36 @@ export function HomeContent() {
                 <div className="flex flex-wrap items-center gap-1 bg-dark-tertiary/70 p-1 rounded-xl border border-dark-accent">
                   <button
                     type="button"
-                    onClick={() => setActiveMockupTab("seller")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      activeMockupTab === "seller"
-                        ? "bg-brand-gold text-slate-950 shadow-md font-black"
-                        : "text-text-secondary hover:text-text-primary"
+                    onClick={() => setActiveMockupTab("both")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-mono lowercase transition-all ${
+                      activeMockupTab === "both"
+                        ? "bg-brand-gold text-slate-950 shadow-md font-bold"
+                        : "text-text-secondary hover:text-text-primary font-normal"
                     }`}
                   >
-                    Sample Seller (Sample Shop)
+                    dual phone view
                   </button>
                   <button
                     type="button"
-                    onClick={() => setActiveMockupTab("pipeline")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      activeMockupTab === "pipeline"
-                        ? "bg-brand-gold text-slate-950 shadow-md font-black"
-                        : "text-text-secondary hover:text-text-primary"
+                    onClick={() => setActiveMockupTab("seller")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-mono lowercase transition-all ${
+                      activeMockupTab === "seller"
+                        ? "bg-brand-gold text-slate-950 shadow-md font-bold"
+                        : "text-text-secondary hover:text-text-primary font-normal"
                     }`}
                   >
-                    Live Order Pipeline
+                    sample seller (sample shop)
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveMockupTab("buyer")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-mono lowercase transition-all ${
                       activeMockupTab === "buyer"
-                        ? "bg-brand-gold text-slate-950 shadow-md font-black"
-                        : "text-text-secondary hover:text-text-primary"
+                        ? "bg-brand-gold text-slate-950 shadow-md font-bold"
+                        : "text-text-secondary hover:text-text-primary font-normal"
                     }`}
                   >
-                    Sample Buyer (Kim Dreadlocks)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveMockupTab("both")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      activeMockupTab === "both"
-                        ? "bg-brand-gold text-slate-950 shadow-md font-black"
-                        : "text-text-secondary hover:text-text-primary"
-                    }`}
-                  >
-                    Dual Phone View
+                    sample buyer (kim dreadlocks)
                   </button>
                 </div>
 
@@ -307,37 +273,6 @@ export function HomeContent() {
                   </div>
                 )}
 
-                {activeMockupTab === "pipeline" && (
-                  <div className="w-full p-3 sm:p-6 bg-dark-deepest flex flex-col items-center justify-center">
-                    <div className="relative w-full max-w-4xl aspect-[16/10] sm:aspect-[16/9] max-h-[460px]">
-                      <Image
-                        src="/images/order-pipeline.png"
-                        alt="Actual Nyakizu Order Pipeline — Pending, Packing, Awaiting Payment, and Completed stages"
-                        fill
-                        priority
-                        className="object-contain rounded-xl shadow-2xl transition-transform duration-500 group-hover:scale-[1.01] border border-dark-accent"
-                      />
-                    </div>
-                    {/* Floating Info Overlay Pill */}
-                    <div className="mt-4 max-w-2xl w-full bg-dark-card/95 backdrop-blur-md border border-dark-accent p-3 sm:p-4 rounded-2xl shadow-xl flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-brand-gold/20 text-brand-gold flex items-center justify-center shrink-0">
-                          <Layers className="w-5 h-5" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs sm:text-sm font-extrabold text-text-primary">4-Stage Live Workflow Pipeline</p>
-                          <p className="text-[11px] sm:text-xs text-text-secondary truncate">
-                            Pending (2) &rarr; Packing (1) &rarr; Awaiting Payment (2) &rarr; Completed (8) &middot; Real backend orders
-                          </p>
-                        </div>
-                      </div>
-                      <span className="hidden sm:inline-block text-xs font-mono text-brand-gold font-bold">
-                        Max order: KSh 20,000
-                      </span>
-                    </div>
-                  </div>
-                )}
-
                 {activeMockupTab === "buyer" && (
                   <div className="w-full p-4 sm:p-8 flex flex-col lg:flex-row items-center justify-center gap-6 sm:gap-10 bg-gradient-to-b from-dark-card via-dark-secondary to-dark-card">
                     <motion.div
@@ -406,9 +341,6 @@ export function HomeContent() {
                 {activeMockupTab === "both" && (
                   <div className="w-full p-6 sm:p-10 bg-gradient-to-b from-dark-card via-dark-secondary to-dark-card flex flex-col items-center justify-center">
                     <DualPhoneMockup />
-                    <p className="text-xs text-text-muted text-center mt-6 max-w-lg">
-                      Both verified accounts running simultaneously: Sample Shop (Wholesale Seller in Nairobi CBD) and Kim Dreadlocks Kitengela (Retail Buyer countrywide).
-                    </p>
                   </div>
                 )}
               </div>

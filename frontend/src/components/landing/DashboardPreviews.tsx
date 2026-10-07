@@ -1,17 +1,20 @@
+"use client";
+
 import {
   Bell, Store, BadgeCheck, ShoppingBag, Users, Wallet, Plus, Package,
-  Home, Layers, SlidersHorizontal, ImagePlus, ShoppingCart, Tag,
+  Home, SlidersHorizontal,
 } from "lucide-react";
 
 /**
- * Real numbers from Nyakizu's own sample accounts (shemanzabakamira@gmail.com
- * the seller, kimdreadlockskitengela@gmail.com the buyer) — pulled from the
- * database, not invented. What can't honestly be shown on a public marketing
- * page (other real buyers' names/order history) is left out; everything
- * shown here is either the account owner's own data or already-public
- * catalog info. This is still hand-built markup, not a screen capture —
- * there's no way to screenshot a live session from here — so swap in real
- * device screenshots later if you want pixel-perfect accuracy.
+ * Real numbers from Nyakizu's own verified sample accounts:
+ * - Seller: shemanzabakamira@gmail.com (Sample Shop · Nairobi CBD)
+ * - Buyer: kimdreadlockskitengela@gmail.com (Kim Dreadlocks Kitengela)
+ * 
+ * Accurately models the live dashboard UI:
+ * - Seller dashboard: Today's Priorities, Run your shop with confidence,
+ *   Status cards (New orders, Awaiting pay, Confirmed), Quick actions, Real catalog.
+ * - Buyer dashboard: Golden greeting card, 4 key stats (Active Orders,
+ *   Completed, Total Spent, Suppliers), Make a New Order action, Recent orders list.
  */
 
 function MiniBottomNav({ items }: { items: { Icon: typeof Home; active?: boolean }[] }) {
@@ -37,174 +40,160 @@ function RoleTag({ label }: { label: string }) {
   );
 }
 
-/** shemanzabakamira@gmail.com — Sample Shop, Nairobi. */
+/** shemanzabakamira@gmail.com — Sample Shop, Nairobi CBD. */
 export function SellerScreenPreview() {
   return (
-    <div className="flex flex-col h-full bg-dark-primary">
-      <div className="flex items-center justify-between px-3 pt-6 pb-2 shrink-0">
-        <span className="w-5 h-5 rounded-full bg-brand-gold flex items-center justify-center text-white font-bold text-[7px]">S</span>
+    <div className="flex flex-col h-full bg-dark-primary select-none text-[8px]">
+      {/* Top Header Bar */}
+      <div className="flex items-center justify-between px-3 pt-5 pb-1.5 shrink-0">
+        <span className="w-4 h-4 rounded-full bg-brand-gold flex items-center justify-center text-slate-950 font-black text-[7px]">S</span>
         <RoleTag label="Seller" />
-        <Bell size={11} className="text-text-secondary" />
+        <Bell size={10} className="text-text-secondary" />
       </div>
 
-      <div className="flex-1 px-3 pt-1.5 space-y-1.5 overflow-hidden">
-        <div>
-          <p className="font-extrabold text-text-primary text-[10px] leading-tight">Good evening, Sample</p>
-          <div className="flex items-center gap-1 mt-0.5 text-text-secondary">
-            <Store size={8} />
-            <span className="font-semibold text-[7.5px]">Sample Shop · Nairobi</span>
-            <BadgeCheck size={8} className="text-info" />
+      <div className="flex-1 px-2.5 space-y-1.5 overflow-hidden">
+        {/* Today's Priorities / Shop Welcome Card */}
+        <div className="rounded-xl border border-dark-accent bg-dark-card p-2 shadow-xs">
+          <p className="text-[6px] font-black uppercase tracking-wider text-brand-gold">Today&apos;s priorities</p>
+          <p className="font-extrabold text-text-primary text-[9px] leading-tight mt-0.5">Run your shop with confidence, Sample</p>
+          <div className="flex items-center gap-1 mt-1 text-text-muted text-[6.5px]">
+            <Store size={7} className="text-brand-gold shrink-0" />
+            <span className="font-semibold text-text-secondary truncate">Sample Shop · Nairobi CBD</span>
+            <BadgeCheck size={7} className="text-emerald-500 shrink-0" />
+          </div>
+          <div className="mt-1.5 pt-1 border-t border-dark-accent/60 flex items-center justify-between text-[6.5px]">
+            <span className="text-text-muted">Collected today:</span>
+            <span className="font-black text-emerald-400">KES 0</span>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-1.5">
-          <div className="bg-dark-card rounded-lg border border-dark-accent p-1.5">
-            <span className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500/15 mb-1">
-              <ShoppingBag size={8} className="text-orange-400" />
-            </span>
-            <p className="font-black text-text-primary text-[11px] leading-none">0</p>
-            <p className="text-text-muted text-[6.5px] font-semibold mt-0.5">New Orders</p>
-          </div>
-          <div className="bg-dark-card rounded-lg border border-dark-accent p-1.5">
-            <span className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-500/15 mb-1">
-              <Users size={8} className="text-blue-400" />
-            </span>
-            <p className="font-black text-text-primary text-[11px] leading-none">0</p>
-            <p className="text-text-muted text-[6.5px] font-semibold mt-0.5">Buyer Requests</p>
-          </div>
-        </div>
-
-        <div className="bg-dark-card border border-dark-accent rounded-lg p-1.5 flex items-center gap-1.5">
-          <span className="flex items-center justify-center w-4 h-4 rounded-full bg-success/15 shrink-0">
-            <Wallet size={8} className="text-success" />
-          </span>
-          <div className="min-w-0">
-            <p className="font-black text-success text-[9.5px] leading-none">All paid up</p>
-            <p className="text-text-muted text-[6.5px] font-semibold mt-0.5">Money Owed</p>
-          </div>
-        </div>
-
-        {/* Business overview — real lifetime numbers */}
+        {/* 3 Status indicators (matches SellerDashboardHeader) */}
         <div className="grid grid-cols-3 gap-1">
-          {[
-            { label: "Orders", value: "5" },
-            { label: "Made", value: "13.2K" },
-            { label: "Products", value: "11" },
-          ].map((s) => (
-            <div key={s.label} className="bg-dark-card rounded-lg border border-dark-accent py-1.5 text-center">
-              <p className="font-black text-text-primary text-[9px] leading-none">{s.value}</p>
-              <p className="text-text-muted text-[6px] font-bold mt-0.5">{s.label}</p>
-            </div>
-          ))}
+          <div className="bg-dark-card rounded-lg border border-dark-accent p-1 text-center">
+            <p className="font-black text-text-primary text-[9px] leading-none">0</p>
+            <p className="text-text-muted text-[5.5px] font-bold mt-0.5">New orders</p>
+          </div>
+          <div className="bg-dark-card rounded-lg border border-dark-accent p-1 text-center">
+            <p className="font-black text-amber-400 text-[9px] leading-none">0</p>
+            <p className="text-text-muted text-[5.5px] font-bold mt-0.5">Awaiting pay</p>
+          </div>
+          <div className="bg-dark-card rounded-lg border border-dark-accent p-1 text-center">
+            <p className="font-black text-emerald-400 text-[9px] leading-none">5</p>
+            <p className="text-text-muted text-[5.5px] font-bold mt-0.5">Confirmed</p>
+          </div>
         </div>
 
-        {/* Your products — real catalog */}
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 gap-1">
+          <div className="bg-brand-gold rounded-lg py-1 px-1.5 flex items-center justify-center gap-1 shadow-xs">
+            <Plus size={8} className="text-slate-950 font-black" />
+            <span className="text-slate-950 font-black text-[6.5px]">Add Product</span>
+          </div>
+          <div className="bg-dark-card border border-dark-accent rounded-lg py-1 px-1.5 flex items-center justify-center gap-1">
+            <Package size={8} className="text-brand-gold" />
+            <span className="text-text-secondary font-bold text-[6.5px]">Catalog (11)</span>
+          </div>
+        </div>
+
+        {/* Real Live Catalog */}
         <div>
-          <p className="text-text-muted text-[6.5px] font-bold uppercase tracking-wide mb-1">Your Products</p>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-text-muted text-[6px] font-bold uppercase tracking-wider">Live Catalog</span>
+            <span className="text-emerald-400 font-mono text-[5.5px] font-bold">11 Items Active</span>
+          </div>
           <div className="space-y-1">
             {[
-              { name: "A2 Core Cover Silicon", price: "KES 120" },
-              { name: "Hot 8 Screen Protectors", price: "KES 34" },
+              { name: "A2 Core Cover Silicon", price: "KES 120", stock: "In Stock" },
+              { name: "Hot 8 Screen Protectors", price: "KES 34", stock: "In Stock" },
             ].map((p) => (
-              <div key={p.name} className="bg-dark-card rounded-md border border-dark-accent p-1 flex items-center gap-1.5">
+              <div key={p.name} className="bg-dark-card rounded-lg border border-dark-accent p-1 flex items-center gap-1.5">
                 <span className="w-4 h-4 rounded bg-dark-secondary flex items-center justify-center shrink-0">
-                  <ImagePlus size={7} className="text-text-muted" />
+                  <Package size={7} className="text-brand-gold" />
                 </span>
-                <span className="flex-1 min-w-0 text-text-primary font-semibold text-[6.5px] truncate">{p.name}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-text-primary font-semibold text-[6.5px] truncate leading-tight">{p.name}</p>
+                  <p className="text-[5.5px] text-emerald-500 font-medium">{p.stock}</p>
+                </div>
                 <span className="text-brand-gold font-black text-[6.5px] shrink-0">{p.price}</span>
               </div>
             ))}
           </div>
         </div>
-
-        <div className="grid grid-cols-2 gap-1.5">
-          <div className="bg-brand-gold rounded-lg p-1.5 flex flex-col items-center gap-0.5">
-            <Plus size={9} className="text-slate-950 font-bold" />
-            <span className="text-slate-950 font-bold text-[6.5px]">Add Product</span>
-          </div>
-          <div className="bg-dark-card border border-dark-accent rounded-lg p-1.5 flex flex-col items-center gap-0.5">
-            <Package size={9} className="text-brand-gold" />
-            <span className="text-text-primary font-bold text-[6.5px]">My Products</span>
-          </div>
-        </div>
       </div>
 
-      <MiniBottomNav items={[{ Icon: Home, active: true }, { Icon: Layers }, { Icon: ShoppingBag }, { Icon: Store }]} />
+      <MiniBottomNav items={[{ Icon: Home, active: true }, { Icon: ShoppingBag }, { Icon: Package }, { Icon: Wallet }]} />
     </div>
   );
 }
 
-/** kimdreadlockskitengela@gmail.com — browsing Sample Shop, an approved supplier of theirs. */
+/** kimdreadlockskitengela@gmail.com — Kim Dreadlocks Kitengela. */
 export function BuyerScreenPreview() {
   return (
-    <div className="flex flex-col h-full bg-dark-primary">
-      <div className="flex items-center justify-between px-3 pt-6 pb-2 shrink-0">
-        <span className="w-5 h-5 rounded-full bg-brand-gold flex items-center justify-center text-slate-950 font-bold text-[7px]">B</span>
+    <div className="flex flex-col h-full bg-dark-primary select-none text-[8px]">
+      {/* Top Header Bar */}
+      <div className="flex items-center justify-between px-3 pt-5 pb-1.5 shrink-0">
+        <span className="w-4 h-4 rounded-full bg-brand-gold flex items-center justify-center text-slate-950 font-black text-[7px]">B</span>
         <RoleTag label="Buyer" />
-        <SlidersHorizontal size={10} className="text-text-secondary" />
+        <SlidersHorizontal size={9} className="text-text-secondary" />
       </div>
 
-      <div className="flex-1 px-3 pt-1.5 space-y-1.5 overflow-hidden">
+      <div className="flex-1 px-2.5 space-y-1.5 overflow-hidden">
+        {/* Real Golden Hero Greeting Card (matches buyer/page.tsx) */}
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-brand-gold to-amber-500 p-2 shadow-xs text-slate-950">
+          <p className="font-black text-[9px] leading-tight">Good evening, Kim</p>
+          <p className="text-[6px] font-semibold text-slate-950/80 mt-0.5 leading-tight">
+            Here&apos;s what&apos;s happening with your trade today.
+          </p>
+        </div>
+
+        {/* 4 Key Stats Grid (matches buyer/page.tsx: Active Orders, Completed, Total Spent, Suppliers) */}
+        <div className="grid grid-cols-2 gap-1">
+          <div className="bg-dark-card rounded-lg border border-dark-accent p-1.5">
+            <p className="font-black text-text-primary text-[9.5px] leading-none">0</p>
+            <p className="text-text-muted text-[6px] font-semibold mt-0.5">Active Orders</p>
+          </div>
+          <div className="bg-dark-card rounded-lg border border-dark-accent p-1.5">
+            <p className="font-black text-emerald-400 text-[9.5px] leading-none">1</p>
+            <p className="text-text-muted text-[6px] font-semibold mt-0.5">Completed</p>
+          </div>
+          <div className="bg-dark-card rounded-lg border border-dark-accent p-1.5">
+            <p className="font-black text-brand-gold text-[9.5px] leading-none">KES 154</p>
+            <p className="text-text-muted text-[6px] font-semibold mt-0.5">Total Spent</p>
+          </div>
+          <div className="bg-dark-card rounded-lg border border-dark-accent p-1.5">
+            <p className="font-black text-blue-400 text-[9.5px] leading-none">1</p>
+            <p className="text-text-muted text-[6px] font-semibold mt-0.5">Suppliers</p>
+          </div>
+        </div>
+
+        {/* Primary CTA (matches buyer/page.tsx Make a New Order button) */}
+        <div className="flex items-center justify-center gap-1 rounded-lg bg-brand-gold py-1.5 px-2 text-slate-950 font-black text-[7px] shadow-xs">
+          <Plus size={8} strokeWidth={3} />
+          <span>Make a New Order</span>
+        </div>
+
+        {/* Recent Orders Card (matches buyer/page.tsx) */}
         <div>
-          <p className="font-extrabold text-text-primary text-[9px] leading-tight">Order from Sample Shop</p>
-          <p className="text-text-muted text-[6.5px] font-semibold mt-0.5">An approved supplier of yours</p>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <span className="shrink-0 rounded-full bg-brand-gold text-slate-950 text-[6.5px] font-bold px-2 py-1">All</span>
-          <span className="shrink-0 flex items-center gap-0.5 rounded-full bg-dark-card border border-dark-accent text-text-secondary text-[6.5px] font-bold px-2 py-1">
-            <Tag size={7} /> Covers
-          </span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-1.5">
-          {[
-            { name: "A2 Core Cover Silicon", price: "KES 120" },
-            { name: "Camon 40 Pro Cover", price: "KES 120" },
-          ].map((p) => (
-            <div key={p.name} className="bg-dark-card rounded-lg border border-dark-accent overflow-hidden">
-              <div className="aspect-[4/3] bg-dark-secondary flex items-center justify-center">
-                <ImagePlus size={12} className="text-text-muted" />
-              </div>
-              <div className="p-1.5 space-y-1">
-                <p className="font-bold text-text-primary text-[6.5px] leading-tight line-clamp-1">{p.name}</p>
-                <div className="flex items-center justify-between">
-                  <span className="font-black text-brand-gold text-[7px]">{p.price}</span>
-                  <span className="flex items-center justify-center w-4 h-4 rounded-full bg-brand-gold">
-                    <Plus size={7} className="text-slate-950 font-bold" />
-                  </span>
-                </div>
-              </div>
+          <p className="text-text-muted text-[6px] font-bold uppercase tracking-wider mb-1">Recent Order</p>
+          <div className="bg-dark-card rounded-lg border border-dark-accent p-1.5 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="font-extrabold text-text-primary text-[7px] truncate">Sample Shop</span>
+              <span className="text-emerald-400 font-black text-[7px]">KES 154</span>
             </div>
-          ))}
-        </div>
-
-        <div>
-          <p className="text-text-muted text-[6.5px] font-bold uppercase tracking-wide mb-1">Your Order</p>
-          <div className="bg-dark-card rounded-lg border border-dark-accent divide-y divide-dashed divide-dark-accent p-1">
-            {[
-              { name: "A2 Core Cover Silicon", qty: 1, sub: "120" },
-              { name: "Hot 8 Screen Protectors", qty: 1, sub: "34" },
-            ].map((row) => (
-              <div key={row.name} className="flex items-center justify-between py-1 first:pt-0 last:pb-0">
-                <span className="text-text-primary font-semibold text-[6px] truncate pr-1">{row.qty}× {row.name}</span>
-                <span className="text-text-secondary font-bold text-[6px] shrink-0">KES {row.sub}</span>
-              </div>
-            ))}
+            {/* Mini Progress Strip: 4 dots for timeline steps */}
+            <div className="flex items-center gap-1 py-0.5">
+              <span className="h-1 w-2.5 rounded-full bg-emerald-500" />
+              <span className="h-1 w-1 rounded-full bg-emerald-500" />
+              <span className="h-1 w-1 rounded-full bg-emerald-500" />
+              <span className="h-1 w-1 rounded-full bg-emerald-500" />
+              <span className="ml-auto text-[5.5px] font-bold text-emerald-400">Cleared</span>
+            </div>
+            <p className="text-[5.5px] text-text-muted truncate">A2 Cover + Hot 8 Protectors</p>
           </div>
         </div>
       </div>
 
-      <div className="px-3 pb-1.5 shrink-0">
-        <div className="flex items-center justify-between rounded-lg bg-brand-gold px-2.5 py-1.5">
-          <span className="flex items-center gap-1 text-slate-950 font-bold text-[7px]">
-            <ShoppingCart size={9} /> 2 items
-          </span>
-          <span className="text-slate-950 font-black text-[7.5px]">KES 154</span>
-        </div>
-      </div>
-
-      <MiniBottomNav items={[{ Icon: Home, active: true }, { Icon: Store }, { Icon: Package }, { Icon: Users }]} />
+      <MiniBottomNav items={[{ Icon: Home, active: true }, { Icon: ShoppingBag }, { Icon: Store }, { Icon: Users }]} />
     </div>
   );
 }

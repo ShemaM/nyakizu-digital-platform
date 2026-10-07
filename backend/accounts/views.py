@@ -16,7 +16,7 @@ from .models import CustomUser, BuyerProfile, SellerProfile, BuyerStoreFollow, B
 from billing.access import require_feature
 from products.models import Product
 from .permissions import is_admin_user, is_verified_buyer, is_approved_seller
-from .notifications import notify_admins_new_signup, notify_seller_new_access_request
+from .notifications import notify_admins_new_signup, notify_seller_new_access_request, notify_buyer_access_approved
 from nyakizu.emailing import send_mail_async, sender
 from nyakizu.pagination import LargeResultsSetPagination
 from .serializers import (
@@ -694,9 +694,12 @@ class RelationshipResolveView(APIView):
 
         action = request.data.get("action")
         if action == "approve":
-            if relationship.status != "approved":
+            prev_status = relationship.status
+            if prev_status != "approved":
                 require_feature(request.user, "approve_new_buyers")
             relationship.approve()
+            if prev_status != "approved":
+                notify_buyer_access_approved(relationship, request)
         elif action == "deny":
             relationship.deny()
         else:

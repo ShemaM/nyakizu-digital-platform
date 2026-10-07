@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth-context";
 import { orders, relationships, type ApiOrder, type ApiRelationship, fmtKES, parsePrice, ApiError } from "@/lib/api";
 import { getStatusLabel, orderTimelineSteps, buyerOrderLabel } from "@/lib/order-status";
 import { cn } from "@/lib/cn";
+import { useAutoPoll } from "@/lib/useAutoPoll";
 
 /** Tiny at-a-glance version of the order tracker — a Jumia-style dot strip. */
 function MiniProgress({ status }: { status: string }) {
@@ -43,34 +44,34 @@ export default function BuyerDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Guards against setting state after the user has already navigated
-    // away (e.g. a quick tap to another tab before the fetch resolves) —
-    // the request itself still completes, but its result is discarded
-    // instead of updating a component that's no longer on screen.
     let cancelled = false;
-    loadDashboardData(() => cancelled);
+    loadDashboardData(() => cancelled, false);
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const loadDashboardData = async (isCancelled: () => boolean = () => false) => {
+  useAutoPoll(() => loadDashboardData(() => false, true), { intervalMs: 6000 });
+
+  const loadDashboardData = async (isCancelled: () => boolean = () => false, silent = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       setError(null);
       const [ordersData, relationsData] = await Promise.all([
-        orders.list(),
-        relationships.mine(),
+        orders.list().catch(() => []),
+        relationships.mine().catch(() => []),
       ]);
       if (isCancelled()) return;
-      setOrderList(ordersData);
-      setRelationshipList(relationsData);
+      setOrderList(Array.isArray(ordersData) ? ordersData : []);
+      setRelationshipList(Array.isArray(relationsData) ? relationsData : []);
     } catch (err) {
       if (isCancelled()) return;
-      console.error("Buyer dashboard fetch error:", err);
-      setError(err instanceof ApiError ? err.message : "We couldn't load your dashboard. Please try again.");
+      if (!silent) {
+        console.error("Buyer dashboard fetch error:", err);
+        setError(err instanceof ApiError ? err.message : "We couldn't load your dashboard. Please try again.");
+      }
     } finally {
-      if (!isCancelled()) setIsLoading(false);
+      if (!isCancelled() && !silent) setIsLoading(false);
     }
   };
 
@@ -88,7 +89,7 @@ export default function BuyerDashboard() {
         <div className="bg-error/10 border border-error/20 rounded-2xl p-6 text-center m-4 sm:m-6">
           <p className="text-error font-medium mb-3">{error}</p>
           <button
-            onClick={() => loadDashboardData()}
+            onClick={() => loadDashboardData(() => false, false)}
             className="flex items-center gap-1.5 text-xs font-semibold text-error hover:text-error/80 cursor-pointer mx-auto bg-error/10 px-4 py-2 rounded-lg"
           >
             <RefreshCw size={14} /> Try Again

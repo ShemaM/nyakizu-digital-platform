@@ -12,19 +12,41 @@ export interface ActionAlert {
   href: string;
 }
 
-const POLL_MS = 45000;
+const POLL_MS = 6000;
 
 /**
  * Plain-language "things that need you" alerts shown from the header bell.
- * Deliberately derived from existing status fields (submitted orders,
- * pending buyer requests, unpaid debts) rather than a stored read/unread
- * flag — an alert only clears once the seller/buyer actually acts on it
- * (e.g. starts packing, approves the buyer), which is a truer signal for
- * this audience than "has been seen".
+ * Deliberately derived from live status fields:
+ * - For sellers: new submitted orders, pending buyer requests, unpaid debts.
+ * - For buyers: approved store access requests, orders ready to pay, overdue payments.
+ * Automatically polls silently in the background and refreshes immediately on tab focus.
  */
 export function useActionAlerts() {
   const { user } = useAuth();
   const [alerts, setAlerts] = useState<ActionAlert[]>([]);
+
+  const acknowledgeAlert = useCallback((alertId: string) => {
+    if (!user) return;
+    if (alertId.startsWith("approval-")) {
+      const relId = parseInt(alertId.replace("approval-", ""), 10);
+      if (!isNaN(relId)) {
+        try {
+          const ackKey = `acknowledged_approvals_${user.id}`;
+          const raw = localStorage.getItem(ackKey);
+          const current: number[] = raw ? JSON.parse(raw) : [];
+          if (!current.includes(relId)) {
+            current.push(relId);
+            localStorage.setItem(ackKey, JSON.stringify(current));
+          }
+        } catch {}
+      }
+    }
+    setAlerts((prev) => {
+      const filtered = prev.filter((a) => a.id !== alertId);
+      setAppBadge(filtered.reduce((s, a) => s + a.count, 0));
+      return filtered;
+    });
+  }, [user]);
 
   const refresh = useCallback(async () => {
     if (!user) {
@@ -36,14 +58,12 @@ export function useActionAlerts() {
     try {
       if (user.role === "seller") {
         const [orderList, relationshipList] = await Promise.all([
-          orders.sellerList(),
-          relationships.mine(),
+          orders.sellerList().catch(() => []),
+          relationships.mine().catch(() => []),
         ]);
 
         const newOrders = orderList.filter((o) => o.status === "submitted");
         const pendingBuyers = relationshipList.filter((r) => r.status === "pending");
-        // "Late" here means past the buyer's own promised date — informational,
-        // never a demand, same tone as the debt-date feature itself.
         const lateDebts = orderList.filter((o) => o.is_payment_late);
 
         const next: ActionAlert[] = [];
@@ -74,11 +94,39 @@ export function useActionAlerts() {
         setAlerts(next);
         setAppBadge(next.reduce((s, a) => s + a.count, 0));
       } else if (user.role === "buyer") {
-        const debtOrders = await orders.buyerDebts();
+        const [debtOrders, relationshipList] = await Promise.all([
+          orders.buyerDebts().catch(() => []),
+          relationships.mine().catch(() => []),
+        ]);
         const owing = debtOrders.filter((o) => parsePrice(o.balance ?? 0) > 0);
         const late = owing.filter((o) => o.is_payment_late);
 
+        // Check for approved relationships that haven't been dismissed yet
+        let acknowledgedIds: number[] = [];
+        try {
+          const ackKey = `acknowledged_approvals_${user.id}`;
+          const raw = localStorage.getItem(ackKey);
+          if (raw) acknowledgedIds = JSON.parse(raw);
+        } catch {}
+
+        const unacknowledgedApprovals = relationshipList.filter(
+          (r) => r.status === "approved" && !acknowledgedIds.includes(r.id)
+        );
+
         const next: ActionAlert[] = [];
+
+        // Add newly approved seller alerts for the buyer
+        for (const rel of unacknowledgedApprovals) {
+          const storeName = rel.seller_name || "Supplier";
+          const storePath = rel.seller_username ? `/store/${rel.seller_username}` : `/buyer/suppliers`;
+          next.push({
+            id: `approval-${rel.id}`,
+            count: 1,
+            text: `${storeName} approved your request! Tap to order`,
+            href: storePath,
+          });
+        }
+
         if (owing.length > 0) {
           next.push({
             id: "debts",
@@ -102,15 +150,39 @@ export function useActionAlerts() {
         setAppBadge(0);
       }
     } catch {
-      // Best-effort — a failed poll just means the bell stays as it was.
+      // Best-effort — a failed poll keeps current alerts
     }
   }, [user]);
 
   useEffect(() => {
     refresh();
-    const interval = setInterval(refresh, POLL_MS);
-    return () => clearInterval(interval);
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      refresh();
+    }, POLL_MS);
+
+    const onVisible = () => {
+      if (typeof document !== "undefined" && !document.hidden) {
+        refresh();
+      }
+    };
+    const onFocus = () => {
+      refresh();
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("visibilitychange", onVisible);
+      window.addEventListener("focus", onFocus);
+    }
+
+    return () => {
+      clearInterval(interval);
+      if (typeof window !== "undefined") {
+        window.removeEventListener("visibilitychange", onVisible);
+        window.removeEventListener("focus", onFocus);
+      }
+    };
   }, [refresh]);
 
-  return { alerts, refresh };
+  return { alerts, refresh, acknowledgeAlert };
 }

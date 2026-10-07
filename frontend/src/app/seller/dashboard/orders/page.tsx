@@ -9,6 +9,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { PageSkeleton } from "@/components/ui/LoadingState";
 import { orders, fmtKES, type ApiOrder } from "@/lib/api";
 import { getStatusLabel, buyerDisplayName } from "@/lib/order-status";
+import { useAutoPoll } from "@/lib/useAutoPoll";
 
 type Filter = "all" | "new" | "packing" | "ready" | "paid" | "cancelled";
 
@@ -44,20 +45,24 @@ export default function SellerOrdersPage() {
   const [query, setQuery] = useState("");
 
   useEffect(() => {
-    loadOrders();
+    loadOrders(false);
   }, []);
 
-  const loadOrders = async () => {
+  useAutoPoll(() => loadOrders(true), { intervalMs: 5000 });
+
+  const loadOrders = async (silent = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       setError(null);
       const data = await orders.sellerList();
       setOrderList(Array.isArray(data) ? data : []);
     } catch (err: any) {
-      console.error("Orders load error:", err);
-      setError(err?.message || "We could not load your orders.");
+      if (!silent) {
+        console.error("Orders load error:", err);
+        setError(err?.message || "We could not load your orders.");
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 

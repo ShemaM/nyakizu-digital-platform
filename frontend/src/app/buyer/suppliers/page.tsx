@@ -11,6 +11,7 @@ import { Alert } from "@/components/ui/Alert";
 import { Search, MapPin, Store, UserPlus, Clock } from "lucide-react";
 import { sellers, relationships, type ApiSeller, type ApiRelationship, ApiError } from "@/lib/api";
 import { PageSkeleton } from "@/components/ui/LoadingState";
+import { useAutoPoll } from "@/lib/useAutoPoll";
 
 export default function BuyerSuppliersPage() {
   const [supplierList, setSupplierList] = useState<ApiSeller[]>([]);
@@ -21,12 +22,14 @@ export default function BuyerSuppliersPage() {
   const [requestingId, setRequestingId] = useState<number | null>(null);
 
   useEffect(() => {
-    loadData();
+    loadData(false);
   }, []);
 
-  const loadData = async () => {
+  useAutoPoll(() => loadData(true), { intervalMs: 4000 });
+
+  const loadData = async (silent = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       setError(null);
       
       const [sellersData, relsData] = await Promise.all([
@@ -37,10 +40,12 @@ export default function BuyerSuppliersPage() {
       setSupplierList(Array.isArray(sellersData) ? sellersData : []);
       setMyRels(relsData);
     } catch (err) {
-      console.error("Failed to load suppliers:", err);
-      setError(err instanceof ApiError ? err.message : "We couldn't load suppliers. Please try again.");
+      if (!silent) {
+        console.error("Failed to load suppliers:", err);
+        setError(err instanceof ApiError ? err.message : "We couldn't load suppliers. Please try again.");
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 

@@ -6,7 +6,7 @@ import { Bell } from "lucide-react";
 import { useActionAlerts } from "@/lib/useActionAlerts";
 
 export function NotificationBell() {
-  const { alerts, refresh } = useActionAlerts();
+  const { alerts, refresh, acknowledgeAlert } = useActionAlerts();
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -54,7 +54,10 @@ export function NotificationBell() {
                 <Link
                   key={alert.id}
                   href={alert.href}
-                  onClick={() => setOpen(false)}
+                  onClick={() => {
+                    setOpen(false);
+                    acknowledgeAlert(alert.id);
+                  }}
                   className="flex items-center gap-3 px-4 py-3.5 hover:bg-dark-tertiary transition-colors"
                 >
                   <span className="flex items-center justify-center w-8 h-8 rounded-full bg-error/10 text-error text-xs font-black shrink-0">

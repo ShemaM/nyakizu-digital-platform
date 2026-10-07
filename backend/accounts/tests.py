@@ -145,3 +145,30 @@ class AccountPermissionTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(mail.outbox), 0)
+
+    def test_seller_approving_buyer_notifies_buyer(self):
+        rel = BuyerSellerRelationship.objects.create(
+            buyer=self.buyer, seller=self.store, status="pending"
+        )
+        self.client.force_authenticate(self.seller)
+
+        response = self.client.post(
+            f"/api/accounts/relationships/{rel.id}/resolve/",
+            {"action": "approve"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        rel.refresh_from_db()
+        self.assertEqual(rel.status, "approved")
+        self.assertIsNotNone(rel.resolved_at)
+
+        # Check response has new fields
+        self.assertEqual(response.data.get("seller_username"), self.seller.username)
+        self.assertIsNotNone(response.data.get("resolved_at"))
+
+        # Verify email dispatched to buyer
+        buyer_mail = [m for m in mail.outbox if self.buyer.email in m.to]
+        self.assertEqual(len(buyer_mail), 1)
+        self.assertIn(self.store.store_name, buyer_mail[0].subject)
+        self.assertIn("approved", buyer_mail[0].body.lower())
+

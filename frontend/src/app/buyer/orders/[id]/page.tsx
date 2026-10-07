@@ -15,6 +15,7 @@ import { getStatusLabel, orderTimelineSteps, hasUnpricedItems, buyerStatusExplan
 import { cn } from "@/lib/cn";
 import { PaymentClaimCard } from "@/components/buyer/PaymentClaimCard";
 import { DebtDateCard } from "@/components/buyer/DebtDateCard";
+import { useAutoPoll } from "@/lib/useAutoPoll";
 
 export default function SubmittedOrderPage() {
   const { id } = useParams<{ id: string }>();
@@ -25,21 +26,32 @@ export default function SubmittedOrderPage() {
 
   useEffect(() => {
     if (!isNaN(orderId)) {
-      loadOrder();
+      loadOrder(false);
     }
   }, [orderId]);
 
-  const loadOrder = async () => {
+  useAutoPoll(
+    () => {
+      if (!isNaN(orderId) && order && !["cleared", "cancelled"].includes(order.status)) {
+        loadOrder(true);
+      }
+    },
+    { intervalMs: 4000 }
+  );
+
+  const loadOrder = async (silent = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       setError(null);
       const orderData = await orders.get(id);
       setOrder(orderData);
     } catch (err) {
-      console.error("Failed to load order:", err);
-      setError(err instanceof ApiError ? err.message : "We couldn't load your order. Please try again.");
+      if (!silent) {
+        console.error("Failed to load order:", err);
+        setError(err instanceof ApiError ? err.message : "We couldn't load your order. Please try again.");
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 

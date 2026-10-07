@@ -94,7 +94,7 @@ export function NoDataEmptyState({ className, onActionClick }: PreConfiguredEmpt
       title="No data found"
       description="There's no data to display at the moment."
       action={onActionClick ? {
-        label: "Refresh",
+        label: "Try again",
         onClick: onActionClick,
         variant: "secondary",
       } : undefined}

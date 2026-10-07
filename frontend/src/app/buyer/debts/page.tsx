@@ -10,7 +10,8 @@ import { ProgressBar } from "@/components/ui/ProgressBar";
 import { orders, type ApiOrder, fmtKES, parsePrice, ApiError } from "@/lib/api";
 import { buyerOrderLabel } from "@/lib/order-status";
 import { PageSkeleton } from "@/components/ui/LoadingState";
-import { AlertCircle, RefreshCw, Wallet } from "lucide-react";
+import { useAutoPoll } from "@/lib/useAutoPoll";
+import { AlertCircle, Wallet } from "lucide-react";
 
 export default function BuyerDebts() {
   const [debtOrders, setDebtOrders] = useState<ApiOrder[]>([]);
@@ -18,20 +19,24 @@ export default function BuyerDebts() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadDebts();
+    loadDebts(false);
   }, []);
 
-  const loadDebts = async () => {
+  useAutoPoll(() => loadDebts(true), { intervalMs: 5000 });
+
+  const loadDebts = async (silent = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       setError(null);
       const data = await orders.buyerDebts();
-      setDebtOrders(data);
+      setDebtOrders(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error("Failed to load debts:", err);
-      setError(err instanceof ApiError ? err.message : "We couldn't load what you owe. Please try again.");
+      if (!silent) {
+        console.error("Failed to load debts:", err);
+        setError(err instanceof ApiError ? err.message : "We couldn't load what you owe. Please try again.");
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
@@ -60,7 +65,7 @@ export default function BuyerDebts() {
       <DashboardLayout title="What You Owe">
         <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
           <p className="text-error text-sm">{error}</p>
-          <Button onClick={loadDebts} size="sm">Retry</Button>
+          <Button onClick={() => loadDebts(false)} size="sm">Retry</Button>
         </div>
       </DashboardLayout>
     );
@@ -92,9 +97,10 @@ export default function BuyerDebts() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-label">Orders you owe on</h2>
-            <Button variant="outline" size="sm" onClick={loadDebts}>
-              <RefreshCw size={14} className="mr-1" /> Refresh
-            </Button>
+            <div className="flex items-center gap-1.5 text-xs text-text-muted font-medium">
+              <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+              <span>Auto-sync</span>
+            </div>
           </div>
 
           {debtOrders.length === 0 ? (

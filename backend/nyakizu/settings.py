@@ -2,6 +2,7 @@
 Django settings for the Nyakizu Digital Market platform.
 """
 
+import sys
 from pathlib import Path
 from decouple import config, Csv
 
@@ -36,11 +37,11 @@ if not DEBUG and SECRET_KEY == 'dev-insecure-key-change-in-production':
 # this, request.is_secure() is always False behind that proxy, which
 # silently breaks secure-cookie logic and CSRF checks even over HTTPS.
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SECURE_SSL_REDIRECT     = config('SECURE_SSL_REDIRECT', default=not DEBUG, cast=bool)
-SECURE_HSTS_SECONDS     = config('SECURE_HSTS_SECONDS', default=0 if DEBUG else 60 * 60 * 24 * 7, cast=int)
-SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
-SECURE_HSTS_PRELOAD            = not DEBUG
-CSRF_COOKIE_SECURE     = config('CSRF_COOKIE_SECURE', default=not DEBUG, cast=bool)
+SECURE_SSL_REDIRECT     = False if ('test' in sys.argv) else config('SECURE_SSL_REDIRECT', default=not DEBUG, cast=bool)
+SECURE_HSTS_SECONDS     = 0 if ('test' in sys.argv) else config('SECURE_HSTS_SECONDS', default=0 if DEBUG else 60 * 60 * 24 * 7, cast=int)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False if ('test' in sys.argv) else not DEBUG
+SECURE_HSTS_PRELOAD            = False if ('test' in sys.argv) else not DEBUG
+CSRF_COOKIE_SECURE     = False if ('test' in sys.argv) else config('CSRF_COOKIE_SECURE', default=not DEBUG, cast=bool)
 
 # ── Applications ──────────────────────────────────────────────────────────────
 INSTALLED_APPS = [

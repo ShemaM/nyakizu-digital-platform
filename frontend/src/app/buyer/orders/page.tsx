@@ -11,6 +11,7 @@ import { orders, type ApiOrder, fmtKES, ApiError } from "@/lib/api";
 import { getStatusLabel, getStatusVariant, orderTimelineSteps, buyerOrderLabel } from "@/lib/order-status";
 import { PageSkeleton } from "@/components/ui/LoadingState";
 import { cn } from "@/lib/cn";
+import { useAutoPoll } from "@/lib/useAutoPoll";
 
 function MiniProgress({ status }: { status: string }) {
   if (status === "cancelled") {
@@ -69,20 +70,24 @@ function BuyerOrdersContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadOrders();
+    loadOrders(false);
   }, []);
 
-  const loadOrders = async () => {
+  useAutoPoll(() => loadOrders(true), { intervalMs: 5000 });
+
+  const loadOrders = async (silent = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       setError(null);
       const ordersData = await orders.list();
-      setOrderList(ordersData);
+      setOrderList(Array.isArray(ordersData) ? ordersData : []);
     } catch (err) {
-      console.error("Failed to load orders:", err);
-      setError(err instanceof ApiError ? err.message : "We couldn't load your orders. Please try again.");
+      if (!silent) {
+        console.error("Failed to load orders:", err);
+        setError(err instanceof ApiError ? err.message : "We couldn't load your orders. Please try again.");
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
@@ -99,7 +104,7 @@ function BuyerOrdersContent() {
       <DashboardLayout title="Orders">
         <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
           <p className="text-error text-sm">{error}</p>
-          <Button onClick={loadOrders} size="sm">Retry</Button>
+          <Button onClick={() => loadOrders(false)} size="sm">Retry</Button>
         </div>
       </DashboardLayout>
     );

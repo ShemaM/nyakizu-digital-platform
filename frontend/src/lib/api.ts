@@ -253,8 +253,11 @@ export interface ApiRelationship {
   id: number;
   seller_id: number;
   seller_name: string;
+  seller_username?: string;
+  seller_location?: string;
   status: string;
   created_at: string;
+  resolved_at?: string | null;
 }
 
 export interface ApiOrderItem {

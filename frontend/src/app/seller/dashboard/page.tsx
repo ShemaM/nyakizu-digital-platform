@@ -25,6 +25,7 @@ import {
   RevenueAnalytics,
   SellerMetrics,
 } from "@/components/seller-dashboard/SellerAnalytics";
+import { useAutoPoll } from "@/lib/useAutoPoll";
 
 export default function SellerDashboardPage() {
   const { user } = useAuth();
@@ -36,28 +37,32 @@ export default function SellerDashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadDashboardData();
+    loadDashboardData(false);
   }, []);
 
-  const loadDashboardData = async () => {
+  useAutoPoll(() => loadDashboardData(true), { intervalMs: 6000 });
+
+  const loadDashboardData = async (silent = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       setError(null);
 
       const [ordersData, productsData, relationsData] = await Promise.all([
-        orders.sellerList(),
-        products.mine(),
-        relationships.mine(),
+        orders.sellerList().catch(() => []),
+        products.mine().catch(() => []),
+        relationships.mine().catch(() => []),
       ]);
 
-      setOrderList(ordersData);
-      setProductList(productsData);
-      setRelationshipList(relationsData);
+      setOrderList(Array.isArray(ordersData) ? ordersData : []);
+      setProductList(Array.isArray(productsData) ? productsData : []);
+      setRelationshipList(Array.isArray(relationsData) ? relationsData : []);
     } catch (err) {
-      console.error("Dashboard fetch error:", err);
-      setError(err instanceof ApiError ? err.message : "We could not load your dashboard. Please try again.");
+      if (!silent) {
+        console.error("Dashboard fetch error:", err);
+        setError(err instanceof ApiError ? err.message : "We could not load your dashboard. Please try again.");
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
@@ -75,7 +80,7 @@ export default function SellerDashboardPage() {
         <div className="bg-error/10 border border-error/20 rounded-2xl p-6 text-center m-4 sm:m-6">
           <p className="text-error font-medium mb-3">{error}</p>
           <button
-            onClick={loadDashboardData}
+            onClick={() => loadDashboardData(false)}
             className="flex items-center gap-1.5 text-xs font-semibold text-error hover:text-error/80 cursor-pointer mx-auto bg-error/10 px-4 py-2 rounded-lg"
           >
             <RefreshCw size={14} /> Try Again

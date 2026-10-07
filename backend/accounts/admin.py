@@ -242,6 +242,8 @@ class BuyerSellerRelationshipAdmin(ModelAdmin):
     ordering      = ('-requested_at',)
     list_select_related = ('buyer', 'seller')
 
+    actions = ['approve_selected', 'deny_selected']
+
     @admin.display(description='Buyer')
     def buyer_name(self, obj):
         return obj.buyer.get_full_name() or obj.buyer.username
@@ -249,3 +251,25 @@ class BuyerSellerRelationshipAdmin(ModelAdmin):
     @admin.display(description='Store')
     def store_name(self, obj):
         return obj.seller.store_name
+
+    @admin.action(description="Approve selected buyer requests")
+    def approve_selected(self, request, queryset):
+        for rel in queryset.filter(status__in=['pending', 'denied']):
+            rel.approve()
+            from .notifications import notify_buyer_access_approved
+            notify_buyer_access_approved(rel, request)
+
+    @admin.action(description="Deny selected buyer requests")
+    def deny_selected(self, request, queryset):
+        for rel in queryset.filter(status__in=['pending', 'approved']):
+            rel.deny()
+
+    def save_model(self, request, obj, form, change):
+        is_new_approval = False
+        if change and 'status' in form.changed_data and obj.status == 'approved':
+            is_new_approval = True
+        super().save_model(request, obj, form, change)
+        if is_new_approval:
+            from .notifications import notify_buyer_access_approved
+            notify_buyer_access_approved(obj, request)
+

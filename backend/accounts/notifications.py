@@ -122,3 +122,63 @@ def notify_seller_new_access_request(relationship, request=None) -> None:
         from_email=sender("sellers"),
         recipient_list=[seller_user.email],
     )
+
+    try:
+        from nyakizu.push import send_push_notification
+        send_push_notification(
+            user=seller_user,
+            title=f"New buyer request: {buyer_name}",
+            body=f"{buyer_name} requested access to order from {store_name}.",
+            url="/seller/dashboard/buyers",
+            tag=f"seller-buyer-req-{relationship.id}",
+        )
+    except Exception:
+        pass
+
+
+def notify_buyer_access_approved(relationship, request=None) -> None:
+    """
+    Alert the buyer when the seller approves their request to access the store.
+    Sends both an email and a web push notification so the buyer knows
+    they can now view the wholesale catalog and submit orders.
+    """
+    buyer = relationship.buyer
+    seller_profile = relationship.seller
+    store_name = seller_profile.store_name
+    seller_username = seller_profile.user.username if seller_profile.user else ""
+    buyer_name = buyer.get_full_name() or buyer.username
+
+    store_url = _frontend_url(f"/store/{seller_username}" if seller_username else f"/buyer/suppliers")
+
+    if buyer.email:
+        message = "\n".join([
+            f"Hello {buyer_name},",
+            "",
+            f"Great news! Your request to access \"{store_name}\" has been approved.",
+            "",
+            "You can now view their live wholesale catalog, check wholesale prices, and submit orders directly:",
+            store_url,
+            "",
+            "Thank you for trading with Nyakizu Digital Market!",
+            "Team Nyakizu",
+        ])
+
+        send_mail_async(
+            subject=f"Approved: You can now order from {store_name}",
+            message=message,
+            from_email=sender("sellers"),
+            recipient_list=[buyer.email],
+        )
+
+    try:
+        from nyakizu.push import send_push_notification
+        send_push_notification(
+            user=buyer,
+            title=f"Approved by {store_name}",
+            body=f"{store_name} approved your request. You can now place orders!",
+            url=f"/store/{seller_username}" if seller_username else "/buyer/suppliers",
+            tag=f"buyer-approved-{seller_profile.id}",
+        )
+    except Exception:
+        pass
+

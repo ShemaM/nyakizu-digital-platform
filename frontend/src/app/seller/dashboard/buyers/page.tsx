@@ -12,7 +12,8 @@ import { Avatar } from "@/components/ui/Avatar";
 import { PageSkeleton } from "@/components/ui/LoadingState";
 import { relationships, type ApiRelationship, ApiError } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
-import { RefreshCw, Users, CheckCircle, XCircle, Clock } from "lucide-react";
+import { useAutoPoll } from "@/lib/useAutoPoll";
+import { Users, CheckCircle, XCircle, Clock } from "lucide-react";
 
 export default function SellerBuyersPage() {
   const { toast } = useToast();
@@ -23,20 +24,24 @@ export default function SellerBuyersPage() {
   const [confirmAction, setConfirmAction] = useState<{ id: number; action: "approve" | "deny" } | null>(null);
 
   useEffect(() => {
-    loadBuyers();
+    loadBuyers(false);
   }, []);
 
-  const loadBuyers = async () => {
+  useAutoPoll(() => loadBuyers(true), { intervalMs: 4000 });
+
+  const loadBuyers = async (silent = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       setError(null);
       const data = await relationships.mine();
-      setBuyerRels(data);
+      setBuyerRels(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error("Failed to load buyers:", err);
-      setError(err instanceof ApiError ? err.message : "We could not load your buyers.");
+      if (!silent) {
+        console.error("Failed to load buyers:", err);
+        setError(err instanceof ApiError ? err.message : "We could not load your buyers.");
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
@@ -46,7 +51,7 @@ export default function SellerBuyersPage() {
     try {
       await relationships.resolve(confirmAction.id, confirmAction.action);
       setConfirmAction(null);
-      await loadBuyers();
+      await loadBuyers(true);
     } catch (err) {
       console.error("Action failed:", err);
       toast(err instanceof ApiError ? err.message : "That did not work. Please try again.", "error");
@@ -72,7 +77,7 @@ export default function SellerBuyersPage() {
       <AppShell title="My Buyers">
         <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
           <p className="text-error text-sm">{error}</p>
-          <Button onClick={loadBuyers} size="sm">Retry</Button>
+          <Button onClick={() => loadBuyers(false)} size="sm">Retry</Button>
         </div>
       </AppShell>
     );
@@ -93,9 +98,10 @@ export default function SellerBuyersPage() {
             title="Who buys from you"
             description="Approve new buyers before they can place orders from your store."
             action={
-              <Button variant="outline" size="lg" onClick={loadBuyers} className="gap-2">
-                <RefreshCw size={16} /> Refresh
-              </Button>
+              <div className="flex items-center gap-2 text-xs text-text-muted font-medium">
+                <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                <span>Live updates</span>
+              </div>
             }
           />
 

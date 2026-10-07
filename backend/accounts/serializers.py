@@ -315,7 +315,10 @@ class BuyerSellerRelationshipSerializer(serializers.ModelSerializer):
     buyer_email = serializers.CharField(source="buyer.email", read_only=True)
     seller_id = serializers.IntegerField(source="seller.id", read_only=True)
     seller_name = serializers.CharField(source="seller.store_name", read_only=True)
+    seller_username = serializers.CharField(source="seller.user.username", read_only=True)
+    seller_location = serializers.CharField(source="seller.location", read_only=True)
     created_at = serializers.DateTimeField(source="requested_at", read_only=True)
+    resolved_at = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = BuyerSellerRelationship
@@ -323,12 +326,15 @@ class BuyerSellerRelationshipSerializer(serializers.ModelSerializer):
             "id",
             "status",
             "created_at",
+            "resolved_at",
             "buyer_id",
             "buyer_name",
             "buyer_phone",
             "buyer_email",
             "seller_id",
             "seller_name",
+            "seller_username",
+            "seller_location",
         )
         read_only_fields = fields
 

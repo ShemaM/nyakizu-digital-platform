@@ -71,11 +71,22 @@ def send_order_status_email(order, status):
         total=order.final_total if order.final_total is not None else order.total_price,
         balance=order.balance,
     )
+    order_url = f"{_frontend_base_url()}/buyer/orders/{order.id}/"
+    cta_text = "Track Order Status"
+    if status == "locked":
+        cta_text = "Review Confirmed Price & Pay"
+    elif status == "debt_active":
+        cta_text = "View Balance & Pay M-Pesa"
+    elif status == "cleared":
+        cta_text = "View Receipt & Order Summary"
+
     send_mail_async(
         subject=f"Nyakizu: {subject}",
-        message=f"{body}\n\nSee your order: {_frontend_base_url()}/buyer/orders/{order.id}/",
+        message=f"{body}\n\nSee your order: {order_url}",
         from_email=sender("orders"),
         recipient_list=[order.buyer.email],
+        cta_url=order_url,
+        cta_text=cta_text,
     )
 
 
@@ -84,15 +95,18 @@ def send_new_order_seller_email(order):
     if not order.seller or not order.seller.email:
         return
     buyer_name = order.buyer.get_full_name() or order.buyer.username
+    fulfill_url = f"{_frontend_base_url()}/seller/dashboard/orders/{order.id}/fulfill/"
     send_mail_async(
         subject="Nyakizu: You have a new order",
         message=(
             f"{buyer_name} placed order #{order.id} with your store. "
             "Please review it and start packing.\n\n"
-            f"See the order: {_frontend_base_url()}/seller/dashboard/orders/{order.id}/fulfill/"
+            f"See the order: {fulfill_url}"
         ),
         from_email=sender("orders"),
         recipient_list=[order.seller.email],
+        cta_url=fulfill_url,
+        cta_text="Start Packing Order",
     )
 
 
@@ -101,15 +115,18 @@ def send_payment_reminder_email(order):
     if not order.buyer.email:
         return
     store = _seller_store_name(order)
+    order_url = f"{_frontend_base_url()}/buyer/orders/{order.id}/"
     send_mail_async(
         subject=f"Nyakizu: {store} is asking for the balance on order #{order.id}",
         message=(
             f"{store} wants to remind you: order #{order.id} still has KES {order.balance} owing.\n\n"
             "Please pay via M-Pesa, then tell us the code from your order page.\n\n"
-            f"See your order: {_frontend_base_url()}/buyer/orders/{order.id}/"
+            f"See your order: {order_url}"
         ),
         from_email=sender("payments"),
         recipient_list=[order.buyer.email],
+        cta_url=order_url,
+        cta_text="View Order & Pay Balance",
     )
 
 
@@ -138,16 +155,19 @@ def send_debt_date_reminder_email(order, days_until):
         subject = "A note about your payment"
         opening = f"This is only for our records, not a demand. You told us you'd pay {store} KES {order.balance} by {date_str}."
 
+    order_url = f"{_frontend_base_url()}/buyer/orders/{order.id}/"
     send_mail_async(
         subject=f"Nyakizu: {subject}",
         message=(
             f"{opening}\n\n"
             "No need to reply. If your plans changed, you can set a new date anytime from your order page. "
             "There's no penalty for updating it.\n\n"
-            f"See your order: {_frontend_base_url()}/buyer/orders/{order.id}/"
+            f"See your order: {order_url}"
         ),
         from_email=sender("payments"),
         recipient_list=[order.buyer.email],
+        cta_url=order_url,
+        cta_text="Update Payment Date or Pay",
     )
 
 
@@ -156,16 +176,19 @@ def send_payment_claim_seller_email(order, claim):
     if not order.seller or not order.seller.email:
         return
     buyer_name = order.buyer.get_full_name() or order.buyer.username
+    fulfill_url = f"{_frontend_base_url()}/seller/dashboard/orders/{order.id}/fulfill/"
     send_mail_async(
         subject="Nyakizu: Buyer says they've paid",
         message=(
             f"{buyer_name} says they sent KES {claim.amount} for order #{order.id}. "
             f"M-Pesa code: {claim.reference}\n\n"
             "Check your M-Pesa messages, then record the payment in the app.\n\n"
-            f"See the order: {_frontend_base_url()}/seller/dashboard/orders/{order.id}/fulfill/"
+            f"See the order: {fulfill_url}"
         ),
         from_email=sender("payments"),
         recipient_list=[order.seller.email],
+        cta_url=fulfill_url,
+        cta_text="Confirm Payment in App",
     )
 
 
@@ -182,6 +205,7 @@ def send_abandoned_cart_email(draft):
         return
 
     item_count = sum(item.get("quantity", 1) for item in draft.items)
+    cart_url = f"{_frontend_base_url()}/buyer/lists/new?id={seller_profile.id}"
     send_mail_async(
         subject=f"Nyakizu: You left something at {store}",
         message=(
@@ -189,10 +213,12 @@ def send_abandoned_cart_email(draft):
             "but didn't send it yet. It's still saved — pick up right where you left off.\n\n"
             # ?id= is the SellerProfile id (see CartDraftView) — draft.seller_id
             # is the User id, a different number for the same seller.
-            f"Finish your order: {_frontend_base_url()}/buyer/lists/new?id={seller_profile.id}"
+            f"Finish your order: {cart_url}"
         ),
         from_email=sender("marketing"),
         recipient_list=[draft.buyer.email],
+        cta_url=cart_url,
+        cta_text="Complete Your Order",
     )
 
 

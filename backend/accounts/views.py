@@ -69,6 +69,8 @@ class RegisterView(APIView):
                 ),
                 from_email=sender('accounts'),
                 recipient_list=[user.email],
+                cta_url=verify_url,
+                cta_text="Verify My Email Address",
             )
 
             # Notify admins for every new signup, buyer or seller — not just
@@ -123,6 +125,8 @@ class ResendVerificationEmailView(APIView):
                 ),
                 from_email=sender('accounts'),
                 recipient_list=[user.email],
+                cta_url=verify_url,
+                cta_text="Verify My Email Address",
             )
 
         return Response({"message": self.GENERIC_MESSAGE})
@@ -190,6 +194,8 @@ class PasswordResetRequestView(APIView):
                 ),
                 from_email=sender('accounts'),
                 recipient_list=[user.email],
+                cta_url=reset_url,
+                cta_text="Reset My Password",
             )
 
         return Response({"message": self.GENERIC_MESSAGE})
@@ -461,6 +467,8 @@ class ApproveSellerView(APIView):
             ),
             from_email=sender('sellers'),
             recipient_list=[seller.user.email],
+            cta_url=login_url,
+            cta_text="Sign In to Your Store",
         )
 
         return Response({"message": f"{seller.store_name} is now live."})
@@ -482,6 +490,7 @@ class RejectSellerView(APIView):
         reason = request.data.get("note", "")
         seller.reject(note=reason)
 
+        dashboard_url = f"{getattr(settings, 'FRONTEND_VERIFY_BASE_URL', 'http://localhost:3000')}/seller/dashboard"
         message = (
             f"Dear {seller.user.get_full_name() or seller.user.username},\n\n"
             f"Thank you for applying to list your store \"{seller.store_name}\" "
@@ -493,7 +502,7 @@ class RejectSellerView(APIView):
             message += f"Reason:\n{reason}\n\n"
         message += (
             f"You are welcome to update your information and resubmit your "
-            f"application for review.\n\n"
+            f"application for review:\n{dashboard_url}\n\n"
             f"If you have any questions, please reach out to our support team.\n\n"
             f"Best regards,\n"
             f"The Nyakizu Team"
@@ -503,6 +512,8 @@ class RejectSellerView(APIView):
             message=message,
             from_email=sender('sellers'),
             recipient_list=[seller.user.email],
+            cta_url=dashboard_url,
+            cta_text="Update Store Application",
         )
 
         return Response({"message": f"{seller.store_name} has been rejected."})

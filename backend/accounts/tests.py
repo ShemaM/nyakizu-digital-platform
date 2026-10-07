@@ -171,4 +171,49 @@ class AccountPermissionTests(TestCase):
         self.assertEqual(len(buyer_mail), 1)
         self.assertIn(self.store.store_name, buyer_mail[0].subject)
         self.assertIn("approved", buyer_mail[0].body.lower())
+        
+        # Verify branded HTML alternative is attached
+        self.assertEqual(len(buyer_mail[0].alternatives), 1)
+        html_content, mimetype = buyer_mail[0].alternatives[0]
+        self.assertEqual(mimetype, "text/html")
+        self.assertIn("NYAKIZU", html_content)
+        self.assertIn("DIGITAL", html_content)
+        self.assertIn("The Nyakizu Team", html_content)
+        self.assertIn("Nyakizu Digital Market Ltd", html_content)
+        self.assertIn("icon-192.png", html_content)
+        self.assertIn("Open Store &amp; Start Ordering", html_content)
+
+
+class BrandedEmailUnitTests(TestCase):
+    def test_build_branded_email_html_structure(self):
+        from nyakizu.emailing import build_branded_email_html
+
+        subject = "Welcome to Nyakizu Market"
+        message = (
+            "Hello John,\n\n"
+            "Store: Super Supplies\n"
+            "Status: Approved\n\n"
+            "1. First step\n"
+            "2. Second step\n\n"
+            "Open your store: https://nyakizudigital.me/seller/dashboard\n\n"
+            "Warm regards,\nThe Nyakizu Team"
+        )
+        html_output = build_branded_email_html(
+            subject=subject,
+            message=message,
+            cta_url="https://nyakizudigital.me/seller/dashboard",
+            cta_text="Access Seller Dashboard",
+        )
+
+        self.assertIn("NYAKIZU", html_output)
+        self.assertIn("DIGITAL", html_output)
+        self.assertIn("#0A1F10", html_output)  # Forest Green
+        self.assertIn("#10B981", html_output)  # Emerald Green
+        self.assertIn("Access Seller Dashboard", html_output)
+        self.assertIn("https://nyakizudigital.me/seller/dashboard", html_output)
+        self.assertIn("Super Supplies", html_output)
+        self.assertIn("The Nyakizu Team", html_output)
+        self.assertIn("Nyakizu Digital Market Ltd &middot; Nairobi CBD", html_output)
+        self.assertIn("support@nyakizudigital.me", html_output)
+
 

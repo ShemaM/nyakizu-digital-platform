@@ -60,27 +60,31 @@ def notify_admins_new_signup(user: CustomUser, request=None) -> None:
 
     seller_profile = getattr(user, "seller_profile", None)
     if user.role == "seller" and seller_profile is not None:
+        cta_url = _admin_url(
+            request,
+            "admin:accounts_sellerprofile_changelist",
+            "?approval_status__exact=pending",
+        )
+        cta_text = "Review Seller Application"
         lines += [
             f"Store:    {seller_profile.store_name}",
             f"Location: {seller_profile.location or 'Not set'}",
             "",
             "This store is waiting for your approval:",
-            _admin_url(
-                request,
-                "admin:accounts_sellerprofile_changelist",
-                "?approval_status__exact=pending",
-            ),
+            cta_url,
         ]
         subject = f"New seller signed up: {seller_profile.store_name}"
     else:
+        cta_url = _admin_url(
+            request,
+            "admin:accounts_customuser_changelist",
+            f"?q={user.username}",
+        )
+        cta_text = "Review Buyer in Admin"
         lines += [
             "",
             "See this member in the admin panel:",
-            _admin_url(
-                request,
-                "admin:accounts_customuser_changelist",
-                f"?q={user.username}",
-            ),
+            cta_url,
         ]
         subject = f"New buyer signed up: {display_name}"
 
@@ -89,6 +93,8 @@ def notify_admins_new_signup(user: CustomUser, request=None) -> None:
         message="\n".join(lines),
         from_email=sender("alerts"),
         recipient_list=staff_emails,
+        cta_url=cta_url,
+        cta_text=cta_text,
     )
 
 
@@ -104,6 +110,8 @@ def notify_seller_new_access_request(relationship, request=None) -> None:
     buyer = relationship.buyer
     buyer_name = buyer.get_full_name() or buyer.username
     store_name = relationship.seller.store_name
+    cta_url = _frontend_url("/seller/dashboard/buyers")
+    cta_text = "Review & Approve Buyer"
 
     message = "\n".join([
         f"{buyer_name} wants to become a buyer at your store, \"{store_name}\".",
@@ -113,7 +121,7 @@ def notify_seller_new_access_request(relationship, request=None) -> None:
         f"Email: {buyer.email}",
         "",
         "Approve or deny this request here:",
-        _frontend_url("/seller/dashboard/buyers"),
+        cta_url,
     ])
 
     send_mail_async(
@@ -121,6 +129,8 @@ def notify_seller_new_access_request(relationship, request=None) -> None:
         message=message,
         from_email=sender("sellers"),
         recipient_list=[seller_user.email],
+        cta_url=cta_url,
+        cta_text=cta_text,
     )
 
     try:
@@ -149,6 +159,7 @@ def notify_buyer_access_approved(relationship, request=None) -> None:
     buyer_name = buyer.get_full_name() or buyer.username
 
     store_url = _frontend_url(f"/store/{seller_username}" if seller_username else f"/buyer/suppliers")
+    cta_text = "Open Store & Start Ordering"
 
     if buyer.email:
         message = "\n".join([
@@ -168,6 +179,8 @@ def notify_buyer_access_approved(relationship, request=None) -> None:
             message=message,
             from_email=sender("sellers"),
             recipient_list=[buyer.email],
+            cta_url=store_url,
+            cta_text=cta_text,
         )
 
     try:

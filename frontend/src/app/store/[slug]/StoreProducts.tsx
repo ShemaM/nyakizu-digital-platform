@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Image from "next/image";
 import { Package } from "lucide-react";
 import { CategoryFilter } from "@/components/CategoryFilter";
@@ -41,6 +41,24 @@ interface Props { products: ApiProduct[]; }
 
 export function StoreProducts({ products }: Props) {
   const [activeCat, setActiveCat] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash;
+    const searchParams = new URLSearchParams(window.location.search);
+    const productId = searchParams.get("product") || (hash.startsWith("#product-") ? hash.replace("#product-", "") : null);
+    if (!productId) return;
+
+    const timer = setTimeout(() => {
+      const el = document.getElementById(`product-${productId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-brand-gold", "shadow-brand");
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [products]);
 
   const categories = useMemo(() => {
     const seen = new Map<string, string>();

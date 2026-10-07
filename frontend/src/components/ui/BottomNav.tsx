@@ -24,10 +24,10 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Primary"
-      className="fixed bottom-0 left-0 right-0 z-40 bg-dark-secondary border-t border-dark-accent shadow-xl lg:hidden"
+      className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-dark-secondary/95 backdrop-blur-md border-t border-slate-200 dark:border-dark-accent shadow-lg dark:shadow-2xl lg:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="mx-auto flex max-w-lg px-2 py-2">
+      <div className="mx-auto flex max-w-lg px-2 py-1.5">
         {links.map(({ href, label, Icon }) => {
           const active = href === currentActiveHref;
           return (
@@ -35,17 +35,31 @@ export function BottomNav() {
               key={href}
               href={href}
               aria-current={active ? "page" : undefined}
-              className="flex-1 flex flex-col items-center justify-center gap-1 py-1.5 min-h-14"
+              className="flex-1 flex flex-col items-center justify-center gap-1 py-1 min-h-14 group"
             >
               <span
                 className={cn(
-                  "flex items-center justify-center w-11 h-11 rounded-full transition-colors duration-150",
-                  active ? "bg-role-dark" : ""
+                  "flex items-center justify-center w-10 h-10 rounded-full transition-all duration-150",
+                  active
+                    ? "bg-brand-gold text-slate-950 shadow-md shadow-amber-500/25"
+                    : "text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white group-hover:bg-slate-100 dark:group-hover:bg-slate-800/60"
                 )}
               >
-                <Icon size={22} strokeWidth={active ? 2.5 : 1.8} className={active ? "text-white" : "text-white/50"} aria-hidden="true" />
+                <Icon
+                  size={20}
+                  strokeWidth={active ? 2.5 : 1.8}
+                  className={active ? "text-slate-950" : "currentColor"}
+                  aria-hidden="true"
+                />
               </span>
-              <span className={cn("text-xs", active ? "font-bold text-white" : "font-medium text-white/50")}>
+              <span
+                className={cn(
+                  "text-[11px] leading-tight transition-colors",
+                  active
+                    ? "font-bold text-slate-950 dark:text-amber-400"
+                    : "font-medium text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white"
+                )}
+              >
                 {label}
               </span>
             </Link>

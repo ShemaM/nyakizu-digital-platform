@@ -3,13 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
-import { ChevronDown, UserPlus, LogIn, Mail } from "lucide-react";
+import { ChevronDown, UserPlus, LogIn, Mail, Menu, X } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { SUPPORT_EMAIL, TAGLINE } from "@/lib/contact";
 
-/** Header's only interactive element besides the logo — a single "Get
-    Started" pill that opens the two real choices (account or sign-in)
-    instead of a nav bar with pages this app doesn't have yet. */
+/** Header's only interactive element besides the logo on desktop — a single "Get
+    Started" pill that opens account or sign-in */
 function GetStartedMenu() {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -32,7 +31,7 @@ function GetStartedMenu() {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label="Get started"
-        className="flex items-center gap-1.5 rounded-full bg-brand-gold hover:bg-brand-gold-dark text-text-primary font-bold shadow-sm h-9 sm:h-11 px-4 sm:px-5 text-sm sm:text-base transition-colors"
+        className="flex items-center gap-1.5 rounded-full bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-bold shadow-sm h-10 px-4 sm:px-5 text-sm sm:text-base transition-colors"
       >
         Get Started
         <ChevronDown size={15} className={`transition-transform duration-150 ${open ? "rotate-180" : ""}`} aria-hidden="true" />
@@ -62,6 +61,7 @@ function GetStartedMenu() {
 
 export function LandingHeader() {
   const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Track scroll for glassmorphism intensity
   useEffect(() => {
@@ -80,30 +80,102 @@ export function LandingHeader() {
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-24">
+        <div className="flex items-center justify-between h-16 sm:h-20">
           <Link
             href="/"
             className="flex items-center gap-2 sm:gap-3 hover:opacity-80 transition-opacity shrink-0 min-w-0"
             aria-label="Nyakizu Home"
           >
-            <Logo size={56} className="w-9 h-9 sm:w-14 sm:h-14 shrink-0" />
-            <span className="font-display font-bold text-base sm:text-2xl text-text-primary tracking-tight truncate">
+            <Logo size={42} className="w-8 h-8 sm:w-11 sm:h-11 shrink-0" />
+            <span className="font-display font-bold text-base sm:text-xl text-text-primary tracking-tight truncate">
               Nyakizu Digital
             </span>
           </Link>
 
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-3 shrink-0">
             <Link
               href="/pricing"
-              className="text-xs sm:text-sm font-bold text-text-secondary hover:text-text-primary px-2.5 sm:px-3 py-1.5 rounded-full hover:bg-dark-tertiary transition-colors"
+              className="text-sm font-bold text-text-secondary hover:text-text-primary px-3 py-1.5 rounded-full hover:bg-dark-tertiary transition-colors"
             >
               Pricing
             </Link>
             <ThemeToggle />
             <GetStartedMenu />
           </div>
+
+          {/* Mobile Navigation (Clean, Spacious, Uncrowded) */}
+          <div className="flex md:hidden items-center gap-2 shrink-0">
+            <Link
+              href="/register"
+              className="inline-flex items-center justify-center rounded-full bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-bold h-8 px-3.5 text-xs shadow-sm transition-transform active:scale-95"
+            >
+              Get Started
+            </Link>
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+              aria-expanded={mobileMenuOpen}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-dark-accent bg-dark-tertiary text-text-primary hover:text-brand-gold transition-colors"
+            >
+              {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Mobile Drawer / Dropdown */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-dark-accent bg-dark-secondary/98 backdrop-blur-xl px-4 py-4 space-y-3 animate-fade-in shadow-2xl">
+          <div className="grid grid-cols-2 gap-2">
+            <Link
+              href="/register"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-center gap-2 rounded-xl bg-brand-gold text-slate-950 font-bold py-2.5 text-xs shadow-sm"
+            >
+              <UserPlus size={15} /> Create Account
+            </Link>
+            <Link
+              href="/login"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-center gap-2 rounded-xl border border-dark-accent bg-dark-tertiary text-text-primary font-bold py-2.5 text-xs hover:bg-dark-accent"
+            >
+              <LogIn size={15} /> Log In
+            </Link>
+          </div>
+
+          <div className="pt-2 border-t border-dark-accent/60 space-y-1">
+            <Link
+              href="/pricing"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold text-text-primary hover:bg-dark-tertiary transition-colors"
+            >
+              <span>Pricing & Fee Calculator</span>
+              <span className="text-xs font-bold text-brand-gold">KSh 50–100 / order</span>
+            </Link>
+            <Link
+              href="/#features"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold text-text-secondary hover:text-text-primary hover:bg-dark-tertiary transition-colors"
+            >
+              <span>Features & Wholesaler Tools</span>
+            </Link>
+            <Link
+              href="/#how-it-works"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold text-text-secondary hover:text-text-primary hover:bg-dark-tertiary transition-colors"
+            >
+              <span>How Nyakizu Works</span>
+            </Link>
+          </div>
+
+          <div className="pt-2 border-t border-dark-accent/60 flex items-center justify-between px-3 py-1">
+            <span className="text-xs font-bold text-text-muted">Display Theme</span>
+            <ThemeToggle size="sm" />
+          </div>
+        </div>
+      )}
     </header>
   );
 }

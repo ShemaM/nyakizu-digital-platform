@@ -1,15 +1,14 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   Plus, Package, ImagePlus, Edit2, MoreVertical, Eye, Trash2, Copy, Link2, Share2,
   AlertCircle, AlertTriangle, CheckCircle2, Tag, SlidersHorizontal, Layers,
-  MessageCircle, Download, X, Sparkles,
+  MessageCircle, X,
 } from "lucide-react";
 import { shareLink } from "@/lib/share";
-import QRCode from "qrcode";
 import { AppShell } from "@/components/AppShell";
 import { Container, Section } from "@/components/layouts";
 import { Dialog } from "@/components/ui/Dialog";
@@ -41,8 +40,8 @@ export default function SellerCatalogPage() {
   const [deleteTarget, setDeleteTarget] = useState<ApiProduct | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [savingPriceId, setSavingPriceId] = useState<number | null>(null);
-  const [promotionTarget, setPromotionTarget] = useState<ApiProduct | "store" | null>(null);
-  const [promotionSuccess, setPromotionSuccess] = useState(false);
+  const [shareProductTarget, setShareProductTarget] = useState<ApiProduct | null>(null);
+  const [isJustPublished, setIsJustPublished] = useState(false);
 
   useEffect(() => {
     loadCatalog();
@@ -52,17 +51,17 @@ export default function SellerCatalogPage() {
     try {
       setIsLoading(true);
       setError(null);
-          const [productsData, categoriesData] = await Promise.all([products.mine(), categories.list()]);
+      const [productsData, categoriesData] = await Promise.all([products.mine(), categories.list()]);
       setProductList(productsData);
       setCategoryList(categoriesData);
-          const publishedId = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("published") : null;
-          if (publishedId) {
-            const publishedProduct = productsData.find((product) => String(product.id) === publishedId);
-            if (publishedProduct) {
-              setPromotionTarget(publishedProduct);
-              setPromotionSuccess(true);
-            }
-          }
+      const publishedId = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("published") : null;
+      if (publishedId) {
+        const publishedProduct = productsData.find((product) => String(product.id) === publishedId);
+        if (publishedProduct) {
+          setShareProductTarget(publishedProduct);
+          setIsJustPublished(true);
+        }
+      }
     } catch (err) {
       console.error("Catalog load error:", err);
       setError(err instanceof ApiError ? err.message : "We could not load your products.");
@@ -220,15 +219,12 @@ export default function SellerCatalogPage() {
             This is your catalog — the photos, names, and prices below are exactly what buyers see when they open your shop.
           </p>
 
-          <PromotionCenter
+          <StoreShareBar
             storeName={storeName}
             storeLink={storeLink}
-            caption={storeCaption}
             productCount={productList.length}
             onCopyLink={copyStoreLink}
             onShare={shareStore}
-            onOpenPoster={() => setPromotionTarget("store")}
-            onToast={(message) => toast(message, "success")}
           />
 
           {/* Quick category filter */}
@@ -237,8 +233,10 @@ export default function SellerCatalogPage() {
               type="button"
               onClick={() => selectOnlyCategory(null)}
               className={cn(
-                "shrink-0 rounded-full px-4 py-2 text-sm font-bold transition-colors",
-                selectedCategoryIds.size === 0 ? "bg-role-dark text-white shadow-sm" : "bg-white border border-slate-200 text-text-secondary"
+                "shrink-0 rounded-full px-4 py-2 text-sm font-bold transition-all",
+                selectedCategoryIds.size === 0
+                  ? "bg-brand-gold text-slate-950 shadow-sm"
+                  : "bg-white dark:bg-dark-secondary border border-slate-200 dark:border-dark-accent text-text-secondary hover:text-text-primary"
               )}
             >
               All
@@ -251,8 +249,10 @@ export default function SellerCatalogPage() {
                   type="button"
                   onClick={() => selectOnlyCategory(category.id)}
                   className={cn(
-                    "shrink-0 rounded-full px-4 py-2 text-sm font-bold transition-colors",
-                    active ? "bg-role-dark text-white shadow-sm" : "bg-white border border-slate-200 text-text-secondary"
+                    "shrink-0 rounded-full px-4 py-2 text-sm font-bold transition-all",
+                    active
+                      ? "bg-brand-gold text-slate-950 shadow-sm"
+                      : "bg-white dark:bg-dark-secondary border border-slate-200 dark:border-dark-accent text-text-secondary hover:text-text-primary"
                   )}
                 >
                   {category.name} · {categoryCounts.get(category.id) ?? 0}
@@ -263,14 +263,14 @@ export default function SellerCatalogPage() {
 
           {/* Analytics */}
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
-            <div className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4">
+            <div className="rounded-2xl border border-slate-200 dark:border-dark-accent bg-white dark:bg-dark-secondary shadow-sm p-4">
               <div className="flex items-center gap-1.5 text-text-muted">
                 <Layers size={14} aria-hidden="true" />
                 <span className="text-xs font-bold uppercase tracking-wider">Total Items</span>
               </div>
               <p className="text-2xl font-black text-text-primary mt-1.5 tabular-nums">{productList.length}</p>
             </div>
-            <div className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4">
+            <div className="rounded-2xl border border-slate-200 dark:border-dark-accent bg-white dark:bg-dark-secondary shadow-sm p-4">
               <div className="flex items-center gap-1.5 text-warning">
                 <AlertTriangle size={14} aria-hidden="true" />
                 <span className="text-xs font-bold uppercase tracking-wider">Low Stock</span>
@@ -287,15 +287,15 @@ export default function SellerCatalogPage() {
 
           {/* Products */}
           {productList.length === 0 ? (
-            <div className="bg-white border border-slate-100 rounded-2xl p-12 text-center text-text-muted flex flex-col items-center justify-center min-h-[300px]">
-              <Package size={40} className="text-slate-300 mb-3" />
+            <div className="bg-white dark:bg-dark-secondary border border-slate-200 dark:border-dark-accent rounded-2xl p-12 text-center text-text-muted flex flex-col items-center justify-center min-h-[300px]">
+              <Package size={40} className="text-slate-300 dark:text-slate-600 mb-3" />
               <p className="text-body font-bold text-text-secondary">Nothing here yet</p>
               <p className="text-caption text-text-muted mt-1">Add your first product to start.</p>
             </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="bg-white border border-slate-100 rounded-2xl p-10 text-center text-text-muted">
+            <div className="bg-white dark:bg-dark-secondary border border-slate-200 dark:border-dark-accent rounded-2xl p-10 text-center text-text-muted">
               <p className="text-body font-bold text-text-secondary">No products match this filter</p>
-              <button type="button" onClick={clearFilters} className="text-sm font-bold text-role mt-1.5 hover:opacity-80">
+              <button type="button" onClick={clearFilters} className="text-sm font-bold text-brand-gold mt-1.5 hover:underline">
                 Clear filters
               </button>
             </div>
@@ -306,12 +306,7 @@ export default function SellerCatalogPage() {
                   key={product.id}
                   product={product}
                   storePath={storePath}
-                  storeLink={storeLink}
-                  storeName={storeName}
-                  onShare={() => {
-                    setPromotionSuccess(false);
-                    setPromotionTarget(product);
-                  }}
+                  onShare={() => setShareProductTarget(product)}
                   menuOpen={openMenuId === product.id}
                   onOpenMenu={() => setOpenMenuId(product.id)}
                   onCloseMenu={() => setOpenMenuId(null)}
@@ -334,10 +329,10 @@ export default function SellerCatalogPage() {
         type="button"
         onClick={() => router.push("/seller/dashboard/catalog/new")}
         aria-label="Add a product"
-        className="fixed right-5 bottom-24 lg:bottom-8 z-30 w-14 h-14 rounded-full bg-role-dark text-white shadow-[0_12px_24px_-6px_rgb(var(--role)/0.5)] flex items-center justify-center hover:opacity-90 active:scale-95 transition-all"
+        className="fixed right-5 bottom-24 lg:bottom-8 z-30 w-14 h-14 rounded-full bg-brand-gold text-slate-950 font-black shadow-lg shadow-amber-500/30 flex items-center justify-center hover:bg-brand-gold-dark active:scale-95 transition-all"
         style={{ marginBottom: "env(safe-area-inset-bottom)" }}
       >
-        <Plus size={26} strokeWidth={2.5} />
+        <Plus size={28} strokeWidth={2.5} />
       </button>
 
       <ProductFilterDrawer
@@ -364,18 +359,18 @@ export default function SellerCatalogPage() {
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
       />
-      {promotionTarget && (
-        <PromotionDialog
-          target={promotionTarget}
+
+      {shareProductTarget && (
+        <ProductShareModal
+          product={shareProductTarget}
           storeName={storeName}
-          storeLink={storeLink}
           username={user?.username ?? ""}
           onClose={() => {
-            setPromotionTarget(null);
-            setPromotionSuccess(false);
+            setShareProductTarget(null);
+            setIsJustPublished(false);
           }}
           onToast={(message) => toast(message, "success")}
-          success={promotionSuccess}
+          isJustPublished={isJustPublished}
         />
       )}
     </AppShell>
@@ -385,8 +380,6 @@ export default function SellerCatalogPage() {
 interface ProductCardProps {
   product: ApiProduct;
   storePath: string;
-  storeLink: string;
-  storeName: string;
   menuOpen: boolean;
   onOpenMenu: () => void;
   onCloseMenu: () => void;
@@ -397,7 +390,7 @@ interface ProductCardProps {
   onDelete: () => void;
 }
 
-function ProductCard({ product, storePath, storeLink, storeName, menuOpen, onOpenMenu, onCloseMenu, onEdit, onShare, savingPrice, onSavePrice, onDelete }: ProductCardProps) {
+function ProductCard({ product, storePath, menuOpen, onOpenMenu, onCloseMenu, onEdit, onShare, savingPrice, onSavePrice, onDelete }: ProductCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const [editingPrice, setEditingPrice] = useState(false);
   const [priceInput, setPriceInput] = useState(String(product.price));
@@ -414,9 +407,9 @@ function ProductCard({ product, storePath, storeLink, storeName, menuOpen, onOpe
       : { label: "In Stock", classes: "bg-success text-white" };
 
   return (
-    <div className="bg-white border border-slate-100 shadow-sm rounded-2xl overflow-hidden flex flex-col">
+    <div className="bg-white dark:bg-dark-secondary border border-slate-200 dark:border-dark-accent shadow-sm rounded-2xl overflow-hidden flex flex-col">
       {/* Photo — seller-only page, but the image itself is the same asset buyers see */}
-      <button type="button" onClick={onEdit} className="relative aspect-[4/3] bg-dark-secondary overflow-hidden text-left">
+      <button type="button" onClick={onEdit} className="relative aspect-[4/3] bg-slate-100 dark:bg-dark-deepest overflow-hidden text-left">
         {product.image_url && !imageFailed ? (
           <Image
             src={product.image_url}
@@ -487,9 +480,9 @@ function ProductCard({ product, storePath, storeLink, storeName, menuOpen, onOpe
                     setPriceError(null);
                   }}
                   disabled={savingPrice}
-                  className="w-24 h-9 rounded-lg border border-role/40 px-2 text-right text-sm font-bold text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-role"
+                  className="w-24 h-9 rounded-lg border border-brand-gold/50 bg-white dark:bg-dark-deepest px-2 text-right text-sm font-bold text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold"
                 />
-                <button type="submit" disabled={savingPrice} className="h-9 rounded-lg bg-role-dark px-2.5 text-xs font-bold text-white disabled:opacity-50">
+                <button type="submit" disabled={savingPrice} className="h-9 rounded-lg bg-brand-gold text-slate-950 px-2.5 text-xs font-bold disabled:opacity-50">
                   {savingPrice ? "Saving…" : "Save"}
                 </button>
               </form>
@@ -503,7 +496,7 @@ function ProductCard({ product, storePath, storeLink, storeName, menuOpen, onOpe
                     setPriceError(null);
                     setEditingPrice(true);
                   }}
-                  className="text-sm font-black text-role tabular-nums hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-role rounded"
+                  className="text-sm font-black text-brand-gold tabular-nums hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold rounded"
                   aria-label={`Edit price for ${product.name}`}
                 >
                   {fmtKES(product.price)}
@@ -518,7 +511,7 @@ function ProductCard({ product, storePath, storeLink, storeName, menuOpen, onOpe
           <button
             type="button"
             onClick={onEdit}
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-role-soft text-role-dark font-bold text-sm py-2.5 hover:opacity-80 transition-opacity"
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-dark-tertiary dark:hover:bg-dark-accent text-slate-800 dark:text-text-primary font-bold text-sm py-2.5 transition-colors"
           >
             <Edit2 size={14} /> Edit
           </button>
@@ -526,7 +519,7 @@ function ProductCard({ product, storePath, storeLink, storeName, menuOpen, onOpe
             type="button"
             onClick={onShare}
             aria-label={`Share ${product.name}`}
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-role-dark text-white font-bold text-sm py-2.5 hover:opacity-90 transition-opacity focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-bold text-sm py-2.5 transition-colors shadow-sm focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Share2 size={14} /> Share
           </button>
@@ -534,7 +527,7 @@ function ProductCard({ product, storePath, storeLink, storeName, menuOpen, onOpe
             type="button"
             onClick={menuOpen ? onCloseMenu : onOpenMenu}
             aria-label="More options"
-            className="shrink-0 w-10 h-10 rounded-xl bg-role-soft text-role-dark flex items-center justify-center hover:opacity-80 transition-opacity"
+            className="shrink-0 w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-dark-tertiary dark:hover:bg-dark-accent text-slate-700 dark:text-text-secondary flex items-center justify-center transition-colors"
           >
             <MoreVertical size={16} />
           </button>
@@ -542,30 +535,26 @@ function ProductCard({ product, storePath, storeLink, storeName, menuOpen, onOpe
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={onCloseMenu} aria-hidden="true" />
-              <div className="absolute right-0 bottom-full mb-2 z-50 w-44 rounded-xl border border-slate-100 bg-white shadow-xl overflow-hidden">
+              <div className="absolute right-0 bottom-full mb-2 z-50 w-48 rounded-xl border border-slate-200 dark:border-dark-accent bg-white dark:bg-dark-card shadow-xl overflow-hidden">
                 <button
                   type="button"
                   onClick={() => {
                     onCloseMenu();
-                    window.open(storePath, "_blank");
+                    window.open(`${storePath}#product-${product.id}`, "_blank");
                   }}
-                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-text-secondary hover:bg-slate-50 hover:text-text-primary transition-colors"
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-text-secondary hover:bg-slate-50 dark:hover:bg-dark-tertiary hover:text-text-primary transition-colors"
                 >
-                  <Eye size={15} /> View in my shop
+                  <Eye size={15} /> View in shop
                 </button>
                 <button
                   type="button"
                   onClick={() => {
                     onCloseMenu();
-                    shareLink({
-                      title: product.name,
-                      text: `${product.name} — ${fmtKES(product.price)} at ${storeName}. Check it out:`,
-                      url: storeLink,
-                    });
+                    onShare();
                   }}
-                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-text-secondary hover:bg-slate-50 hover:text-text-primary transition-colors"
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-text-secondary hover:bg-slate-50 dark:hover:bg-dark-tertiary hover:text-text-primary transition-colors"
                 >
-                  <Share2 size={15} /> Share to social media
+                  <Share2 size={15} /> Share product
                 </button>
                 <button
                   type="button"
@@ -583,111 +572,257 @@ function ProductCard({ product, storePath, storeLink, storeName, menuOpen, onOpe
   );
 }
 
-function PromotionCenter({
-  storeName, storeLink, caption, productCount, onCopyLink, onShare, onOpenPoster, onToast,
+function StoreShareBar({
+  storeName,
+  storeLink,
+  productCount,
+  onCopyLink,
+  onShare,
 }: {
-  storeName: string; storeLink: string; caption: string; productCount: number;
-  onCopyLink: () => void; onShare: () => void; onOpenPoster: () => void; onToast: (message: string) => void;
+  storeName: string;
+  storeLink: string;
+  productCount: number;
+  onCopyLink: () => void;
+  onShare: () => void;
 }) {
-  const copyCaption = async () => {
-    await navigator.clipboard?.writeText(caption);
-    onToast("Store caption copied.");
+  const shareWhatsApp = () => {
+    const text = `🛍️ *${storeName}* Wholesale Catalog\nBrowse our latest products and place orders online:\n${storeLink}\n\nPowered by Nyakizu Marketplace`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
   };
-  const shareFacebook = () => {
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(storeLink)}`, "_blank", "noopener,noreferrer");
-  };
+
   return (
-    <section className="overflow-hidden rounded-2xl border border-role/20 bg-gradient-to-br from-role-soft via-card to-card shadow-sm">
-      <div className="p-5 sm:p-6">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-xl">
-            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-role-dark"><Sparkles size={15} /> Promote your store</div>
-            <h2 className="mt-2 text-2xl font-black tracking-tight text-foreground sm:text-3xl">Turn {storeName} into sales.</h2>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">Share your catalog where your customers already are. Buyers can preview your store and order without downloading an app.</p>
+    <div className="rounded-2xl border border-slate-200 dark:border-dark-accent bg-white dark:bg-dark-secondary shadow-sm p-4 sm:p-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 text-xs font-bold text-amber-700 dark:text-amber-400">
+              <Share2 size={12} /> Share Your Store
+            </span>
+            <span className="text-xs text-text-muted">
+              {productCount} {productCount === 1 ? "product" : "products"} live
+            </span>
           </div>
-          <div className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-card/80 p-4 sm:min-w-56">
-            <div><p className="text-2xl font-black tabular-nums text-foreground">{productCount}</p><p className="text-xs font-bold text-muted-foreground">Products live</p></div>
-            <div><p className="text-2xl font-black tabular-nums text-warning">{productCount === 0 ? 0 : "✓"}</p><p className="text-xs font-bold text-muted-foreground">Ready to share</p></div>
-          </div>
+          <h2 className="text-base sm:text-lg font-bold text-text-primary mt-1">
+            Send your catalog link to buyers
+          </h2>
+          <p className="text-xs sm:text-sm text-text-secondary mt-0.5">
+            Buyers can view your products and order without installing an app.
+          </p>
         </div>
-        <div className="mt-5 rounded-xl border border-border bg-background/80 p-2">
-          <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2.5"><Link2 size={16} className="shrink-0 text-role" /><span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{storeLink}</span><button type="button" onClick={onCopyLink} className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg bg-role-dark px-3 text-xs font-black text-white transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring"><Copy size={14} /> Copy link</button></div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <a
+            href={storeLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-dark-accent bg-slate-50 dark:bg-dark-tertiary px-3.5 py-2 text-xs font-bold text-text-primary hover:bg-slate-100 dark:hover:bg-dark-accent transition-colors"
+          >
+            <Eye size={14} /> Preview Shop
+          </a>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <button type="button" onClick={onShare} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-[#168c4a] px-3 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring"><MessageCircle size={17} /> WhatsApp</button>
-          <button type="button" onClick={onCopyLink} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-black text-foreground transition hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring"><Copy size={17} /> Copy link</button>
-          <button type="button" onClick={shareFacebook} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-black text-foreground transition hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring"><span className="flex h-5 w-5 items-center justify-center rounded bg-[#1877f2] text-xs font-black text-white">f</span> Facebook</button>
-          <button type="button" onClick={onOpenPoster} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-black text-foreground transition hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring"><Download size={17} /> Poster</button>
-        </div>
-        <div className="mt-3 flex flex-wrap items-center gap-3"><button type="button" onClick={copyCaption} className="inline-flex min-h-10 items-center gap-1.5 text-sm font-bold text-role-dark hover:underline focus-visible:ring-2 focus-visible:ring-ring"><Copy size={14} /> Copy marketing caption</button><span className="text-xs text-muted-foreground">WhatsApp-first, ready to paste anywhere</span></div>
       </div>
-    </section>
-  );
-}
 
-function PromotionDialog({
-  target, storeName, storeLink, username, onClose, onToast, success = false,
-}: {
-  target: ApiProduct | "store"; storeName: string; storeLink: string; username: string;
-  onClose: () => void; onToast: (message: string) => void; success?: boolean;
-}) {
-  const [format, setFormat] = useState<"story" | "square">("story");
-  const [qrSrc, setQrSrc] = useState("");
-  const [downloading, setDownloading] = useState(false);
-  const posterRef = useRef<HTMLDivElement>(null);
-  const product = target === "store" ? null : target;
-  const url = product ? `${window.location.origin}/store/${username}#product-${product.id}` : storeLink;
-  const caption = product
-    ? `✨ ${product.name}\n\n💰 ${fmtKES(product.price)}\n📦 Available Now\n\n🛒 Order here:\n${url}\n\n#NyakizuMarketplace`
-    : `🛍 Visit my Nyakizu Store\n\nBrowse quality products and order directly online.\n\n📦 Products available now.\n🔗 Shop here:\n${url}\n\n#NyakizuMarketplace`;
+      {/* URL & Action buttons */}
+      <div className="mt-3.5 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+        <div className="flex-1 flex items-center gap-2 rounded-xl border border-slate-200 dark:border-dark-accent bg-slate-50 dark:bg-dark-deepest px-3.5 py-2.5 min-w-0">
+          <Link2 size={15} className="text-brand-gold shrink-0" />
+          <span className="text-xs sm:text-sm font-medium text-text-primary truncate select-all">
+            {storeLink}
+          </span>
+          <button
+            type="button"
+            onClick={onCopyLink}
+            className="ml-auto inline-flex items-center gap-1 text-xs font-bold text-brand-gold hover:underline shrink-0"
+          >
+            <Copy size={13} /> Copy
+          </button>
+        </div>
 
-  useEffect(() => {
-    QRCode.toDataURL(url, { width: 240, margin: 1, color: { dark: "#111827", light: "#ffffff" } }).then(setQrSrc).catch(() => setQrSrc(""));
-  }, [url]);
-
-  const copy = async (text: string, message: string) => {
-    await navigator.clipboard?.writeText(text);
-    onToast(message);
-  };
-  const whatsapp = () => shareLink({ title: product?.name || storeName, text: caption, url });
-  const facebook = () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, "_blank", "noopener,noreferrer");
-  const downloadPoster = async () => {
-    if (!posterRef.current) return;
-    setDownloading(true);
-    try {
-      const { default: html2canvas } = await import("html2canvas-pro");
-      const canvas = await html2canvas(posterRef.current, { scale: 2, backgroundColor: "#ffffff", useCORS: true });
-      const link = document.createElement("a");
-      link.download = `${product ? "product" : "store"}-poster.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-      onToast("Poster downloaded.");
-    } catch {
-      onToast("Could not create the poster. Please try again.");
-    } finally {
-      setDownloading(false);
-    }
-  };
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 sm:items-center" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <div role="dialog" aria-modal="true" aria-labelledby="promotion-title" className="max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-2xl sm:p-6">
-        <div className="flex items-start justify-between gap-4"><div>{success && <p className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-success"><CheckCircle2 size={14} /> Product published successfully</p>}<p className="text-xs font-black uppercase tracking-widest text-role">Promotion center</p><h2 id="promotion-title" className="mt-1 text-xl font-black text-foreground">{success ? "Get your first customer now." : product ? "Share product" : "Promote your store"}</h2><p className="mt-1 text-sm text-muted-foreground">Ready-made assets for WhatsApp, Facebook, Instagram Stories, and print.</p></div><button type="button" onClick={onClose} aria-label="Close promotion center" className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"><X size={19} /></button></div>
-        <div className="mt-5 grid gap-5 md:grid-cols-[minmax(0,1fr)_15rem]">
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-2"><button type="button" onClick={whatsapp} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-[#168c4a] px-3 text-sm font-black text-white focus-visible:ring-2 focus-visible:ring-ring"><MessageCircle size={17} /> WhatsApp</button><button type="button" onClick={facebook} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-black text-foreground focus-visible:ring-2 focus-visible:ring-ring"><span className="flex h-5 w-5 items-center justify-center rounded bg-[#1877f2] text-xs font-black text-white">f</span> Facebook</button></div>
-            <div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => copy(caption, product ? "Product caption copied." : "Store caption copied.")} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-bold text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Copy size={16} /> Copy caption</button><button type="button" onClick={() => copy(url, product ? "Product link copied." : "Store link copied.")} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-bold text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Link2 size={16} /> Copy link</button></div>
-            <div className="rounded-xl border border-border bg-background p-4"><p className="mb-2 text-xs font-black uppercase tracking-wider text-muted-foreground">Generated caption</p><p className="whitespace-pre-line text-sm leading-relaxed text-foreground">{caption}</p></div>
-            <div className="flex items-center gap-2"><p className="text-xs font-bold text-muted-foreground">Poster format</p><button type="button" onClick={() => setFormat("story")} className={cn("min-h-10 rounded-lg border px-3 text-xs font-bold", format === "story" ? "border-role bg-role-soft text-role-dark" : "border-border text-muted-foreground")}>Story</button><button type="button" onClick={() => setFormat("square")} className={cn("min-h-10 rounded-lg border px-3 text-xs font-bold", format === "square" ? "border-role bg-role-soft text-role-dark" : "border-border text-muted-foreground")}>Square</button></div>
-            <button type="button" onClick={downloadPoster} disabled={downloading || !qrSrc} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-role-dark px-4 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-ring"><Download size={17} /> {downloading ? "Creating poster..." : "Download poster"}</button>
-            {success && product && <a href={url} target="_blank" rel="noreferrer" className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-bold text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"><Eye size={16} /> View product</a>}
-          </div>
-          <div ref={posterRef} className={cn("relative mx-auto flex w-full max-w-[15rem] flex-col items-center justify-between overflow-hidden rounded-xl bg-white p-5 text-center text-slate-950 shadow-lg", format === "story" ? "aspect-[9/16]" : "aspect-square")}><div className="absolute inset-0 bg-gradient-to-b from-[#fff8dd] via-white to-[#f3ead0]" /><div className="relative z-10 flex h-full w-full flex-col items-center justify-between"><div><div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-xs font-black text-white">N</div><p className="mt-3 text-[10px] font-black uppercase tracking-[0.2em] text-[#a86e00]">Nyakizu Marketplace</p></div>{product?.image_url ? <img src={product.image_url} alt="" crossOrigin="anonymous" className="h-28 w-full rounded-lg object-cover" /> : <div className="flex h-28 w-full items-center justify-center rounded-lg bg-slate-950 text-4xl font-black text-white">{storeName.charAt(0).toUpperCase()}</div>}<div><p className="text-lg font-black leading-tight">{product ? product.name : storeName}</p>{product ? <p className="mt-2 text-xl font-black text-[#a86e00]">{fmtKES(product.price)}</p> : <p className="mt-2 text-xs font-bold text-slate-600">Shop {productCountLabel(target)} products online</p>}</div>{qrSrc && <img src={qrSrc} alt="QR code" className="h-24 w-24 rounded bg-white p-1" />}<div><p className="text-[10px] font-black uppercase tracking-wider text-slate-700">Scan to order</p><p className="mt-1 max-w-full truncate text-[9px] text-slate-500">{url.replace(/^https?:\/\//, "")}</p></div></div></div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={shareWhatsApp}
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] text-white px-4 py-2.5 text-xs sm:text-sm font-bold shadow-sm transition-transform active:scale-95"
+          >
+            <MessageCircle size={15} /> WhatsApp
+          </button>
+          <button
+            type="button"
+            onClick={onShare}
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-xl bg-brand-gold hover:bg-brand-gold-dark text-slate-950 px-4 py-2.5 text-xs sm:text-sm font-bold shadow-sm transition-transform active:scale-95"
+          >
+            <Share2 size={15} /> Share Store
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-function productCountLabel(target: ApiProduct | "store") {
-  return target === "store" ? "your" : "this";
+function ProductShareModal({
+  product,
+  storeName,
+  username,
+  onClose,
+  onToast,
+  isJustPublished = false,
+}: {
+  product: ApiProduct;
+  storeName: string;
+  username: string;
+  onClose: () => void;
+  onToast: (msg: string) => void;
+  isJustPublished?: boolean;
+}) {
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://www.nyakizudigital.me";
+  const productUrl = `${origin}/store/${username}#product-${product.id}`;
+
+  const shareText = `📦 *${product.name}*\n💰 Price: ${fmtKES(product.price)}\n🏪 Store: ${storeName}\n\n🛒 Order or view details here:\n${productUrl}`;
+
+  const handleCopyLink = async () => {
+    await navigator.clipboard?.writeText(productUrl);
+    onToast("Product link copied to clipboard!");
+  };
+
+  const handleCopyMessage = async () => {
+    await navigator.clipboard?.writeText(shareText);
+    onToast("Product details and link copied!");
+  };
+
+  const handleWhatsApp = () => {
+    const waUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+    window.open(waUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const handleDeviceShare = async () => {
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({
+          title: product.name,
+          text: shareText,
+          url: productUrl,
+        });
+        return;
+      } catch {
+        // user cancelled or unsupported
+      }
+    }
+    handleWhatsApp();
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4"
+      role="presentation"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="product-share-title"
+        className="w-full max-w-lg rounded-2xl border border-slate-200 dark:border-dark-accent bg-white dark:bg-dark-secondary p-5 sm:p-6 text-text-primary shadow-2xl animate-scale-in"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            {isJustPublished && (
+              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-1">
+                <CheckCircle2 size={13} /> Product Published Successfully
+              </span>
+            )}
+            <h2 id="product-share-title" className="text-lg sm:text-xl font-bold text-text-primary">
+              Share Product with Buyers
+            </h2>
+            <p className="text-xs sm:text-sm text-text-muted mt-0.5">
+              Buyers can tap this link to view specifications and order immediately.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="w-9 h-9 rounded-full flex items-center justify-center text-text-muted hover:bg-slate-100 dark:hover:bg-dark-tertiary transition-colors"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Product Preview Card */}
+        <div className="mt-4 rounded-xl border border-slate-200 dark:border-dark-accent bg-slate-50 dark:bg-dark-tertiary/60 p-3.5 flex gap-3.5 items-center">
+          <div className="relative w-16 h-16 rounded-lg bg-dark-secondary overflow-hidden shrink-0 border border-slate-200 dark:border-dark-accent">
+            {product.image_url ? (
+              <Image
+                src={product.image_url}
+                alt={product.name}
+                fill
+                unoptimized
+                className="object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-text-muted">
+                <Package size={22} />
+              </div>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wide truncate">
+              {product.category_name || storeName}
+            </p>
+            <p className="text-sm font-bold text-text-primary truncate">{product.name}</p>
+            <p className="text-base font-black text-brand-gold mt-0.5">{fmtKES(product.price)}</p>
+          </div>
+        </div>
+
+        {/* Shareable Link Bar */}
+        <div className="mt-3 flex items-center gap-2 rounded-xl border border-slate-200 dark:border-dark-accent bg-white dark:bg-dark-deepest px-3.5 py-2 text-xs">
+          <Link2 size={14} className="text-brand-gold shrink-0" />
+          <span className="flex-1 truncate font-mono text-text-secondary select-all">{productUrl}</span>
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            className="text-brand-gold font-bold hover:underline shrink-0 flex items-center gap-1"
+          >
+            <Copy size={12} /> Copy Link
+          </button>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="mt-4 grid grid-cols-2 gap-2.5">
+          <button
+            type="button"
+            onClick={handleWhatsApp}
+            className="flex items-center justify-center gap-2 rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] text-white py-3 text-xs sm:text-sm font-bold shadow-sm transition active:scale-95"
+          >
+            <MessageCircle size={17} /> Share to WhatsApp
+          </button>
+          <button
+            type="button"
+            onClick={handleDeviceShare}
+            className="flex items-center justify-center gap-2 rounded-xl bg-brand-gold hover:bg-brand-gold-dark text-slate-950 py-3 text-xs sm:text-sm font-bold shadow-sm transition active:scale-95"
+          >
+            <Share2 size={17} /> Share Product
+          </button>
+        </div>
+
+        <div className="mt-3 flex items-center justify-between gap-2 pt-2 border-t border-slate-200 dark:border-dark-accent">
+          <button
+            type="button"
+            onClick={handleCopyMessage}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-text-secondary hover:text-text-primary py-1"
+          >
+            <Copy size={13} /> Copy formatted text
+          </button>
+          <a
+            href={productUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-gold hover:underline py-1"
+          >
+            <Eye size={13} /> Preview in store
+          </a>
+        </div>
+      </div>
+    </div>
+  );
 }

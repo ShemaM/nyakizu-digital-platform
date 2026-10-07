@@ -14,12 +14,12 @@ import { Button } from "@/components/ui/Button";
 import { Container, Section, LandingHeader, LandingFooter } from "@/components/layouts";
 
 export function PricingContent() {
-  const [sliderCartonValue, setSliderCartonValue] = useState<number>(10000);
+  const [sliderOrderValue, setSliderOrderValue] = useState<number>(10000);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
   // KSh 50 minimum to KSh 100 maximum cap (capped at KSh 20,000 maximum order size)
-  const computedFee = Math.min(100, Math.max(50, Math.round((sliderCartonValue * 0.005) / 5) * 5));
-  const effectivePercentage = ((computedFee / sliderCartonValue) * 100).toFixed(2);
+  const computedFee = Math.min(100, Math.max(50, Math.round((sliderOrderValue * 0.005) / 5) * 5));
+  const effectivePercentage = ((computedFee / sliderOrderValue) * 100).toFixed(2);
 
   const toggleFaq = (index: number) => {
     setOpenFaqIndex((prev) => (prev === index ? null : index));
@@ -28,7 +28,7 @@ export function PricingContent() {
   const PRICING_FAQS = [
     {
       q: "Why did Nyakizu adopt a pay-per-order fee instead of KSh 1,500/month?",
-      a: "Monthly subscription fees punish wholesalers when market foot traffic drops, during rainy seasons, or over quiet trade months. Pay-per-order aligns our incentives with yours: if you don't pack a carton, you pay KSh 0. When you do pack and make money, the fee is tiny (KSh 50 to a maximum cap of KSh 100).",
+      a: "Monthly subscription fees punish wholesalers when market foot traffic drops, during rainy seasons, or over quiet trade months. Pay-per-order aligns our incentives with yours: if you don't pack an order, you pay KSh 0. When you do pack and make money, the fee is tiny (KSh 50 to a maximum cap of KSh 100).",
     },
     {
       q: "What is the maximum order size and maximum fee?",
@@ -52,7 +52,7 @@ export function PricingContent() {
     },
     {
       q: "Are custom sourcing requests charged extra?",
-      a: "No. Sourced items are treated as regular order items. Whether an order contains standard catalog phone covers or custom-sourced screens, the same transparent KSh 50 to KSh 100 per-carton fee applies.",
+      a: "No. Sourced items are treated as regular order items. Whether an order contains standard catalog phone covers or custom-sourced screens, the same transparent KSh 50 to KSh 100 per-order fee applies.",
     },
     {
       q: "Is the debt ledger and payment tracking included for free?",
@@ -70,14 +70,14 @@ export function PricingContent() {
     },
     {
       range: "KSh 10,001 – KSh 19,500",
-      label: "Medium Cartons & Wholesale Packs",
+      label: "Medium Orders & Wholesale Packs",
       fee: "KSh 55 – KSh 95",
       rate: "0.50%",
       notes: "0.5% rate rounded to nearest KES 5",
     },
     {
       range: "KSh 20,000 (Maximum order size)",
-      label: "Full Cartons & Volume Shipments",
+      label: "Large Orders & Volume Shipments",
       fee: "KSh 100",
       rate: "0.50%",
       notes: "Strict maximum cap per order",
@@ -111,12 +111,12 @@ export function PricingContent() {
             Simple, Transparent Wholesale Pricing.
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-gold via-amber-400 to-amber-600 dark:from-brand-gold dark:via-amber-300 dark:to-amber-500">
-              KSh 50 to KSh 100 Per Carton.
+              KSh 50 to KSh 100 Per Order.
             </span>
           </h1>
 
           <p className="mt-4 sm:mt-6 text-base sm:text-xl text-text-secondary max-w-2xl mx-auto leading-relaxed font-medium">
-            No fixed monthly drain. Pay only when you pack and dispatch a real carton. Your first 3 orders are 100% free, and retail buyers pay KSh 0 forever.
+            No fixed monthly drain. Pay only when you pack and dispatch a real order. Your first 3 orders are 100% free, and retail buyers pay KSh 0 forever.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs sm:text-sm text-text-secondary font-semibold">
@@ -150,7 +150,7 @@ export function PricingContent() {
                   Live Fee Simulation
                 </span>
                 <h2 className="text-2xl sm:text-3xl font-black text-text-primary mt-1">
-                  Estimate Your Fee Per Packed Carton
+                  Estimate Your Fee Per Packed Order
                 </h2>
                 <p className="text-xs sm:text-sm text-text-secondary mt-1">
                   Drag the slider to see exact wholesaler deduction and effective rate.
@@ -171,9 +171,9 @@ export function PricingContent() {
             <div className="py-8 relative z-10">
               <div className="flex justify-between items-center mb-3">
                 <label htmlFor="pricing-slider" className="text-sm font-bold text-text-primary">
-                  Carton / Order Value:{" "}
+                  Order Value:{" "}
                   <span className="text-brand-gold font-black text-lg">
-                    KSh {sliderCartonValue.toLocaleString()}
+                    KSh {sliderOrderValue.toLocaleString()}
                   </span>
                 </label>
                 <span className="text-xs text-text-muted">Min KSh 1,000 &mdash; Max KSh 20,000 (Maximum order size)</span>
@@ -185,8 +185,8 @@ export function PricingContent() {
                 min={1000}
                 max={20000}
                 step={500}
-                value={sliderCartonValue}
-                onChange={(e) => setSliderCartonValue(Number(e.target.value))}
+                value={sliderOrderValue}
+                onChange={(e) => setSliderOrderValue(Number(e.target.value))}
                 className="w-full h-3 bg-dark-tertiary border border-dark-accent rounded-lg appearance-none cursor-pointer accent-brand-gold focus:outline-none"
               />
 
@@ -204,7 +204,7 @@ export function PricingContent() {
               <div className="rounded-2xl border border-dark-accent bg-dark-tertiary/60 p-4 text-center">
                 <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider block">Order Value</span>
                 <span className="text-lg sm:text-xl font-bold text-text-primary tabular-nums mt-1 block">
-                  KSh {sliderCartonValue.toLocaleString()}
+                  KSh {sliderOrderValue.toLocaleString()}
                 </span>
               </div>
               <div className="rounded-2xl border border-brand-gold/50 bg-brand-gold/10 p-4 text-center">
@@ -256,7 +256,7 @@ export function PricingContent() {
               <table className="w-full text-left text-sm">
                 <thead className="bg-dark-tertiary text-text-primary font-bold border-b border-dark-accent text-xs uppercase tracking-wider">
                   <tr>
-                    <th scope="col" className="p-4 sm:p-5">Order / Carton Value</th>
+                    <th scope="col" className="p-4 sm:p-5">Order Value</th>
                     <th scope="col" className="p-4 sm:p-5">Tier Description</th>
                     <th scope="col" className="p-4 sm:p-5">Platform Fee</th>
                     <th scope="col" className="p-4 sm:p-5">Effective %</th>
@@ -305,7 +305,7 @@ export function PricingContent() {
                 <h3 className="text-xl font-bold text-text-primary mt-1">First 3 Orders Free</h3>
                 <div className="mt-4 flex items-baseline gap-1">
                   <span className="text-3xl font-extrabold text-text-primary">KSh 0</span>
-                  <span className="text-xs text-text-muted">/ first 3 cartons</span>
+                  <span className="text-xs text-text-muted">/ first 3 orders</span>
                 </div>
                 <p className="mt-3 text-sm text-text-secondary leading-relaxed">
                   Start digitizing your wholesale orders immediately. Test with your real buyers with zero financial commitment.
@@ -313,7 +313,7 @@ export function PricingContent() {
 
                 <ul className="mt-6 space-y-3 text-sm text-text-secondary">
                   <li className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> 3 Full carton lockups included
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> 3 Full order lockups included
                   </li>
                   <li className="flex items-center gap-2.5">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> Zero deposit or credit card
@@ -345,7 +345,7 @@ export function PricingContent() {
                 <h3 className="text-xl font-bold text-text-primary mt-1">Wholesale Per-Order Fee</h3>
                 <div className="mt-4 flex items-baseline gap-1">
                   <span className="text-3xl sm:text-4xl font-black text-brand-gold">KSh 50 &ndash; 100</span>
-                  <span className="text-xs text-text-muted">/ packed carton</span>
+                  <span className="text-xs text-text-muted">/ packed order</span>
                 </div>
                 <p className="mt-3 text-sm text-text-secondary leading-relaxed">
                   Only charged when you lock an order and dispatch. Zero charges during quiet seasons. Never a monthly bill.
@@ -429,7 +429,7 @@ export function PricingContent() {
               How M-Pesa Prepaid Top-Up Works
             </h3>
             <p className="mt-3 text-text-secondary text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-              Wholesalers maintain a prepaid balance on their seller account. When packing a carton, top up from as little as KSh 100 using instant Safaricom STK push.
+              Wholesalers maintain a prepaid balance on their seller account. When packing an order, top up from as little as KSh 100 using instant Safaricom STK push.
             </p>
 
             <div className="grid sm:grid-cols-3 gap-5 mt-10 text-left">
@@ -446,7 +446,7 @@ export function PricingContent() {
               <div className="rounded-2xl border border-dark-accent bg-dark-tertiary/50 p-5">
                 <span className="w-7 h-7 rounded-lg bg-brand-gold/20 text-brand-gold font-black text-xs flex items-center justify-center mb-3">3</span>
                 <span className="text-text-primary font-bold text-sm block">Pack &amp; Deduct</span>
-                <p className="text-xs text-text-secondary mt-1 leading-relaxed">When you lock the carton, the KSh 50 to KSh 100 fee is deducted automatically.</p>
+                <p className="text-xs text-text-secondary mt-1 leading-relaxed">When you lock the order, the KSh 50 to KSh 100 fee is deducted automatically.</p>
               </div>
             </div>
 

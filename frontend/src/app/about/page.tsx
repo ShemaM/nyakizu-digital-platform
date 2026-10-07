@@ -32,7 +32,7 @@ const VALUES = [
   {
     icon: Heart,
     title: "Fair, transparent pricing",
-    body: "No monthly subscriptions or hidden fees. Wholesalers pay only KSh 50 to KSh 100 per packed carton. Retailers and hawkers use Nyakizu 100% free.",
+    body: "No monthly subscriptions or hidden fees. Wholesalers pay only KSh 50 to KSh 100 per packed order. Retailers and hawkers use Nyakizu 100% free.",
   },
 ];
 

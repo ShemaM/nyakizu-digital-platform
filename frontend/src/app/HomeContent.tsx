@@ -47,7 +47,7 @@ export function HomeContent() {
   const FAQS = [
     {
       q: "Why do wholesalers pay KSh 50 to KSh 100 per order instead of a monthly subscription?",
-      a: "Fixed monthly subscriptions (like KSh 1,500/month) drain your cash even during slow weeks or quiet shipping days. With Nyakizu, you only pay when you actually pack and lock a carton. Small orders pay KSh 50; larger orders up to the KSh 20,000 maximum order size are strictly capped at KSh 100 max. If you don't pack, you pay zero.",
+      a: "Fixed monthly subscriptions (like KSh 1,500/month) drain your cash even during slow weeks or quiet shipping days. With Nyakizu, you only pay when you actually pack and lock an order. Small orders pay KSh 50; larger orders up to the KSh 20,000 maximum order size are strictly capped at KSh 100 max. If you don't pack, you pay zero.",
     },
     {
       q: "Do retail buyers, stall owners, and hawkers across Kenya have to pay anything?",
@@ -151,9 +151,9 @@ export function HomeContent() {
             {/* Glowing Accent Ring behind Mockup */}
             <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-brand-gold/30 via-purple-600/30 to-blue-500/20 blur-xl opacity-75" />
 
-            <div className="relative rounded-2xl sm:rounded-3xl border border-dark-accent bg-dark-card shadow-2xl overflow-hidden">
+            <div className="relative rounded-2xl sm:rounded-3xl border border-white/10 bg-dark-card/60 backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] overflow-hidden">
               {/* Browser Header Bar with Realistic Controls and Live Tabs */}
-              <div className="px-4 py-3 bg-dark-secondary border-b border-dark-accent flex flex-wrap items-center justify-between gap-3">
+              <div className="px-4 py-3 bg-dark-secondary/70 backdrop-blur-md border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
                 {/* Traffic Light Window Dots */}
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="w-3 h-3 rounded-full bg-[#FF5F56] inline-block" />
@@ -163,7 +163,7 @@ export function HomeContent() {
                 </div>
 
                 {/* Real Account Switcher Tabs */}
-                <div className="flex flex-wrap items-center gap-1 bg-dark-tertiary/70 p-1 rounded-xl border border-dark-accent">
+                <div className="flex flex-wrap items-center gap-1 bg-white/[0.04] p-1 rounded-xl border border-white/10">
                   <button
                     type="button"
                     onClick={() => setActiveMockupTab("both")}
@@ -199,7 +199,7 @@ export function HomeContent() {
                   </button>
                 </div>
 
-                <div className="hidden md:flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                <div className="hidden md:flex items-center gap-1.5 text-xs text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" /> Real Verified Accounts
                 </div>
               </div>
@@ -207,7 +207,7 @@ export function HomeContent() {
               {/* Viewport: Actual Dashboard & Real Pipeline Display */}
               <div className="relative min-h-[480px] sm:min-h-[520px] w-full bg-dark-primary overflow-hidden group flex items-center justify-center">
                 {activeMockupTab === "seller" && (
-                  <div className="w-full p-4 sm:p-8 flex flex-col lg:flex-row items-center justify-center gap-6 sm:gap-10 bg-gradient-to-b from-dark-card via-dark-secondary to-dark-card">
+                  <div className="w-full p-4 sm:p-8 flex flex-col lg:flex-row items-center justify-center gap-6 sm:gap-10 bg-gradient-to-b from-dark-card/60 via-dark-secondary/50 to-dark-card/60">
                     <motion.div
                       initial={{ opacity: 0, scale: 0.96 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -231,25 +231,25 @@ export function HomeContent() {
                       </div>
                       <div>
                         <h3 className="text-xl sm:text-2xl font-black text-text-primary">Sample Shop &middot; Nairobi CBD</h3>
-                        <p className="text-xs font-mono text-text-muted mt-0.5">shemanzabakamira@gmail.com</p>
+                        <p className="text-xs font-mono text-text-muted mt-0.5">sh••••••••••@gmail.com</p>
                       </div>
 
                       <div className="grid grid-cols-3 gap-2 py-1">
-                        <div className="bg-dark-tertiary/50 border border-dark-accent rounded-xl p-3 text-center">
+                        <div className="bg-white/[0.04] border border-white/10 backdrop-blur-md rounded-xl p-3 text-center">
                           <p className="text-lg font-black text-text-primary">5</p>
                           <p className="text-[10px] text-text-muted font-bold">Total Orders</p>
                         </div>
-                        <div className="bg-dark-tertiary/50 border border-brand-gold/30 rounded-xl p-3 text-center">
+                        <div className="bg-brand-gold/[0.08] border border-brand-gold/30 backdrop-blur-md rounded-xl p-3 text-center">
                           <p className="text-lg font-black text-brand-gold">13.2K</p>
                           <p className="text-[10px] text-brand-gold font-bold">KES Volume</p>
                         </div>
-                        <div className="bg-dark-tertiary/50 border border-dark-accent rounded-xl p-3 text-center">
+                        <div className="bg-white/[0.04] border border-white/10 backdrop-blur-md rounded-xl p-3 text-center">
                           <p className="text-lg font-black text-text-primary">11</p>
                           <p className="text-[10px] text-text-muted font-bold">Products</p>
                         </div>
                       </div>
 
-                      <div className="bg-dark-tertiary/40 border border-dark-accent rounded-xl p-3.5 space-y-2 text-xs text-text-secondary">
+                      <div className="bg-white/[0.03] border border-white/[0.08] backdrop-blur-md rounded-xl p-3.5 space-y-2 text-xs text-text-secondary">
                         <div className="flex items-center justify-between">
                           <span className="text-text-muted">Ledger balance:</span>
                           <span className="text-emerald-500 font-bold flex items-center gap-1">
@@ -262,19 +262,19 @@ export function HomeContent() {
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-text-muted">Order fee:</span>
-                          <span className="text-brand-gold font-black">KSh 50 &ndash; 100 per carton (Max 20k)</span>
+                          <span className="text-brand-gold font-black">KSh 50 &ndash; 100 per order (Max 20k)</span>
                         </div>
                       </div>
 
                       <p className="text-[11px] text-text-muted leading-relaxed">
-                        Actual live dashboard for Sample Shop on Luthuli Avenue. Wholesalers track catalog stock, check off items as they pack, and lock cartons with 1 tap.
+                        Actual live dashboard for Sample Shop on Luthuli Avenue. Wholesalers track catalog stock, check off items as they pack, and lock orders with 1 tap.
                       </p>
                     </motion.div>
                   </div>
                 )}
 
                 {activeMockupTab === "buyer" && (
-                  <div className="w-full p-4 sm:p-8 flex flex-col lg:flex-row items-center justify-center gap-6 sm:gap-10 bg-gradient-to-b from-dark-card via-dark-secondary to-dark-card">
+                  <div className="w-full p-4 sm:p-8 flex flex-col lg:flex-row items-center justify-center gap-6 sm:gap-10 bg-gradient-to-b from-dark-card/60 via-dark-secondary/50 to-dark-card/60">
                     <motion.div
                       initial={{ opacity: 0, scale: 0.96 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -293,30 +293,30 @@ export function HomeContent() {
                       transition={{ duration: 0.3, delay: 0.08 }}
                       className="max-w-md space-y-4 text-left"
                     >
-                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 dark:text-emerald-400 text-xs font-black">
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-black">
                         <ShoppingBag className="w-3.5 h-3.5" /> Verified Countrywide Buyer
                       </div>
                       <div>
                         <h3 className="text-xl sm:text-2xl font-black text-text-primary">Kim Dreadlocks Kitengela</h3>
-                        <p className="text-xs font-mono text-text-muted mt-0.5">kimdreadlockskitengela@gmail.com</p>
+                        <p className="text-xs font-mono text-text-muted mt-0.5">ki••••••••••@gmail.com</p>
                       </div>
 
                       <div className="grid grid-cols-3 gap-2 py-1">
-                        <div className="bg-dark-tertiary/50 border border-emerald-500/30 rounded-xl p-3 text-center">
-                          <p className="text-lg font-black text-emerald-500 dark:text-emerald-400">KSh 0</p>
+                        <div className="bg-emerald-500/[0.08] border border-emerald-500/30 backdrop-blur-md rounded-xl p-3 text-center">
+                          <p className="text-lg font-black text-emerald-400">KSh 0</p>
                           <p className="text-[10px] text-text-muted font-bold">Buyer Fee</p>
                         </div>
-                        <div className="bg-dark-tertiary/50 border border-blue-500/30 rounded-xl p-3 text-center">
-                          <p className="text-lg font-black text-blue-500 dark:text-blue-400">KES 154</p>
-                          <p className="text-[10px] text-blue-400 dark:text-blue-300 font-bold">Current Order</p>
+                        <div className="bg-blue-500/[0.08] border border-blue-500/30 backdrop-blur-md rounded-xl p-3 text-center">
+                          <p className="text-lg font-black text-blue-400">KES 154</p>
+                          <p className="text-[10px] text-blue-300 font-bold">Current Order</p>
                         </div>
-                        <div className="bg-dark-tertiary/50 border border-dark-accent rounded-xl p-3 text-center">
+                        <div className="bg-white/[0.04] border border-white/10 backdrop-blur-md rounded-xl p-3 text-center">
                           <p className="text-lg font-black text-text-primary">2</p>
                           <p className="text-[10px] text-text-muted font-bold">Items in Cart</p>
                         </div>
                       </div>
 
-                      <div className="bg-dark-tertiary/40 border border-dark-accent rounded-xl p-3.5 space-y-2 text-xs text-text-secondary">
+                      <div className="bg-white/[0.03] border border-white/[0.08] backdrop-blur-md rounded-xl p-3.5 space-y-2 text-xs text-text-secondary">
                         <div className="flex items-center justify-between">
                           <span className="text-text-muted">Approved supplier:</span>
                           <span className="text-brand-gold font-bold">Sample Shop (Nairobi CBD)</span>
@@ -327,7 +327,7 @@ export function HomeContent() {
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-text-muted">Platform cost:</span>
-                          <span className="text-emerald-500 dark:text-emerald-400 font-bold">100% Free Forever for Buyers</span>
+                          <span className="text-emerald-400 font-bold">100% Free Forever for Buyers</span>
                         </div>
                       </div>
 
@@ -369,89 +369,94 @@ export function HomeContent() {
             </p>
           </div>
 
-          {/* 4 Pipeline Stages Grid */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {/* Stage 1: Pending */}
-            <div className="rounded-2xl border border-dark-accent bg-dark-card p-5 flex flex-col justify-between hover:border-brand-gold/40 transition-colors shadow-sm dark:shadow-lg">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="w-8 h-8 rounded-xl bg-dark-tertiary text-text-secondary font-black text-sm flex items-center justify-center">
-                    1
-                  </span>
-                  <span className="text-xs font-extrabold uppercase px-2 py-0.5 rounded bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                    Pending
-                  </span>
-                </div>
-                <h3 className="text-lg font-bold text-text-primary">Buyer Submits Order</h3>
-                <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-                  Your approved buyers add accessories from your catalog or submit custom sourcing requests. Arrives as a clean itemized order.
-                </p>
-              </div>
-              <div className="mt-4 pt-3 border-t border-dark-accent text-xs text-text-muted font-mono">
-                Real status: submitted
-              </div>
-            </div>
+          {/* Master Glassmorphic Stage Console */}
+          <div className="relative rounded-3xl border border-white/10 bg-dark-card/40 backdrop-blur-2xl p-4 sm:p-8 shadow-2xl overflow-hidden">
+            <div className="absolute -top-32 -left-32 w-80 h-80 bg-brand-gold/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-32 -right-32 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
-            {/* Stage 2: Packing */}
-            <div className="rounded-2xl border border-dark-accent bg-dark-card p-5 flex flex-col justify-between hover:border-brand-gold/40 transition-colors shadow-sm dark:shadow-lg">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="w-8 h-8 rounded-xl bg-dark-tertiary text-text-secondary font-black text-sm flex items-center justify-center">
-                    2
-                  </span>
-                  <span className="text-xs font-extrabold uppercase px-2 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                    Packing
-                  </span>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
+              {/* Stage 1: Pending */}
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-md p-5 flex flex-col justify-between hover:bg-white/[0.06] hover:border-brand-gold/30 transition-all">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/10 text-text-secondary font-black text-sm flex items-center justify-center">
+                      1
+                    </span>
+                    <span className="text-xs font-extrabold uppercase px-2 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/20">
+                      Pending
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-bold text-text-primary">Buyer Submits Order</h3>
+                  <p className="mt-2 text-sm text-text-secondary leading-relaxed">
+                    Your approved buyers add accessories from your catalog or submit custom sourcing requests. Arrives as a clean itemized order.
+                  </p>
                 </div>
-                <h3 className="text-lg font-bold text-text-primary">Pack &amp; Check Off Items</h3>
-                <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-                  Use the live checklist on your phone to check off items as you pack. Quote prices for any custom sourced accessories.
-                </p>
+                <div className="mt-4 pt-3 border-t border-white/10 text-xs text-text-muted font-mono">
+                  Real status: submitted
+                </div>
               </div>
-              <div className="mt-4 pt-3 border-t border-dark-accent text-xs text-text-muted font-mono">
-                Real status: sourcing
-              </div>
-            </div>
 
-            {/* Stage 3: Awaiting Payment */}
-            <div className="rounded-2xl border-2 border-brand-gold/50 bg-brand-gold/5 dark:bg-brand-gold/10 p-5 flex flex-col justify-between shadow-md dark:shadow-xl">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="w-8 h-8 rounded-xl bg-brand-gold text-slate-950 font-black text-sm flex items-center justify-center">
-                    3
-                  </span>
-                  <span className="text-xs font-extrabold uppercase px-2 py-0.5 rounded bg-brand-gold/20 text-brand-gold border border-brand-gold/30">
-                    Awaiting Payment
-                  </span>
+              {/* Stage 2: Packing */}
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-md p-5 flex flex-col justify-between hover:bg-white/[0.06] hover:border-brand-gold/30 transition-all">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/10 text-text-secondary font-black text-sm flex items-center justify-center">
+                      2
+                    </span>
+                    <span className="text-xs font-extrabold uppercase px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/20">
+                      Packing
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-bold text-text-primary">Pack &amp; Check Off Items</h3>
+                  <p className="mt-2 text-sm text-text-secondary leading-relaxed">
+                    Use the live checklist on your phone to check off items as you pack. Quote prices for any custom sourced accessories.
+                  </p>
                 </div>
-                <h3 className="text-lg font-bold text-text-primary">Lock Final Price</h3>
-                <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-                  Lock the carton total. The prices and goods become immutable. Log M-Pesa payments with transaction reference codes.
-                </p>
+                <div className="mt-4 pt-3 border-t border-white/10 text-xs text-text-muted font-mono">
+                  Real status: sourcing
+                </div>
               </div>
-              <div className="mt-4 pt-3 border-t border-brand-gold/20 text-xs text-brand-gold font-mono font-bold">
-                Real status: locked / debt_active
-              </div>
-            </div>
 
-            {/* Stage 4: Completed */}
-            <div className="rounded-2xl border border-dark-accent bg-dark-card p-5 flex flex-col justify-between hover:border-brand-gold/40 transition-colors shadow-sm dark:shadow-lg">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="w-8 h-8 rounded-xl bg-dark-tertiary text-text-secondary font-black text-sm flex items-center justify-center">
-                    4
-                  </span>
-                  <span className="text-xs font-extrabold uppercase px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                    Completed
-                  </span>
+              {/* Stage 3: Awaiting Payment */}
+              <div className="rounded-2xl border border-brand-gold/40 bg-brand-gold/[0.07] backdrop-blur-md p-5 flex flex-col justify-between shadow-[0_0_24px_rgba(234,179,8,0.12)]">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="w-8 h-8 rounded-xl bg-brand-gold text-slate-950 font-black text-sm flex items-center justify-center">
+                      3
+                    </span>
+                    <span className="text-xs font-extrabold uppercase px-2 py-0.5 rounded bg-brand-gold/20 text-brand-gold border border-brand-gold/30">
+                      Awaiting Payment
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-bold text-text-primary">Lock Final Price</h3>
+                  <p className="mt-2 text-sm text-text-secondary leading-relaxed">
+                    Lock the order total. The prices and goods become immutable. Log M-Pesa payments with transaction reference codes.
+                  </p>
                 </div>
-                <h3 className="text-lg font-bold text-text-primary">Full Cleared Receipt</h3>
-                <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-                  When balance reaches KES 0, the order marks cleared. Both parties keep a permanent, unalterable digital transaction record.
-                </p>
+                <div className="mt-4 pt-3 border-t border-brand-gold/20 text-xs text-brand-gold font-mono font-bold">
+                  Real status: locked / debt_active
+                </div>
               </div>
-              <div className="mt-4 pt-3 border-t border-dark-accent text-xs text-emerald-600 dark:text-emerald-400 font-mono">
-                Real status: cleared
+
+              {/* Stage 4: Completed */}
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-md p-5 flex flex-col justify-between hover:bg-white/[0.06] hover:border-emerald-500/30 transition-all">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/10 text-text-secondary font-black text-sm flex items-center justify-center">
+                      4
+                    </span>
+                    <span className="text-xs font-extrabold uppercase px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
+                      Completed
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-bold text-text-primary">Full Cleared Receipt</h3>
+                  <p className="mt-2 text-sm text-text-secondary leading-relaxed">
+                    When balance reaches KES 0, the order marks cleared. Both parties keep a permanent, unalterable digital transaction record.
+                  </p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-white/10 text-xs text-emerald-400 font-mono">
+                  Real status: cleared
+                </div>
               </div>
             </div>
           </div>
@@ -504,68 +509,71 @@ export function HomeContent() {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {/* Card 1 */}
-            <div
-              className={`rounded-3xl border p-6 transition-all duration-300 shadow-sm dark:shadow-xl ${
-                comparisonMode === "analog"
-                  ? "border-rose-300 dark:border-rose-500/30 bg-rose-50/70 dark:bg-rose-950/20"
-                  : "border-brand-gold/40 bg-dark-card"
-              }`}
-            >
-              <span className="text-xs font-mono font-bold text-text-muted block mb-2">01 &middot; Order Taking</span>
-              <h3 className="text-lg font-bold text-text-primary">
-                {comparisonMode === "analog"
-                  ? "15 voice notes and screenshots"
-                  : "1-Tap Itemized Orders"}
-              </h3>
-              <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-                {comparisonMode === "analog"
-                  ? "Listening to voice notes in a busy shop leads to mistakes. Items are skipped, wrong phone models are packed, and money is lost."
-                  : "Buyers select exact accessories and quantities. Custom sourcing requests are priced clearly before packing begins."}
-              </p>
-            </div>
+          {/* Master Glassmorphic Comparison Matrix */}
+          <div className="relative rounded-3xl border border-white/10 bg-dark-card/40 backdrop-blur-2xl p-6 sm:p-8 shadow-2xl overflow-hidden">
+            <div className="grid md:grid-cols-3 gap-6 relative z-10">
+              {/* Card 1 */}
+              <div
+                className={`rounded-2xl border p-6 transition-all duration-300 backdrop-blur-md ${
+                  comparisonMode === "analog"
+                    ? "border-rose-500/30 bg-rose-500/[0.08]"
+                    : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:border-brand-gold/30"
+                }`}
+              >
+                <span className="text-xs font-mono font-bold text-text-muted block mb-2">01 &middot; Order Taking</span>
+                <h3 className="text-lg font-bold text-text-primary">
+                  {comparisonMode === "analog"
+                    ? "15 voice notes and screenshots"
+                    : "1-Tap Itemized Orders"}
+                </h3>
+                <p className="mt-2 text-sm text-text-secondary leading-relaxed">
+                  {comparisonMode === "analog"
+                    ? "Listening to voice notes in a busy shop leads to mistakes. Items are skipped, wrong phone models are packed, and money is lost."
+                    : "Buyers select exact accessories and quantities. Custom sourcing requests are priced clearly before packing begins."}
+                </p>
+              </div>
 
-            {/* Card 2 */}
-            <div
-              className={`rounded-3xl border p-6 transition-all duration-300 shadow-sm dark:shadow-xl ${
-                comparisonMode === "analog"
-                  ? "border-rose-300 dark:border-rose-500/30 bg-rose-50/70 dark:bg-rose-950/20"
-                  : "border-brand-gold/40 bg-dark-card"
-              }`}
-            >
-              <span className="text-xs font-mono font-bold text-text-muted block mb-2">02 &middot; Price &amp; Packing</span>
-              <h3 className="text-lg font-bold text-text-primary">
-                {comparisonMode === "analog"
-                  ? "Changed orders after carton is sealed"
-                  : "Locked Final Price"}
-              </h3>
-              <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-                {comparisonMode === "analog"
-                  ? "You spend 40 minutes packing a carton only for the buyer to call demanding to swap models or remove priced items."
-                  : "Once the seller clicks Lock Price, the total and items are permanent. Neither party can tamper with history."}
-              </p>
-            </div>
+              {/* Card 2 */}
+              <div
+                className={`rounded-2xl border p-6 transition-all duration-300 backdrop-blur-md ${
+                  comparisonMode === "analog"
+                    ? "border-rose-500/30 bg-rose-500/[0.08]"
+                    : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:border-brand-gold/30"
+                }`}
+              >
+                <span className="text-xs font-mono font-bold text-text-muted block mb-2">02 &middot; Price &amp; Packing</span>
+                <h3 className="text-lg font-bold text-text-primary">
+                  {comparisonMode === "analog"
+                    ? "Changed orders after order is locked"
+                    : "Locked Final Price"}
+                </h3>
+                <p className="mt-2 text-sm text-text-secondary leading-relaxed">
+                  {comparisonMode === "analog"
+                    ? "You spend 40 minutes packing an order only for the buyer to call demanding to swap models or remove priced items."
+                    : "Once the seller clicks Lock Price, the total and items are permanent. Neither party can tamper with history."}
+                </p>
+              </div>
 
-            {/* Card 3 */}
-            <div
-              className={`rounded-3xl border p-6 transition-all duration-300 shadow-sm dark:shadow-xl ${
-                comparisonMode === "analog"
-                  ? "border-rose-300 dark:border-rose-500/30 bg-rose-50/70 dark:bg-rose-950/20"
-                  : "border-brand-gold/40 bg-dark-card"
-              }`}
-            >
-              <span className="text-xs font-mono font-bold text-text-muted block mb-2">03 &middot; Debt &amp; Credit</span>
-              <h3 className="text-lg font-bold text-text-primary">
-                {comparisonMode === "analog"
-                  ? "Torn counter book pages"
-                  : "Shared M-Pesa Ledger"}
-              </h3>
-              <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-                {comparisonMode === "analog"
-                  ? "Counter books get water stains or go missing. Months later, partners argue over whether an old M-Pesa payment was 5,000 or 8,000."
-                  : "Every payment is logged with its M-Pesa reference code. Both seller and buyer see the exact same balance and promised date in real time."}
-              </p>
+              {/* Card 3 */}
+              <div
+                className={`rounded-2xl border p-6 transition-all duration-300 backdrop-blur-md ${
+                  comparisonMode === "analog"
+                    ? "border-rose-500/30 bg-rose-500/[0.08]"
+                    : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:border-brand-gold/30"
+                }`}
+              >
+                <span className="text-xs font-mono font-bold text-text-muted block mb-2">03 &middot; Debt &amp; Credit</span>
+                <h3 className="text-lg font-bold text-text-primary">
+                  {comparisonMode === "analog"
+                    ? "Torn counter book pages"
+                    : "Shared M-Pesa Ledger"}
+                </h3>
+                <p className="mt-2 text-sm text-text-secondary leading-relaxed">
+                  {comparisonMode === "analog"
+                    ? "Counter books get water stains or go missing. Months later, partners argue over whether an old M-Pesa payment was 5,000 or 8,000."
+                    : "Every payment is logged with its M-Pesa reference code. Both seller and buyer see the exact same balance and promised date in real time."}
+                </p>
+              </div>
             </div>
           </div>
         </Container>
@@ -593,10 +601,10 @@ export function HomeContent() {
 
           <div className="grid lg:grid-cols-2 gap-8">
             {/* Wholesaler Showcase */}
-            <div className="rounded-3xl border-2 border-brand-gold/50 bg-dark-card p-7 sm:p-9 flex flex-col justify-between shadow-md dark:shadow-2xl relative overflow-hidden">
+            <div className="rounded-3xl border border-brand-gold/30 bg-gradient-to-br from-brand-gold/[0.08] via-dark-card/50 to-dark-card/30 backdrop-blur-2xl p-7 sm:p-9 flex flex-col justify-between shadow-[0_8px_32px_0_rgba(234,179,8,0.08)] relative overflow-hidden hover:border-brand-gold/50 transition-all">
               <div>
                 <div className="flex items-center justify-between mb-6">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-gold/15 text-brand-gold font-black text-xs">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-gold/15 text-brand-gold font-black text-xs border border-brand-gold/25">
                     <Store className="w-3.5 h-3.5" /> For Wholesale Shop Owners
                   </span>
                   <span className="text-xs text-text-muted">Nairobi CBD &middot; Luthuli Avenue</span>
@@ -616,7 +624,7 @@ export function HomeContent() {
                   <li className="flex items-start gap-3">
                     <CheckCircle2 className="w-5 h-5 text-brand-gold shrink-0 mt-0.5" />
                     <span>
-                      <strong className="text-text-primary">Fast carton packing:</strong> Turn scattered WhatsApp audio notes into 1 clean checklist. Check off items and lock prices with 1 tap.
+                      <strong className="text-text-primary">Fast order packing:</strong> Turn scattered WhatsApp audio notes into 1 clean checklist. Check off items and lock prices with 1 tap.
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
@@ -628,13 +636,13 @@ export function HomeContent() {
                   <li className="flex items-start gap-3">
                     <TrendingDown className="w-5 h-5 text-brand-gold shrink-0 mt-0.5" />
                     <span>
-                      <strong className="text-text-primary">Pay only when you pack:</strong> KSh 50 to KSh 100 per carton. Zero monthly rent or fixed deductions.
+                      <strong className="text-text-primary">Pay only when you pack:</strong> KSh 50 to KSh 100 per order. Zero monthly rent or fixed deductions.
                     </span>
                   </li>
                 </ul>
               </div>
 
-              <div className="mt-8 pt-6 border-t border-dark-accent">
+              <div className="mt-8 pt-6 border-t border-white/10">
                 <Button
                   size="lg"
                   className="w-full rounded-full bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-black shadow-lg h-12"
@@ -646,13 +654,13 @@ export function HomeContent() {
             </div>
 
             {/* Buyer Showcase */}
-            <div className="rounded-3xl border border-dark-accent bg-dark-card p-7 sm:p-9 flex flex-col justify-between shadow-md dark:shadow-2xl">
+            <div className="rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/[0.08] via-dark-card/50 to-dark-card/30 backdrop-blur-2xl p-7 sm:p-9 flex flex-col justify-between shadow-[0_8px_32px_0_rgba(16,185,129,0.08)] relative overflow-hidden hover:border-emerald-500/50 transition-all">
               <div>
                 <div className="flex items-center justify-between mb-6">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-black text-xs">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 font-black text-xs border border-emerald-500/25">
                     <ShoppingBag className="w-3.5 h-3.5" /> For Retailers &amp; Hawkers
                   </span>
-                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-extrabold">100% Free Forever</span>
+                  <span className="text-xs text-emerald-400 font-extrabold">100% Free Forever</span>
                 </div>
 
                 <h3 className="text-2xl font-black text-text-primary">
@@ -661,25 +669,25 @@ export function HomeContent() {
 
                 <ul className="mt-6 space-y-4 text-sm sm:text-base text-text-secondary">
                   <li className="flex items-start gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                     <span>
                       <strong className="text-text-primary">Direct Nairobi wholesale access:</strong> Browse genuine stock from trusted suppliers without having to travel to Nairobi in person.
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <Package className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                    <Package className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                     <span>
                       <strong className="text-text-primary">Custom item sourcing:</strong> Need a phone cover or tempered glass model not listed? Request custom sourcing and the seller quotes it for you.
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <Clock className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                    <Clock className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                     <span>
                       <strong className="text-text-primary">Proof of payment &amp; credit:</strong> Submit your M-Pesa transaction reference code directly to the order and view agreed payment due dates.
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <Smartphone className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                    <Smartphone className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                     <span>
                       <strong className="text-text-primary">Zero fees for buyers:</strong> Shopkeepers and hawkers across Mombasa, Kisumu, Nakuru, and all towns pay KSh 0 forever.
                     </span>
@@ -687,11 +695,11 @@ export function HomeContent() {
                 </ul>
               </div>
 
-              <div className="mt-8 pt-6 border-t border-dark-accent">
+              <div className="mt-8 pt-6 border-t border-white/10">
                 <Button
                   variant="outline"
                   size="lg"
-                  className="w-full rounded-full border border-dark-accent hover:border-emerald-500 text-text-primary bg-dark-secondary hover:bg-dark-tertiary font-bold h-12"
+                  className="w-full rounded-full border border-white/10 hover:border-emerald-500 text-text-primary bg-white/[0.04] hover:bg-white/[0.08] font-bold h-12"
                   asChild
                 >
                   <Link href="/register?role=buyer">Join as Countrywide Buyer (Free)</Link>
@@ -719,7 +727,7 @@ export function HomeContent() {
                 Pay Only When You Pack. Zero Monthly Drain.
               </h2>
               <p className="mt-3 text-base sm:text-xl text-text-secondary font-medium">
-                No KSh 1,500/month recurring subscriptions. Pay just KSh 50 to KSh 100 only when you lock and dispatch a real carton. Keep 100% of your earnings when trade is slow.
+                No KSh 1,500/month recurring subscriptions. Pay just KSh 50 to KSh 100 only when you lock and dispatch a real order. Keep 100% of your earnings when trade is slow.
               </p>
             </div>
 
@@ -735,128 +743,133 @@ export function HomeContent() {
             </Button>
           </div>
 
-          {/* 2 Focused Role Pricing Cards */}
-          <div className="grid md:grid-cols-2 gap-6 sm:gap-8 mb-8">
-            {/* Wholesaler Plan Snapshot */}
-            <div className="rounded-3xl border-2 border-brand-gold/50 bg-dark-card p-6 sm:p-9 flex flex-col justify-between shadow-lg relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-brand-gold/10 rounded-full blur-3xl pointer-events-none" />
+          {/* Master Frosted Glass Pricing Suite */}
+          <div className="rounded-3xl border border-white/10 bg-dark-card/40 backdrop-blur-2xl p-6 sm:p-10 shadow-2xl relative overflow-hidden">
+            {/* Radiant Ambient Glass Orbs */}
+            <div className="absolute top-0 right-0 w-80 h-80 bg-brand-gold/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-gold/15 text-brand-gold font-black text-xs">
-                    <Store className="w-3.5 h-3.5" /> Wholesale Sellers
-                  </span>
-                  <span className="text-xs font-bold text-brand-gold bg-brand-gold/10 border border-brand-gold/20 px-2.5 py-0.5 rounded-full">
-                    First 3 Orders Free
-                  </span>
+            {/* 2-Column Role Comparison */}
+            <div className="grid md:grid-cols-2 gap-8 lg:gap-12 relative z-10 pb-8 border-b border-white/10">
+              {/* Wholesaler Column */}
+              <div className="flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-gold/15 text-brand-gold font-black text-xs border border-brand-gold/25">
+                      <Store className="w-3.5 h-3.5" /> Wholesale Sellers
+                    </span>
+                    <span className="text-xs font-bold text-brand-gold bg-brand-gold/10 border border-brand-gold/20 px-2.5 py-0.5 rounded-full">
+                      First 3 Orders Free
+                    </span>
+                  </div>
+
+                  <div className="flex items-baseline gap-2 mb-2">
+                    <span className="text-3xl sm:text-4xl font-black text-brand-gold">KSh 50 &ndash; 100</span>
+                    <span className="text-xs text-text-muted font-bold">/ packed order</span>
+                  </div>
+                  <p className="text-xs text-text-muted mb-6">
+                    Capped strictly at KSh 100 max for all orders up to KSh 20,000 (maximum order size).
+                  </p>
+
+                  <ul className="space-y-3 text-sm text-text-secondary">
+                    <li className="flex items-start gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0 mt-0.5" />
+                      <span><strong className="text-text-primary">Zero monthly subscription:</strong> Quiet days cost you KSh 0.</span>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0 mt-0.5" />
+                      <span><strong className="text-text-primary">Instant top-up via M-Pesa:</strong> Top up from KSh 100 via Safaricom STK push.</span>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0 mt-0.5" />
+                      <span><strong className="text-text-primary">Locked order records:</strong> Digital receipt, custom sourcing checklist, and debt ledger included.</span>
+                    </li>
+                  </ul>
                 </div>
 
-                <div className="flex items-baseline gap-2 mb-2">
-                  <span className="text-3xl sm:text-4xl font-black text-brand-gold">KSh 50 &ndash; 100</span>
-                  <span className="text-xs text-text-muted font-bold">/ packed carton</span>
+                <div className="mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row gap-3">
+                  <Button className="w-full rounded-full bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-black shadow-md h-12" asChild>
+                    <Link href="/register?role=seller">Open Wholesale Shop</Link>
+                  </Button>
+                  <Button variant="outline" className="w-full rounded-full border-white/10 hover:border-brand-gold text-text-primary bg-white/[0.04] hover:bg-white/[0.08] font-bold h-12" asChild>
+                    <Link href="/pricing">See Fee Details</Link>
+                  </Button>
                 </div>
-                <p className="text-xs text-text-muted mb-6">
-                  Capped strictly at KSh 100 max for all orders up to KSh 20,000 (maximum order size).
-                </p>
-
-                <ul className="space-y-3 text-sm text-text-secondary">
-                  <li className="flex items-start gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0 mt-0.5" />
-                    <span><strong className="text-text-primary">Zero monthly subscription:</strong> Quiet days cost you KSh 0.</span>
-                  </li>
-                  <li className="flex items-start gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0 mt-0.5" />
-                    <span><strong className="text-text-primary">Instant top-up via M-Pesa:</strong> Top up from KSh 100 via Safaricom STK push.</span>
-                  </li>
-                  <li className="flex items-start gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0 mt-0.5" />
-                    <span><strong className="text-text-primary">Locked order records:</strong> Digital receipt, custom sourcing checklist, and debt ledger included.</span>
-                  </li>
-                </ul>
               </div>
 
-              <div className="mt-8 pt-6 border-t border-dark-accent relative z-10 flex flex-col sm:flex-row gap-3">
-                <Button className="w-full rounded-full bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-black shadow-md h-12" asChild>
-                  <Link href="/register?role=seller">Open Wholesale Shop</Link>
-                </Button>
-                <Button variant="outline" className="w-full rounded-full border-dark-accent hover:border-brand-gold text-text-primary bg-dark-secondary hover:bg-dark-tertiary font-bold h-12" asChild>
-                  <Link href="/pricing">See Fee Details</Link>
-                </Button>
+              {/* Buyer Column */}
+              <div className="flex flex-col justify-between md:pl-8 lg:pl-12 md:border-l md:border-white/10">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 font-black text-xs border border-emerald-500/25">
+                      <ShoppingBag className="w-3.5 h-3.5" /> Retailers &amp; Hawkers
+                    </span>
+                    <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
+                      100% Free Forever
+                    </span>
+                  </div>
+
+                  <div className="flex items-baseline gap-2 mb-2">
+                    <span className="text-3xl sm:text-4xl font-black text-emerald-400">KSh 0</span>
+                    <span className="text-xs text-text-muted font-bold">/ forever</span>
+                  </div>
+                  <p className="text-xs text-text-muted mb-6">
+                    Countrywide shopkeepers and hawkers browse and order with zero fees.
+                  </p>
+
+                  <ul className="space-y-3 text-sm text-text-secondary">
+                    <li className="flex items-start gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                      <span><strong className="text-text-primary">Direct Nairobi wholesale access:</strong> Browse verified supplier catalogs at CBD prices.</span>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                      <span><strong className="text-text-primary">Custom sourcing requests:</strong> Request non-listed accessories easily.</span>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                      <span><strong className="text-text-primary">Shared ledger:</strong> View exact balances and agreed due dates.</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row gap-3">
+                  <Button variant="outline" className="w-full rounded-full border-white/10 hover:border-emerald-500 text-text-primary bg-white/[0.04] hover:bg-white/[0.08] font-bold h-12" asChild>
+                    <Link href="/register?role=buyer">Join as Buyer (Free)</Link>
+                  </Button>
+                  <Button variant="outline" className="w-full rounded-full border-white/10 hover:border-brand-gold text-text-primary bg-white/[0.04] hover:bg-white/[0.08] font-bold h-12" asChild>
+                    <Link href="/pricing#calculator">Simulate Orders</Link>
+                  </Button>
+                </div>
               </div>
             </div>
 
-            {/* Buyer Plan Snapshot */}
-            <div className="rounded-3xl border border-dark-accent bg-dark-card p-6 sm:p-9 flex flex-col justify-between shadow-lg">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-black text-xs">
-                    <ShoppingBag className="w-3.5 h-3.5" /> Retailers &amp; Hawkers
-                  </span>
-                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
-                    100% Free Forever
-                  </span>
+            {/* Integrated Calculator Ribbon */}
+            <div className="pt-6 relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3 text-left">
+                <div className="w-10 h-10 rounded-xl bg-brand-gold/15 text-brand-gold flex items-center justify-center shrink-0 border border-brand-gold/25">
+                  <Percent className="w-5 h-5" />
                 </div>
-
-                <div className="flex items-baseline gap-2 mb-2">
-                  <span className="text-3xl sm:text-4xl font-black text-emerald-600 dark:text-emerald-400">KSh 0</span>
-                  <span className="text-xs text-text-muted font-bold">/ forever</span>
+                <div>
+                  <p className="text-sm font-extrabold text-text-primary">
+                    Want to test your exact order sizes on the live fee calculator?
+                  </p>
+                  <p className="text-xs text-text-secondary">
+                    Check how orders from KSh 1,000 to KSh 20,000 are billed, and review the full fee schedule matrix.
+                  </p>
                 </div>
-                <p className="text-xs text-text-muted mb-6">
-                  Countrywide shopkeepers and hawkers browse and order with zero fees.
-                </p>
-
-                <ul className="space-y-3 text-sm text-text-secondary">
-                  <li className="flex items-start gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                    <span><strong className="text-text-primary">Direct Nairobi wholesale access:</strong> Browse verified supplier catalogs at CBD prices.</span>
-                  </li>
-                  <li className="flex items-start gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                    <span><strong className="text-text-primary">Custom sourcing requests:</strong> Request non-listed accessories easily.</span>
-                  </li>
-                  <li className="flex items-start gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                    <span><strong className="text-text-primary">Shared ledger:</strong> View exact balances and agreed due dates.</span>
-                  </li>
-                </ul>
               </div>
-
-              <div className="mt-8 pt-6 border-t border-dark-accent flex flex-col sm:flex-row gap-3">
-                <Button variant="outline" className="w-full rounded-full border-dark-accent hover:border-emerald-500 text-text-primary bg-dark-secondary hover:bg-dark-tertiary font-bold h-12" asChild>
-                  <Link href="/register?role=buyer">Join as Buyer (Free)</Link>
-                </Button>
-                <Button variant="outline" className="w-full rounded-full border-dark-accent hover:border-brand-gold text-text-primary bg-dark-secondary hover:bg-dark-tertiary font-bold h-12" asChild>
-                  <Link href="/pricing#calculator">Simulate Orders</Link>
-                </Button>
-              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full border-brand-gold/40 hover:border-brand-gold text-brand-gold bg-brand-gold/10 hover:bg-brand-gold/20 font-bold shrink-0 text-xs sm:text-sm h-10 px-5"
+                asChild
+              >
+                <Link href="/pricing">
+                  Go to Dedicated Pricing Page &rarr;
+                </Link>
+              </Button>
             </div>
-          </div>
-
-          {/* Banner Bar linking to /pricing */}
-          <div className="rounded-2xl border border-dark-accent bg-dark-secondary/80 p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3 text-left">
-              <div className="w-10 h-10 rounded-xl bg-brand-gold/15 text-brand-gold flex items-center justify-center shrink-0">
-                <Percent className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-sm font-extrabold text-text-primary">
-                  Want to test your exact carton sizes on the live fee calculator?
-                </p>
-                <p className="text-xs text-text-secondary">
-                  Check how orders from KSh 1,000 to KSh 20,000 are billed, and review the full fee schedule matrix.
-                </p>
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-full border-brand-gold/40 hover:border-brand-gold text-brand-gold bg-brand-gold/10 hover:bg-brand-gold/20 font-bold shrink-0 text-xs sm:text-sm h-10 px-5"
-              asChild
-            >
-              <Link href="/pricing">
-                Go to Dedicated Pricing Page &rarr;
-              </Link>
-            </Button>
           </div>
         </Container>
       </Section>
@@ -883,13 +896,14 @@ export function HomeContent() {
             </p>
           </div>
 
-          <div className="space-y-3">
+          {/* Master Glassmorphic FAQ Accordion */}
+          <div className="rounded-3xl border border-white/10 bg-dark-card/40 backdrop-blur-2xl shadow-2xl divide-y divide-white/[0.08] overflow-hidden">
             {FAQS.map((faq, idx) => {
               const isOpen = openFaqIndex === idx;
               return (
                 <div
                   key={faq.q}
-                  className="rounded-2xl border border-dark-accent bg-dark-card overflow-hidden transition-colors shadow-sm"
+                  className="transition-colors hover:bg-white/[0.02]"
                 >
                   <button
                     type="button"
@@ -904,7 +918,7 @@ export function HomeContent() {
                     />
                   </button>
                   {isOpen && (
-                    <div className="px-5 pb-5 sm:px-6 sm:pb-6 text-sm sm:text-base text-text-secondary leading-relaxed border-t border-dark-accent pt-4">
+                    <div className="px-5 pb-5 sm:px-6 sm:pb-6 text-sm sm:text-base text-text-secondary leading-relaxed pt-1">
                       {faq.a}
                     </div>
                   )}
@@ -920,9 +934,9 @@ export function HomeContent() {
       {/* ========================================================================= */}
       <Section spacing="lg" className="bg-dark-primary relative overflow-hidden">
         <Container size="lg">
-          <div className="relative rounded-3xl border-2 border-brand-gold/50 bg-gradient-to-r from-brand-gold/10 via-amber-500/5 to-purple-500/10 dark:from-brand-gold/15 dark:via-[#191D38] dark:to-purple-600/15 bg-dark-card p-8 sm:p-14 text-center shadow-xl dark:shadow-2xl overflow-hidden">
+          <div className="relative rounded-3xl border border-brand-gold/40 bg-gradient-to-br from-brand-gold/15 via-dark-card/70 to-purple-900/20 backdrop-blur-2xl p-8 sm:p-14 text-center shadow-[0_16px_48px_rgba(0,0,0,0.5)] overflow-hidden">
             <div className="relative z-10 max-w-2xl mx-auto space-y-5">
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-brand-gold/20 text-brand-gold font-black text-xs uppercase tracking-wider">
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-brand-gold/20 text-brand-gold font-black text-xs uppercase tracking-wider border border-brand-gold/25">
                 <Sparkles className="w-3.5 h-3.5" /> Start Digitizing Your Business Today
               </span>
 
@@ -949,7 +963,7 @@ export function HomeContent() {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="w-full sm:w-auto rounded-full border border-dark-accent hover:border-brand-gold/50 text-text-primary bg-dark-secondary/80 hover:bg-dark-tertiary font-bold px-8 text-base h-14"
+                  className="w-full sm:w-auto rounded-full border border-white/10 hover:border-brand-gold/50 text-text-primary bg-white/[0.04] hover:bg-white/[0.08] font-bold px-8 text-base h-14"
                   asChild
                 >
                   <Link href="/contact">Talk to Our Nairobi Team</Link>

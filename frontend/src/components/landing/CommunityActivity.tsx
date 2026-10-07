@@ -4,19 +4,16 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Container, Section } from "@/components/layouts";
 import { Button } from "@/components/ui/Button";
-import { Card, CardContent } from "@/components/ui/Card";
 import { Users, Store, Package, MapPin, Sparkles } from "lucide-react";
 import { community, type CommunityActivityData } from "@/lib/api";
 
 function StatCardSkeleton() {
   return (
-    <Card className="animate-pulse">
-      <CardContent className="pt-5 sm:pt-6 space-y-2.5 sm:space-y-3">
-        <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-brand-gold/15" />
-        <div className="h-7 w-16 rounded bg-dark-tertiary" />
-        <div className="h-4 w-24 rounded bg-dark-tertiary/70" />
-      </CardContent>
-    </Card>
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-md p-4 sm:p-5 space-y-2.5 sm:space-y-3 animate-pulse">
+      <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-brand-gold/15" />
+      <div className="h-7 w-16 rounded bg-white/10" />
+      <div className="h-4 w-24 rounded bg-white/5" />
+    </div>
   );
 }
 
@@ -77,38 +74,39 @@ export default function CommunityActivity() {
         </div>
 
         {isEmpty ? (
-          <Card variant="elevated" className="max-w-xl mx-auto text-center border-dark-accent bg-dark-card">
-            <CardContent className="pt-8 pb-8 space-y-4">
-              <h3 className="text-2xl font-bold text-text-primary">You&apos;re Among the First</h3>
-              <p className="text-text-secondary">
-                Nyakizu is just getting started. Join now and help shape the marketplace from day one.
-              </p>
-              <Button size="lg" className="w-full sm:w-auto rounded-full bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-bold border-0 shadow-brand" asChild>
-                <Link href="/register">Sign Up</Link>
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="max-w-xl mx-auto text-center rounded-3xl border border-white/10 bg-dark-card/40 backdrop-blur-2xl p-8 sm:p-10 shadow-2xl space-y-4">
+            <h3 className="text-2xl font-bold text-text-primary">You&apos;re Among the First</h3>
+            <p className="text-text-secondary text-sm sm:text-base">
+              Nyakizu is just getting started. Join now and help shape the marketplace from day one.
+            </p>
+            <Button size="lg" className="w-full sm:w-auto rounded-full bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-bold border-0 shadow-brand h-12 px-8" asChild>
+              <Link href="/register">Sign Up</Link>
+            </Button>
+          </div>
         ) : (
           <>
             <p className="text-center text-caption text-text-muted mb-6">
               These are real, live numbers from a small pilot — not projections.
             </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {isLoading
-                ? Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
-                : stats.map((stat) => (
-                    <Card key={stat.label}>
-                      <CardContent className="pt-5 sm:pt-6 space-y-2.5 sm:space-y-3">
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-brand-gold/10 flex items-center justify-center">
-                          <stat.icon className="w-4 h-4 sm:w-5 sm:h-5 text-brand-gold-dark" aria-hidden="true" />
+            <div className="rounded-3xl border border-white/10 bg-dark-card/40 backdrop-blur-2xl p-5 sm:p-8 shadow-2xl">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {isLoading
+                  ? Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
+                  : stats.map((stat) => (
+                      <div
+                        key={stat.label}
+                        className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-md p-4 sm:p-5 space-y-2.5 sm:space-y-3 hover:bg-white/[0.06] hover:border-brand-gold/30 transition-all"
+                      >
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-brand-gold/15 flex items-center justify-center border border-brand-gold/20">
+                          <stat.icon className="w-4 h-4 sm:w-5 sm:h-5 text-brand-gold" aria-hidden="true" />
                         </div>
                         <div className="text-2xl sm:text-3xl font-black text-text-primary">
                           {stat.value?.toLocaleString() ?? "—"}
                         </div>
                         <div className="text-xs sm:text-sm text-text-muted">{stat.label}</div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                      </div>
+                    ))}
+              </div>
             </div>
           </>
         )}

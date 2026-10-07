@@ -93,6 +93,12 @@ export function LandingHeader() {
           </Link>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <Link
+              href="/pricing"
+              className="text-xs sm:text-sm font-bold text-text-secondary hover:text-text-primary px-2.5 sm:px-3 py-1.5 rounded-full hover:bg-dark-tertiary transition-colors"
+            >
+              Pricing
+            </Link>
             <ThemeToggle />
             <GetStartedMenu />
           </div>

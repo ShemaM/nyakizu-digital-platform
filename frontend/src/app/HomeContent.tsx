@@ -18,6 +18,7 @@ import {
   Package,
   Layers,
   Clock,
+  Percent,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Container, Section, LandingHeader, LandingFooter } from "@/components/layouts";
@@ -37,14 +38,6 @@ export function HomeContent() {
 
   // --- Section 3: Before vs After Toggle State ---
   const [comparisonMode, setComparisonMode] = useState<"nyakizu" | "analog">("nyakizu");
-
-  // --- Section 5: Hostinger-Style Interactive Pricing Calculator State ---
-  const [orderValue, setOrderValue] = useState<number>(10000);
-
-  // Real backend fee formula (FeeSchedule):
-  // 0.5% rate, rounded to nearest KES 5, clamped between KES 50 min and KES 100 max (cap reached at KES 20,000 maximum order size)
-  const computedFee = Math.min(100, Math.max(50, Math.round((orderValue * 0.005) / 5) * 5));
-  const effectivePercentage = ((computedFee / orderValue) * 100).toFixed(2);
 
   // --- Section 6: FAQ Accordion State ---
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
@@ -143,7 +136,7 @@ export function HomeContent() {
                 className="w-full sm:w-auto rounded-full border border-dark-accent hover:border-brand-gold/50 bg-dark-secondary/80 hover:bg-dark-tertiary text-text-primary font-bold px-8 text-base h-14 backdrop-blur-md"
                 asChild
               >
-                <Link href="#pricing">See Fee Calculator &darr;</Link>
+                <Link href="/pricing">View Pricing &amp; Fees &rarr;</Link>
               </Button>
             </motion.div>
 
@@ -778,220 +771,160 @@ export function HomeContent() {
       </Section>
 
       {/* ========================================================================= */}
-      {/* SECTION 5: HOSTINGER-STYLE PRICING CALCULATOR                             */}
+      {/* SECTION 5: PRICING SNAPSHOT (Streamlined value overview)                  */}
       {/* ========================================================================= */}
       <Section spacing="lg" className="bg-dark-primary border-b border-dark-accent relative" id="pricing">
         <Container size="lg">
           <div className="flex items-center gap-2 mb-4">
             <span className="text-xs sm:text-sm font-extrabold text-brand-gold tabular-nums">04</span>
-            <span className="text-xs sm:text-sm font-bold uppercase tracking-widest text-text-muted">Transparent Pricing</span>
+            <span className="text-xs sm:text-sm font-bold uppercase tracking-widest text-text-muted">Simple, Fair Pricing</span>
             <span className="flex-1 h-px bg-dark-accent" />
           </div>
 
-          <div className="max-w-3xl mb-12">
-            <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-text-primary leading-tight">
-              Pay Only When You Pack. Zero Monthly Subscriptions.
-            </h2>
-            <p className="mt-3 text-base sm:text-xl text-text-secondary font-medium">
-              No KSh 1,500/month recurring drain. Keep 100% of your money when trade is slow. Pay just KSh 50 to KSh 100 only when you lock and dispatch a real carton.
-            </p>
-          </div>
-
-          {/* Interactive Calculator Card */}
-          <div className="rounded-3xl border-2 border-brand-gold/50 bg-dark-card p-6 sm:p-10 shadow-lg dark:shadow-2xl mb-12 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-80 h-80 bg-brand-gold/10 dark:bg-brand-gold/15 rounded-full blur-3xl pointer-events-none" />
-
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-dark-accent relative z-10">
-              <div>
-                <span className="text-xs font-black uppercase tracking-wider text-brand-gold">
-                  Live Fee Calculator
-                </span>
-                <h3 className="text-2xl font-black text-text-primary mt-1">
-                  Estimate Your Fee Per Locked Order
-                </h3>
-              </div>
-              <div className="text-left md:text-right">
-                <span className="text-xs text-text-muted uppercase tracking-wider block">Nyakizu Platform Fee</span>
-                <span className="text-4xl font-black text-brand-gold tabular-nums">
-                  KSh {computedFee}
-                </span>
-                <span className="text-xs text-text-muted block mt-0.5">
-                  ({effectivePercentage}% of order total &middot; Capped at KSh 100 max)
-                </span>
-              </div>
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10 sm:mb-12">
+            <div className="max-w-2xl">
+              <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-text-primary leading-tight">
+                Pay Only When You Pack. Zero Monthly Drain.
+              </h2>
+              <p className="mt-3 text-base sm:text-xl text-text-secondary font-medium">
+                No KSh 1,500/month recurring subscriptions. Pay just KSh 50 to KSh 100 only when you lock and dispatch a real carton. Keep 100% of your earnings when trade is slow.
+              </p>
             </div>
 
-            {/* Slider */}
-            <div className="py-8 relative z-10">
-              <div className="flex justify-between items-center mb-3">
-                <label htmlFor="order-value-slider" className="text-sm font-bold text-text-primary">
-                  Order / Carton Value:{" "}
-                  <span className="text-brand-gold font-black text-lg">
-                    KSh {orderValue.toLocaleString()}
+            <Button
+              size="lg"
+              className="rounded-full bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-black shadow-brand shrink-0 h-12 px-6"
+              asChild
+            >
+              <Link href="/pricing">
+                Open Full Fee Calculator
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Link>
+            </Button>
+          </div>
+
+          {/* 2 Focused Role Pricing Cards */}
+          <div className="grid md:grid-cols-2 gap-6 sm:gap-8 mb-8">
+            {/* Wholesaler Plan Snapshot */}
+            <div className="rounded-3xl border-2 border-brand-gold/50 bg-dark-card p-6 sm:p-9 flex flex-col justify-between shadow-lg relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-brand-gold/10 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-gold/15 text-brand-gold font-black text-xs">
+                    <Store className="w-3.5 h-3.5" /> Wholesale Sellers
                   </span>
-                </label>
-                <span className="text-xs text-text-muted">Min KSh 1,000 &mdash; Max KSh 20,000 (Maximum order size)</span>
-              </div>
-
-              <input
-                id="order-value-slider"
-                type="range"
-                min={1000}
-                max={20000}
-                step={500}
-                value={orderValue}
-                onChange={(e) => setOrderValue(Number(e.target.value))}
-                className="w-full h-3 bg-dark-tertiary border border-dark-accent rounded-lg appearance-none cursor-pointer accent-brand-gold focus:outline-none"
-              />
-
-              <div className="flex justify-between text-xs text-text-muted mt-2 font-mono">
-                <span>KSh 1,000</span>
-                <span>KSh 5,000</span>
-                <span>KSh 10,000</span>
-                <span>KSh 20,000 (Max)</span>
-              </div>
-            </div>
-
-            {/* Metric Tiles */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2 relative z-10">
-              <div className="rounded-2xl border border-dark-accent bg-dark-tertiary/60 p-4 text-center">
-                <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider block">Order Value</span>
-                <span className="text-lg sm:text-xl font-bold text-text-primary tabular-nums mt-1 block">
-                  KSh {orderValue.toLocaleString()}
-                </span>
-              </div>
-              <div className="rounded-2xl border border-brand-gold/50 bg-brand-gold/10 p-4 text-center">
-                <span className="text-[11px] font-black text-brand-gold uppercase tracking-wider block">Wholesaler Fee</span>
-                <span className="text-lg sm:text-xl font-black text-brand-gold tabular-nums mt-1 block">
-                  KSh {computedFee}
-                </span>
-              </div>
-              <div className="rounded-2xl border border-dark-accent bg-dark-tertiary/60 p-4 text-center">
-                <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider block">Effective Rate</span>
-                <span className="text-lg sm:text-xl font-bold text-text-primary tabular-nums mt-1 block">
-                  {effectivePercentage}%
-                </span>
-              </div>
-              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
-                <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block">Buyer / Hawkers Fee</span>
-                <span className="text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums mt-1 block">
-                  KSh 0 (Free)
-                </span>
-              </div>
-            </div>
-
-            <p className="text-xs text-text-muted text-center mt-6">
-              * The fee is strictly capped at KSh 100 maximum for all orders up to KSh 20,000 (maximum order size). That is less than the margin on a single phone screen protector.
-            </p>
-          </div>
-
-          {/* 3 Tier Cards */}
-          <div className="grid md:grid-cols-3 gap-6">
-            {/* Tier 1 */}
-            <div className="rounded-3xl border border-dark-accent bg-dark-card p-6 sm:p-8 flex flex-col justify-between shadow-sm dark:shadow-xl">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-text-muted">Test Risk-Free</span>
-                <h3 className="text-xl font-bold text-text-primary mt-1">First 3 Orders Free</h3>
-                <div className="mt-4 flex items-baseline gap-1">
-                  <span className="text-3xl font-extrabold text-text-primary">KSh 0</span>
-                  <span className="text-xs text-text-muted">/ first 3 orders</span>
+                  <span className="text-xs font-bold text-brand-gold bg-brand-gold/10 border border-brand-gold/20 px-2.5 py-0.5 rounded-full">
+                    First 3 Orders Free
+                  </span>
                 </div>
-                <p className="mt-3 text-sm text-text-secondary leading-relaxed">
-                  Every new wholesale account gets 3 complete order lockups completely free. Experience the speed before spending a shilling.
-                </p>
 
-                <ul className="mt-6 space-y-3 text-sm text-text-secondary">
-                  <li className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> 3 Full order lockups included
-                  </li>
-                  <li className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> Zero deposit or credit card
-                  </li>
-                  <li className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> Full access to live debt ledger
-                  </li>
-                </ul>
-              </div>
-
-              <div className="mt-8 pt-5 border-t border-dark-accent">
-                <Button variant="outline" className="w-full rounded-full border border-dark-accent hover:border-brand-gold text-text-primary bg-dark-secondary hover:bg-dark-tertiary font-bold" asChild>
-                  <Link href="/register?role=seller">Sign Up Free</Link>
-                </Button>
-              </div>
-            </div>
-
-            {/* Tier 2: Wholesale Pay-As-You-Pack (Featured) */}
-            <div className="rounded-3xl border-2 border-brand-gold bg-dark-card dark:bg-[#141830] p-6 sm:p-8 flex flex-col justify-between relative shadow-lg dark:shadow-2xl">
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-brand-gold text-slate-950 font-black text-xs tracking-wide shadow-sm">
-                Most Popular for Wholesalers
-              </div>
-
-              <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-brand-gold">Pay-As-You-Pack</span>
-                <h3 className="text-xl font-bold text-text-primary mt-1">Wholesale Per-Order Fee</h3>
-                <div className="mt-4 flex items-baseline gap-1">
+                <div className="flex items-baseline gap-2 mb-2">
                   <span className="text-3xl sm:text-4xl font-black text-brand-gold">KSh 50 &ndash; 100</span>
-                  <span className="text-xs text-text-muted">/ locked order</span>
+                  <span className="text-xs text-text-muted font-bold">/ packed carton</span>
                 </div>
-                <p className="mt-3 text-sm text-text-secondary leading-relaxed">
-                  Only charged when you lock an order and prepare to dispatch. Zero charges during quiet weeks.
+                <p className="text-xs text-text-muted mb-6">
+                  Capped strictly at KSh 100 max for all orders up to KSh 20,000 (maximum order size).
                 </p>
 
-                <ul className="mt-6 space-y-3 text-sm text-text-secondary">
-                  <li className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0" /> KSh 50 min, KSh 100 max cap
+                <ul className="space-y-3 text-sm text-text-secondary">
+                  <li className="flex items-start gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0 mt-0.5" />
+                    <span><strong className="text-text-primary">Zero monthly subscription:</strong> Quiet days cost you KSh 0.</span>
                   </li>
-                  <li className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0" /> Zero monthly subscription
+                  <li className="flex items-start gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0 mt-0.5" />
+                    <span><strong className="text-text-primary">Instant top-up via M-Pesa:</strong> Top up from KSh 100 via Safaricom STK push.</span>
                   </li>
-                  <li className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0" /> Instant top-up via M-Pesa Daraja
-                  </li>
-                  <li className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0" /> Locked permanent order record
+                  <li className="flex items-start gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0 mt-0.5" />
+                    <span><strong className="text-text-primary">Locked order records:</strong> Digital receipt, custom sourcing checklist, and debt ledger included.</span>
                   </li>
                 </ul>
               </div>
 
-              <div className="mt-8 pt-5 border-t border-dark-accent">
-                <Button className="w-full rounded-full bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-black shadow-brand" asChild>
+              <div className="mt-8 pt-6 border-t border-dark-accent relative z-10 flex flex-col sm:flex-row gap-3">
+                <Button className="w-full rounded-full bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-black shadow-md h-12" asChild>
                   <Link href="/register?role=seller">Open Wholesale Shop</Link>
                 </Button>
+                <Button variant="outline" className="w-full rounded-full border-dark-accent hover:border-brand-gold text-text-primary bg-dark-secondary hover:bg-dark-tertiary font-bold h-12" asChild>
+                  <Link href="/pricing">See Fee Details</Link>
+                </Button>
               </div>
             </div>
 
-            {/* Tier 3: Retailers & Hawkers */}
-            <div className="rounded-3xl border border-dark-accent bg-dark-card p-6 sm:p-8 flex flex-col justify-between shadow-sm dark:shadow-xl">
+            {/* Buyer Plan Snapshot */}
+            <div className="rounded-3xl border border-dark-accent bg-dark-card p-6 sm:p-9 flex flex-col justify-between shadow-lg">
               <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">For Countrywide Buyers</span>
-                <h3 className="text-xl font-bold text-text-primary mt-1">Retailers &amp; Hawkers</h3>
-                <div className="mt-4 flex items-baseline gap-1">
-                  <span className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">KSh 0</span>
-                  <span className="text-xs text-text-muted">/ forever</span>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-black text-xs">
+                    <ShoppingBag className="w-3.5 h-3.5" /> Retailers &amp; Hawkers
+                  </span>
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
+                    100% Free Forever
+                  </span>
                 </div>
-                <p className="mt-3 text-sm text-text-secondary leading-relaxed">
-                  Retail shopkeepers, stall managers, and hawkers across Kenya order through Nyakizu completely free.
+
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className="text-3xl sm:text-4xl font-black text-emerald-600 dark:text-emerald-400">KSh 0</span>
+                  <span className="text-xs text-text-muted font-bold">/ forever</span>
+                </div>
+                <p className="text-xs text-text-muted mb-6">
+                  Countrywide shopkeepers and hawkers browse and order with zero fees.
                 </p>
 
-                <ul className="mt-6 space-y-3 text-sm text-text-secondary">
-                  <li className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> 100% Free forever for buyers
+                <ul className="space-y-3 text-sm text-text-secondary">
+                  <li className="flex items-start gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <span><strong className="text-text-primary">Direct Nairobi wholesale access:</strong> Browse verified supplier catalogs at CBD prices.</span>
                   </li>
-                  <li className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> Order from multiple wholesalers
+                  <li className="flex items-start gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <span><strong className="text-text-primary">Custom sourcing requests:</strong> Request non-listed accessories easily.</span>
                   </li>
-                  <li className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> Shared credit &amp; payment claims
+                  <li className="flex items-start gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <span><strong className="text-text-primary">Shared ledger:</strong> View exact balances and agreed due dates.</span>
                   </li>
                 </ul>
               </div>
 
-              <div className="mt-8 pt-5 border-t border-dark-accent">
-                <Button variant="outline" className="w-full rounded-full border border-dark-accent hover:border-emerald-500 text-text-primary bg-dark-secondary hover:bg-dark-tertiary font-bold" asChild>
+              <div className="mt-8 pt-6 border-t border-dark-accent flex flex-col sm:flex-row gap-3">
+                <Button variant="outline" className="w-full rounded-full border-dark-accent hover:border-emerald-500 text-text-primary bg-dark-secondary hover:bg-dark-tertiary font-bold h-12" asChild>
                   <Link href="/register?role=buyer">Join as Buyer (Free)</Link>
+                </Button>
+                <Button variant="outline" className="w-full rounded-full border-dark-accent hover:border-brand-gold text-text-primary bg-dark-secondary hover:bg-dark-tertiary font-bold h-12" asChild>
+                  <Link href="/pricing#calculator">Simulate Orders</Link>
                 </Button>
               </div>
             </div>
+          </div>
+
+          {/* Banner Bar linking to /pricing */}
+          <div className="rounded-2xl border border-dark-accent bg-dark-secondary/80 p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3 text-left">
+              <div className="w-10 h-10 rounded-xl bg-brand-gold/15 text-brand-gold flex items-center justify-center shrink-0">
+                <Percent className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-sm font-extrabold text-text-primary">
+                  Want to test your exact carton sizes on the live fee calculator?
+                </p>
+                <p className="text-xs text-text-secondary">
+                  Check how orders from KSh 1,000 to KSh 20,000 are billed, and review the full fee schedule matrix.
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full border-brand-gold/40 hover:border-brand-gold text-brand-gold bg-brand-gold/10 hover:bg-brand-gold/20 font-bold shrink-0 text-xs sm:text-sm h-10 px-5"
+              asChild
+            >
+              <Link href="/pricing">
+                Go to Dedicated Pricing Page &rarr;
+              </Link>
+            </Button>
           </div>
         </Container>
       </Section>

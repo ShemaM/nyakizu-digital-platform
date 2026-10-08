@@ -33,9 +33,10 @@ function isSameDay(a: Date, b: Date): boolean {
 
 function topBy(orders: ApiOrder[], extract: (order: ApiOrder) => { key: string; value: number }[]): { key: string; value: number }[] {
   const totals = new Map<string, number>();
-  for (const order of orders) {
+  for (const order of orders || []) {
+    if (!order) continue;
     for (const { key, value } of extract(order)) {
-      totals.set(key, (totals.get(key) ?? 0) + value);
+      totals.set(key, (totals.get(key) ?? 0) + (typeof value === "number" ? value : 0));
     }
   }
   return [...totals.entries()]
@@ -98,20 +99,29 @@ function RankedList({ title, rows, unit }: { title: string; rows: { key: string;
  * picker, defaults to today) and see that day's orders, total, and top
  * sellers. Empty days just say so instead of padding out a trend list.
  */
-export function SalesInsights({ orders }: SalesInsightsProps) {
+export function SalesInsights({ orders = [] }: SalesInsightsProps) {
   const today = new Date();
   const [dateValue, setDateValue] = useState(() => toInputValue(today));
   const selectedDate = parseInputValue(dateValue);
   const isToday = isSameDay(selectedDate, today);
 
   const dayOrders = useMemo(() => {
-    return orders
-      .filter((o) => o.status !== "cancelled" && isSameDay(new Date(o.created_at), selectedDate))
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const list = Array.isArray(orders) ? orders : [];
+    return list
+      .filter((o) => {
+        if (!o || o.status === "cancelled" || !o.created_at) return false;
+        const d = new Date(o.created_at);
+        return !isNaN(d.getTime()) && isSameDay(d, selectedDate);
+      })
+      .sort((a, b) => {
+        const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return (isNaN(timeB) ? 0 : timeB) - (isNaN(timeA) ? 0 : timeA);
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orders, dateValue]);
 
-  const dayTotal = dayOrders.reduce((sum, o) => sum + parsePrice(o.final_total ?? o.total_price), 0);
+  const dayTotal = dayOrders.reduce((sum, o) => sum + parsePrice(o?.final_total ?? o?.total_price), 0);
 
   const topProducts = topBy(dayOrders, (order) =>
     (order.items ?? [])

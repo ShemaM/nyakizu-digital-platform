@@ -1,9 +1,11 @@
+"use client";
+
 import Link from 'next/link';
 import { Package, Receipt, Clock } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { getStatusLabel, getStatusVariant, buyerDisplayName } from '@/lib/order-status';
-import type { ApiOrderItem } from '@/lib/api';
+import { fmtKES, type ApiOrderItem } from '@/lib/api';
 
 interface OrderItem {
   id: number;
@@ -17,12 +19,14 @@ interface OrderItem {
 }
 
 interface RecentOrdersProps {
-  orders: OrderItem[];
+  orders?: OrderItem[];
 }
 
 /** "Today, 10:42 AM" / "Yesterday, 2:15 PM" / "24 Oct 2023". */
-function formatTimestamp(iso: string): string {
+function formatTimestamp(iso?: string | null): string {
+  if (!iso) return "Recent";
   const date = new Date(iso);
+  if (isNaN(date.getTime())) return "Recent";
   const now = new Date();
   const time = date.toLocaleTimeString("en-KE", { hour: "numeric", minute: "2-digit" });
   if (date.toDateString() === now.toDateString()) return `Today, ${time}`;
@@ -40,8 +44,9 @@ function summarizeItems(items?: ApiOrderItem[]): string {
   return `${names.slice(0, 2).join(", ")} +${names.length - 2} more`;
 }
 
-export const RecentOrders: React.FC<RecentOrdersProps> = ({ orders }) => {
-  if (orders.length === 0) {
+export const RecentOrders: React.FC<RecentOrdersProps> = ({ orders = [] }) => {
+  const safeOrders = Array.isArray(orders) ? orders : [];
+  if (safeOrders.length === 0) {
     return (
       <div className="bg-dark-card p-10 rounded-2xl border border-dark-accent shadow-sm text-center flex flex-col justify-center items-center min-h-[220px]">
         <div className="w-14 h-14 rounded-2xl bg-role-soft flex items-center justify-center mb-3">
@@ -55,7 +60,7 @@ export const RecentOrders: React.FC<RecentOrdersProps> = ({ orders }) => {
 
   return (
     <div className="bg-dark-card rounded-2xl border border-dark-accent shadow-sm overflow-hidden divide-y divide-dark-accent">
-      {orders.map((order) => (
+      {safeOrders.map((order) => (
         <div key={order.id} className="p-4 sm:p-5 flex items-center gap-4 hover:bg-dark-tertiary transition-colors">
           <Link
             href={`/seller/dashboard/orders/${order.id}/fulfill`}
@@ -75,7 +80,7 @@ export const RecentOrders: React.FC<RecentOrdersProps> = ({ orders }) => {
           </Link>
           <div className="text-right shrink-0 space-y-1.5">
             <p className="text-body font-black text-text-primary">
-              {fmtOrderTotal(order.final_total ?? order.total_price)}
+              {fmtKES(order.final_total ?? order.total_price)}
             </p>
             <Badge variant={getStatusVariant(order.status)}>
               {getStatusLabel(order.status)}
@@ -94,7 +99,3 @@ export const RecentOrders: React.FC<RecentOrdersProps> = ({ orders }) => {
     </div>
   );
 };
-
-function fmtOrderTotal(amount: string | number): string {
-  return `KES ${Number(amount).toLocaleString('en-KE')}`;
-}

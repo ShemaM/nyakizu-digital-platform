@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/cn";
@@ -5,7 +7,7 @@ import { avatarColor, initials } from "@/lib/avatar";
 import { User } from "lucide-react";
 
 interface AvatarProps {
-  name: string;
+  name?: string | null;
   size?: "sm" | "md" | "lg" | "xl" | "2xl";
   className?: string;
   showInitials?: boolean;
@@ -23,16 +25,17 @@ const SIZE_CLASSES = {
 };
 
 export function Avatar({
-  name,
+  name = "User",
   size = "md",
   className,
   showInitials = true,
   imageUrl,
   colorClassName,
 }: AvatarProps) {
+  const safeName = name || "User";
   const [imageFailed, setImageFailed] = useState(false);
   const sizeClass = SIZE_CLASSES[size];
-  const initialText = showInitials ? initials(name) : name[0]?.toUpperCase() ?? "?";
+  const initialText = showInitials ? initials(safeName) : safeName[0]?.toUpperCase() ?? "?";
 
   if (imageUrl && !imageFailed) {
     return (
@@ -45,7 +48,7 @@ export function Avatar({
       >
         <Image
           src={imageUrl}
-          alt={name}
+          alt={safeName}
           fill
           unoptimized
           className="object-cover"
@@ -59,7 +62,7 @@ export function Avatar({
     <div
       className={cn(
         "rounded-full flex items-center justify-center shrink-0 text-white font-bold",
-        colorClassName ?? avatarColor(name),
+        colorClassName ?? avatarColor(safeName),
         sizeClass,
         className
       )}

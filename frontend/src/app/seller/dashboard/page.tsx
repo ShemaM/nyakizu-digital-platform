@@ -179,10 +179,18 @@ export default function SellerDashboardPage() {
 
   // ── Local Calculations ──────────────────────────────────────────────────
   const recentOrders = [...orderList]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .sort((a, b) => {
+      const timeA = a?.created_at ? new Date(a.created_at).getTime() : 0;
+      const timeB = b?.created_at ? new Date(b.created_at).getTime() : 0;
+      return (isNaN(timeB) ? 0 : timeB) - (isNaN(timeA) ? 0 : timeA);
+    })
     .slice(0, 5);
   const todayRevenue = orderList
-    .filter((order) => new Date(order.created_at).toDateString() === new Date().toDateString())
+    .filter((order) => {
+      if (!order?.created_at) return false;
+      const d = new Date(order.created_at);
+      return !isNaN(d.getTime()) && d.toDateString() === new Date().toDateString();
+    })
     .reduce((sum, order) => sum + parsePrice(order.amount_paid ?? 0), 0);
 
   return (

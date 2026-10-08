@@ -267,7 +267,7 @@ export function HomeContent() {
                       </div>
 
                       <p className="text-[11px] text-text-muted leading-relaxed">
-                        Actual live dashboard for Sample Shop on Luthuli Avenue. Wholesalers track catalog stock, check off items as they pack, and lock orders with 1 tap.
+                        Actual live dashboard for Sample shop. Wholesalers track catalog stock, check off items as they pack, and lock orders with 1 tap.
                       </p>
                     </motion.div>
                   </div>
@@ -307,7 +307,7 @@ export function HomeContent() {
                           <p className="text-[10px] text-text-muted font-bold">Buyer Fee</p>
                         </div>
                         <div className="bg-blue-500/[0.08] border border-blue-500/30 backdrop-blur-md rounded-xl p-3 text-center">
-                          <p className="text-lg font-black text-blue-400">KES 154</p>
+                          <p className="text-lg font-black text-blue-400">KES 12540</p>
                           <p className="text-[10px] text-blue-300 font-bold">Current Order</p>
                         </div>
                         <div className="bg-white/[0.04] border border-white/10 backdrop-blur-md rounded-xl p-3 text-center">
@@ -327,7 +327,7 @@ export function HomeContent() {
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-text-muted">Platform cost:</span>
-                          <span className="text-emerald-400 font-bold">100% Free Forever for Buyers</span>
+                          <span className="text-emerald-400 font-bold">Free for Buyers</span>
                         </div>
                       </div>
 

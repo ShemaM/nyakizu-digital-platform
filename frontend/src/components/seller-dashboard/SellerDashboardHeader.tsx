@@ -17,20 +17,24 @@ interface SellerDashboardHeaderProps {
 
 export function SellerDashboardHeader({
   sellerName,
-  todayRevenue,
-  orders,
-  products,
-  relationships,
+  todayRevenue = 0,
+  orders = [],
+  products = [],
+  relationships = [],
   query,
   onQueryChange,
 }: SellerDashboardHeaderProps) {
-  const firstName = sellerName.split(" ")[0];
-  const newOrders = orders.filter((order) => order.status === "submitted").length;
-  const awaitingPayment = orders.filter((order) => ["locked", "debt_active"].includes(order.status)).length;
-  const confirmedPayments = orders.filter((order) => order.status === "cleared").length;
-  const outOfStock = products.filter((product) => product.status === "out_of_stock" || (product.stock_quantity ?? 0) === 0).length;
-  const lowStock = products.filter((product) => product.status !== "out_of_stock" && (product.stock_quantity ?? 0) > 0 && (product.stock_quantity ?? 0) <= 3).length;
-  const buyerRequests = relationships.filter((relationship) => relationship.status === "pending").length;
+  const firstName = (sellerName || "Seller").trim().split(/\s+/)[0] || "Seller";
+  const safeOrders = Array.isArray(orders) ? orders : [];
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safeRelationships = Array.isArray(relationships) ? relationships : [];
+
+  const newOrders = safeOrders.filter((order) => order?.status === "submitted").length;
+  const awaitingPayment = safeOrders.filter((order) => order && ["locked", "debt_active"].includes(order.status)).length;
+  const confirmedPayments = safeOrders.filter((order) => order?.status === "cleared").length;
+  const outOfStock = safeProducts.filter((product) => product && (product.status === "out_of_stock" || (product.stock_quantity ?? 0) === 0)).length;
+  const lowStock = safeProducts.filter((product) => product && product.status !== "out_of_stock" && (product.stock_quantity ?? 0) > 0 && (product.stock_quantity ?? 0) <= 3).length;
+  const buyerRequests = safeRelationships.filter((relationship) => relationship?.status === "pending").length;
   const priorities = [
     { count: newOrders, label: "Orders awaiting processing", href: "/seller/dashboard/orders", icon: ShoppingBag, tone: "text-error bg-error/8" },
     { count: outOfStock + lowStock, label: "Products need restocking", href: "/seller/dashboard/catalog", icon: Package, tone: "text-warning bg-warning/10" },

@@ -14,11 +14,11 @@ const STATUS_LABELS: Record<string, string> = {
   rejected: "Rejected",
 };
 
-export function SellerHeader({ shopName, sellerName, status, location, phoneNumber }: SellerHeaderProps) {
-  const firstName = sellerName.split(" ")[0];
+export function SellerHeader({ shopName, sellerName, status = "", location, phoneNumber }: SellerHeaderProps) {
+  const firstName = (sellerName || "Seller").trim().split(/\s+/)[0] || "Seller";
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-  const normalizedStatus = status.toLowerCase();
+  const normalizedStatus = (status || "").toLowerCase();
   const isApproved = normalizedStatus === "approved";
   const statusLabel = STATUS_LABELS[normalizedStatus];
 

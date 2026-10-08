@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import {
@@ -21,23 +23,29 @@ import { buyerDisplayName } from "@/lib/order-status";
 
 const ACTIVE_STATUSES = new Set(["submitted", "sourcing", "locked", "debt_active", "cleared"]);
 
-function orderValue(order: ApiOrder): number {
+function orderValue(order?: ApiOrder | null): number {
+  if (!order) return 0;
   return parsePrice(order.final_total ?? order.total_price);
 }
 
-function paidValue(order: ApiOrder): number {
+function paidValue(order?: ApiOrder | null): number {
+  if (!order) return 0;
   return parsePrice(order.amount_paid ?? 0);
 }
 
 function isSameDay(date: Date, target: Date): boolean {
+  if (!date || isNaN(date.getTime()) || !target || isNaN(target.getTime())) return false;
   return date.toDateString() === target.toDateString();
 }
 
-function inLastDays(iso: string, days: number): boolean {
+function inLastDays(iso: string | undefined | null, days: number): boolean {
+  if (!iso) return false;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return false;
   const cutoff = new Date();
   cutoff.setHours(0, 0, 0, 0);
   cutoff.setDate(cutoff.getDate() - (days - 1));
-  return new Date(iso) >= cutoff;
+  return d >= cutoff;
 }
 
 function SectionCard({ children, className }: { children: ReactNode; className?: string }) {
@@ -70,18 +78,23 @@ function Metric({ icon: Icon, label, value, hint, tone = "role" }: {
   );
 }
 
-export function SellerMetrics({ orders, products, relationships }: {
-  orders: ApiOrder[];
-  products: ApiProduct[];
-  relationships: ApiRelationship[];
+export function SellerMetrics({ orders = [], products = [], relationships = [] }: {
+  orders?: ApiOrder[];
+  products?: ApiProduct[];
+  relationships?: ApiRelationship[];
 }) {
-  const validOrders = orders.filter((order) => ACTIVE_STATUSES.has(order.status));
+  const safeOrders = Array.isArray(orders) ? orders : [];
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safeRelationships = Array.isArray(relationships) ? relationships : [];
+
+  const validOrders = safeOrders.filter((order) => order && ACTIVE_STATUSES.has(order.status));
   const today = new Date();
-  const todayRevenue = validOrders.filter((o) => isSameDay(new Date(o.created_at), today)).reduce((sum, o) => sum + paidValue(o), 0);
-  const weeklyRevenue = validOrders.filter((o) => inLastDays(o.created_at, 7)).reduce((sum, o) => sum + paidValue(o), 0);
-  const monthlyRevenue = validOrders.filter((o) => inLastDays(o.created_at, 30)).reduce((sum, o) => sum + paidValue(o), 0);
+  const todayRevenue = validOrders.filter((o) => o?.created_at && isSameDay(new Date(o.created_at), today)).reduce((sum, o) => sum + paidValue(o), 0);
+  const weeklyRevenue = validOrders.filter((o) => inLastDays(o?.created_at, 7)).reduce((sum, o) => sum + paidValue(o), 0);
+  const monthlyRevenue = validOrders.filter((o) => inLastDays(o?.created_at, 30)).reduce((sum, o) => sum + paidValue(o), 0);
   const buyers = new Map<string, { name: string; orders: number; value: number }>();
   validOrders.forEach((order) => {
+    if (!order) return;
     const key = String(order.buyer ?? order.buyer_username ?? buyerDisplayName(order));
     const current = buyers.get(key) ?? { name: buyerDisplayName(order), orders: 0, value: 0 };
     current.orders += 1;
@@ -91,9 +104,9 @@ export function SellerMetrics({ orders, products, relationships }: {
   const returning = [...buyers.values()].filter((buyer) => buyer.orders > 1).length;
   const completedOrPaid = validOrders.filter((o) => o.status === "cleared" || paidValue(o) > 0);
   const aov = completedOrPaid.length ? completedOrPaid.reduce((sum, o) => sum + orderValue(o), 0) / completedOrPaid.length : 0;
-  const conversionBase = relationships.filter((relationship) => relationship.status === "approved").length;
+  const conversionBase = safeRelationships.filter((relationship) => relationship?.status === "approved").length;
   const conversionRate = conversionBase ? (buyers.size / conversionBase) * 100 : 0;
-  const lowStock = products.filter((product) => product.status !== "out_of_stock" && (product.stock_quantity ?? 0) <= 3).length;
+  const lowStock = safeProducts.filter((product) => product && product.status !== "out_of_stock" && (product.stock_quantity ?? 0) <= 3).length;
 
   const groups = [
     { title: "Sales performance", description: "Money and order momentum", metrics: [
@@ -102,12 +115,12 @@ export function SellerMetrics({ orders, products, relationships }: {
       [TrendingUp, "Average order value", fmtKES(aov), `${completedOrPaid.length} paid orders`, "role"],
     ] },
     { title: "Customer insights", description: "Relationships that drive repeat sales", metrics: [
-      [Users, "Total customers", String(Math.max(buyers.size, relationships.filter((r) => r.status === "approved").length)), "Approved buyers", "role"],
+      [Users, "Total customers", String(Math.max(buyers.size, safeRelationships.filter((r) => r?.status === "approved").length)), "Approved buyers", "role"],
       [Users, "Returning customers", String(returning), "More than one order", "role"],
-      [Bell, "Messages / requests", String(relationships.filter((r) => r.status === "pending").length), "Buyer requests pending", "warning"],
+      [Bell, "Messages / requests", String(safeRelationships.filter((r) => r?.status === "pending").length), "Buyer requests pending", "warning"],
     ] },
     { title: "Store health", description: "What needs action next", metrics: [
-      [Package, "Active products", String(products.filter((p) => p.status === "available").length), "Visible to buyers", "role"],
+      [Package, "Active products", String(safeProducts.filter((p) => p?.status === "available").length), "Visible to buyers", "role"],
       [AlertTriangle, "Low stock", String(lowStock), "Three units or fewer", "warning"],
       [Clock3, "Pending orders", String(validOrders.filter((o) => o.status !== "cleared").length), "Need processing", "warning"],
     ] },
@@ -155,17 +168,22 @@ export function getCurrentWeekInfo(now: Date = new Date()) {
   };
 }
 
-function RevenueChart({ orders, days }: { orders: ApiOrder[]; days: 7 | 30 }) {
+function RevenueChart({ orders = [], days }: { orders: ApiOrder[]; days: 7 | 30 }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   const weekInfo = getCurrentWeekInfo(today);
+  const safeOrders = Array.isArray(orders) ? orders : [];
 
   const points = days === 7
     ? weekInfo.days.map((date) => {
         const d = new Date(date);
         d.setHours(0, 0, 0, 0);
-        const matching = orders.filter((order) => isSameDay(new Date(order.created_at), d));
+        const matching = safeOrders.filter((order) => {
+          if (!order?.created_at) return false;
+          const orderDate = new Date(order.created_at);
+          return isSameDay(orderDate, d);
+        });
         return {
           date: d,
           revenue: matching.reduce((sum, order) => sum + paidValue(order), 0),
@@ -177,7 +195,11 @@ function RevenueChart({ orders, days }: { orders: ApiOrder[]; days: 7 | 30 }) {
     : Array.from({ length: 30 }, (_, index) => {
         const date = new Date(today);
         date.setDate(date.getDate() - (29 - index));
-        const matching = orders.filter((order) => isSameDay(new Date(order.created_at), date));
+        const matching = safeOrders.filter((order) => {
+          if (!order?.created_at) return false;
+          const orderDate = new Date(order.created_at);
+          return isSameDay(orderDate, date);
+        });
         return {
           date,
           revenue: matching.reduce((sum, order) => sum + paidValue(order), 0),
@@ -187,8 +209,8 @@ function RevenueChart({ orders, days }: { orders: ApiOrder[]; days: 7 | 30 }) {
         };
       });
 
-  const maxRevenue = Math.max(1, ...points.map((point) => point.revenue));
-  const maxOrders = Math.max(1, ...points.map((point) => point.orders));
+  const maxRevenue = Math.max(1, ...points.map((point) => point.revenue || 0));
+  const maxOrders = Math.max(1, ...points.map((point) => point.orders || 0));
   const labels = days === 7 ? points : points.filter((_, index) => index % 5 === 0 || index === points.length - 1);
 
   return (
@@ -208,7 +230,6 @@ function RevenueChart({ orders, days }: { orders: ApiOrder[]; days: 7 | 30 }) {
             barClass = "bg-role/85 group-hover:bg-role";
             tooltip = `${dateStr}: ${fmtKES(point.revenue)} · ${point.orders} order${point.orders === 1 ? "" : "s"}`;
           } else if (hasOrders) {
-            // Orders exist but payment is still pending/unpaid
             heightPercent = Math.max(22, Math.min(85, (point.orders / maxOrders) * 60));
             barClass = "bg-role/35 border border-dashed border-role/80 group-hover:bg-role/50";
             tooltip = `${dateStr}: ${point.orders} order${point.orders === 1 ? "" : "s"} · KES 0 paid`;
@@ -254,24 +275,35 @@ function RevenueChart({ orders, days }: { orders: ApiOrder[]; days: 7 | 30 }) {
   );
 }
 
-export function RevenueAnalytics({ orders }: { orders: ApiOrder[] }) {
+export function RevenueAnalytics({ orders = [] }: { orders?: ApiOrder[] }) {
   const [tab, setTab] = useState<7 | 30>(7);
-  const active = orders.filter((order) => ACTIVE_STATUSES.has(order.status));
+  const safeOrders = Array.isArray(orders) ? orders : [];
+  const active = safeOrders.filter((order) => order && ACTIVE_STATUSES.has(order.status));
   const weekInfo = getCurrentWeekInfo();
 
   const filteredOrders = tab === 7
     ? active.filter((order) => {
+        if (!order?.created_at) return false;
         const d = new Date(order.created_at);
+        if (isNaN(d.getTime())) return false;
         return d >= weekInfo.startDate && d <= weekInfo.endDate;
       })
-    : active.filter((order) => inLastDays(order.created_at, 30));
+    : active.filter((order) => inLastDays(order?.created_at, 30));
 
   const revenue = filteredOrders.reduce((sum, order) => sum + paidValue(order), 0);
   const orderCount = filteredOrders.length;
   const products = new Map<string, number>();
-  active.forEach((order) => order.items?.forEach((item) => products.set(item.product_name || item.custom_name || "Unnamed product", (products.get(item.product_name || item.custom_name || "Unnamed product") ?? 0) + item.quantity)));
+  active.forEach((order) => {
+    if (!Array.isArray(order?.items)) return;
+    order.items.forEach((item) => {
+      if (!item) return;
+      const name = item.product_name || item.custom_name || "Unnamed product";
+      const qty = typeof item.quantity === "number" ? item.quantity : 1;
+      products.set(name, (products.get(name) ?? 0) + qty);
+    });
+  });
   const bestSelling = [...products.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
-  const maxProduct = Math.max(1, ...bestSelling.map(([, count]) => count));
+  const maxProduct = Math.max(1, ...bestSelling.map(([, count]) => count || 1));
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
@@ -323,7 +355,8 @@ const PIPELINE = [
   { title: "Completed", statuses: ["cleared"], tone: "success" },
 ] as const;
 
-export function OrderPipeline({ orders }: { orders: ApiOrder[] }) {
+export function OrderPipeline({ orders = [] }: { orders?: ApiOrder[] }) {
+  const safeOrders = Array.isArray(orders) ? orders : [];
   return (
     <div>
       <div className="mb-4">
@@ -332,7 +365,7 @@ export function OrderPipeline({ orders }: { orders: ApiOrder[] }) {
       </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {PIPELINE.map((column) => {
-          const items = orders.filter((order) => column.statuses.includes(order.status as never));
+          const items = safeOrders.filter((order) => order && column.statuses.includes(order.status as never));
           return (
             <div key={column.title} className="rounded-2xl border border-dark-accent bg-dark-secondary/80 p-3.5 shadow-sm">
               <div className="mb-3 flex items-center justify-between">
@@ -371,9 +404,10 @@ export function OrderPipeline({ orders }: { orders: ApiOrder[] }) {
   );
 }
 
-export function InventoryInsights({ products, onProductUpdated }: { products: ApiProduct[]; onProductUpdated?: (product: ApiProduct) => void }) {
-  const low = products.filter((product) => product.status !== "out_of_stock" && (product.stock_quantity ?? 0) <= 3);
-  const out = products.filter((product) => product.status === "out_of_stock" || (product.stock_quantity ?? 0) === 0);
+export function InventoryInsights({ products = [], onProductUpdated }: { products?: ApiProduct[]; onProductUpdated?: (product: ApiProduct) => void }) {
+  const safeProducts = Array.isArray(products) ? products : [];
+  const low = safeProducts.filter((product) => product && product.status !== "out_of_stock" && (product.stock_quantity ?? 0) <= 3);
+  const out = safeProducts.filter((product) => product && (product.status === "out_of_stock" || (product.stock_quantity ?? 0) === 0));
   const [selected, setSelected] = useState<ApiProduct | null>(null);
   const [quantity, setQuantity] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -396,10 +430,12 @@ export function InventoryInsights({ products, onProductUpdated }: { products: Ap
   </div>;
 }
 
-export function CustomerIntelligence({ orders, relationships }: { orders: ApiOrder[]; relationships: ApiRelationship[] }) {
+export function CustomerIntelligence({ orders = [], relationships = [] }: { orders?: ApiOrder[]; relationships?: ApiRelationship[] }) {
+  const safeOrders = Array.isArray(orders) ? orders : [];
+  const safeRelationships = Array.isArray(relationships) ? relationships : [];
   const customers = new Map<string, { name: string; orders: number; value: number }>();
-  orders.filter((order) => ACTIVE_STATUSES.has(order.status)).forEach((order) => { const key = String(order.buyer ?? order.buyer_username ?? buyerDisplayName(order)); const current = customers.get(key) ?? { name: buyerDisplayName(order), orders: 0, value: 0 }; current.orders += 1; current.value += orderValue(order); customers.set(key, current); });
+  safeOrders.filter((order) => order && ACTIVE_STATUSES.has(order.status)).forEach((order) => { const key = String(order.buyer ?? order.buyer_username ?? buyerDisplayName(order)); const current = customers.get(key) ?? { name: buyerDisplayName(order), orders: 0, value: 0 }; current.orders += 1; current.value += orderValue(order); customers.set(key, current); });
   const ranked = [...customers.values()].sort((a, b) => b.value - a.value).slice(0, 5);
   const repeat = [...customers.values()].filter((customer) => customer.orders > 1).length;
-  return <SectionCard><div className="mb-5 flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wider text-role">Customer intelligence</p><h2 className="text-xl font-black text-text-primary">Know your buyers</h2></div><Link href="/seller/dashboard/buyers" className="text-sm font-bold text-role-dark">Manage buyers <ChevronRight className="inline" size={14} /></Link></div><div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4"><div className="rounded-xl border border-dark-accent bg-dark-secondary/60 p-3"><p className="text-xs text-text-muted">Total customers</p><p className="mt-1 text-xl font-black text-text-primary">{Math.max(customers.size, relationships.filter((r) => r.status === "approved").length)}</p></div><div className="rounded-xl border border-dark-accent bg-dark-secondary/60 p-3"><p className="text-xs text-text-muted">Repeat buyers</p><p className="mt-1 text-xl font-black text-text-primary">{repeat}</p></div><div className="rounded-xl border border-dark-accent bg-dark-secondary/60 p-3"><p className="text-xs text-text-muted">Customer lifetime value</p><p className="mt-1 text-xl font-black text-text-primary">{fmtKES(customers.size ? [...customers.values()].reduce((sum, customer) => sum + customer.value, 0) / customers.size : 0)}</p></div><div className="rounded-xl border border-dark-accent bg-dark-secondary/60 p-3"><p className="text-xs text-text-muted">Recent reviews</p><p className="mt-1 text-sm font-bold text-text-secondary">Coming soon</p></div></div>{ranked.length ? <div className="space-y-2">{ranked.map((customer, index) => <div key={customer.name} className="flex items-center gap-3 rounded-xl border border-dark-accent bg-dark-secondary/60 p-3"><Avatar name={customer.name} size="sm" colorClassName="bg-role-dark" /><span className="flex-1 truncate text-sm font-bold text-text-primary">{index + 1}. {customer.name}</span><span className="text-xs text-text-muted">{customer.orders} order{customer.orders === 1 ? "" : "s"}</span><span className="text-sm font-black tabular-nums text-brand-gold">{fmtKES(customer.value)}</span></div>)}</div> : <div className="flex items-center gap-2 text-sm text-text-muted"><Star size={16} /> Your most valuable customers will appear here after orders.</div>}</SectionCard>;
+  return <SectionCard><div className="mb-5 flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wider text-role">Customer intelligence</p><h2 className="text-xl font-black text-text-primary">Know your buyers</h2></div><Link href="/seller/dashboard/buyers" className="text-sm font-bold text-role-dark">Manage buyers <ChevronRight className="inline" size={14} /></Link></div><div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4"><div className="rounded-xl border border-dark-accent bg-dark-secondary/60 p-3"><p className="text-xs text-text-muted">Total customers</p><p className="mt-1 text-xl font-black text-text-primary">{Math.max(customers.size, safeRelationships.filter((r) => r?.status === "approved").length)}</p></div><div className="rounded-xl border border-dark-accent bg-dark-secondary/60 p-3"><p className="text-xs text-text-muted">Repeat buyers</p><p className="mt-1 text-xl font-black text-text-primary">{repeat}</p></div><div className="rounded-xl border border-dark-accent bg-dark-secondary/60 p-3"><p className="text-xs text-text-muted">Customer lifetime value</p><p className="mt-1 text-xl font-black text-text-primary">{fmtKES(customers.size ? [...customers.values()].reduce((sum, customer) => sum + customer.value, 0) / customers.size : 0)}</p></div><div className="rounded-xl border border-dark-accent bg-dark-secondary/60 p-3"><p className="text-xs text-text-muted">Recent reviews</p><p className="mt-1 text-sm font-bold text-text-secondary">Coming soon</p></div></div>{ranked.length ? <div className="space-y-2">{ranked.map((customer, index) => <div key={customer.name} className="flex items-center gap-3 rounded-xl border border-dark-accent bg-dark-secondary/60 p-3"><Avatar name={customer.name} size="sm" colorClassName="bg-role-dark" /><span className="flex-1 truncate text-sm font-bold text-text-primary">{index + 1}. {customer.name}</span><span className="text-xs text-text-muted">{customer.orders} order{customer.orders === 1 ? "" : "s"}</span><span className="text-sm font-black tabular-nums text-brand-gold">{fmtKES(customer.value)}</span></div>)}</div> : <div className="flex items-center gap-2 text-sm text-text-muted"><Star size={16} /> Your most valuable customers will appear here after orders.</div>}</SectionCard>;
 }

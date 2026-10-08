@@ -1,1 +1,15 @@
-export { default } from "@/app/seller/dashboard/orders/page";
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { LoadingScreen } from "@/components/LoadingScreen";
+
+export default function SellerOrdersRedirect() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace("/seller/dashboard/orders");
+  }, [router]);
+
+  return <LoadingScreen />;
+}

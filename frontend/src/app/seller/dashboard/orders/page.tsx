@@ -23,11 +23,12 @@ const FILTERS: { key: Filter; label: string; statuses?: string[] }[] = [
 ];
 
 function itemCount(order: ApiOrder): number {
-  return order.items?.reduce((total, item) => total + item.quantity, 0) ?? 0;
+  if (!order || !Array.isArray(order.items)) return 0;
+  return order.items.reduce((total, item) => total + (typeof item?.quantity === "number" ? item.quantity : 1), 0);
 }
 
 function primaryAction(order: ApiOrder): string {
-  switch (order.status) {
+  switch (order?.status) {
     case "submitted": return "Start packing";
     case "sourcing": return "Continue packing";
     case "locked":
@@ -75,20 +76,27 @@ export default function SellerOrdersPage() {
   }
 
   const counts = {
-    new: orderList.filter((o) => o.status === "submitted").length,
-    packing: orderList.filter((o) => o.status === "sourcing").length,
-    ready: orderList.filter((o) => ["locked", "debt_active"].includes(o.status)).length,
-    paid: orderList.filter((o) => o.status === "cleared").length,
-    cancelled: orderList.filter((o) => o.status === "cancelled").length,
+  const safeList = Array.isArray(orderList) ? orderList : [];
+
+    new: safeList.filter((o) => o?.status === "submitted").length,
+    packing: safeList.filter((o) => o?.status === "sourcing").length,
+    ready: safeList.filter((o) => o && ["locked", "debt_active"].includes(o.status)).length,
+    paid: safeList.filter((o) => o?.status === "cleared").length,
+    cancelled: safeList.filter((o) => o?.status === "cancelled").length,
   };
   const visibleOrders = useMemo(() => {
+
     const selected = FILTERS.find((item) => item.key === filter);
     const normalized = query.trim().toLowerCase();
-    return orderList
-      .filter((order) => !selected?.statuses || selected.statuses.includes(order.status))
+    return safeList
+      .filter((order) => order && (!selected?.statuses || selected.statuses.includes(order.status)))
       .filter((order) => !normalized || buyerDisplayName(order).toLowerCase().includes(normalized) || String(order.id).includes(normalized))
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  }, [filter, orderList, query]);
+      .sort((a, b) => {
+        const timeA = a?.created_at ? new Date(a.created_at).getTime() : 0;
+        const timeB = b?.created_at ? new Date(b.created_at).getTime() : 0;
+        return (isNaN(timeB) ? 0 : timeB) - (isNaN(timeA) ? 0 : timeA);
+      });
+  }, [filter, safeList, query]);
 
   return (
     <AppShell title="Orders">
@@ -125,7 +133,7 @@ export default function SellerOrdersPage() {
             </div>
           </div>
 
-          {orderList.length === 0 ? (
+          {safeList.length === 0 ? (
             <div className="border border-border bg-card text-muted-foreground rounded-2xl p-12 text-center flex flex-col items-center justify-center min-h-[300px]">
               <ClipboardList size={40} className="text-muted-foreground mb-3" />
               <p className="text-body font-bold text-foreground">No orders yet</p>
@@ -153,7 +161,7 @@ export default function SellerOrdersPage() {
                   </div>
 
                   <div className="flex items-end justify-between gap-3 border-t border-border mt-4 pt-4">
-                    <div><span className="text-caption font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Clock size={12} /> {order.created_at ? new Date(order.created_at).toLocaleDateString("en-KE") : "Recent"}</span><p className="mt-1 text-xl font-black text-role">{fmtKES(order.final_total ?? order.total_price)}</p></div>
+                    <div><span className="text-caption font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Clock size={12} /> {order.created_at && !isNaN(new Date(order.created_at).getTime()) ? new Date(order.created_at).toLocaleDateString("en-KE") : "Recent"}</span><p className="mt-1 text-xl font-black text-role">{fmtKES(order.final_total ?? order.total_price)}</p></div>
                     <Link href={`/seller/dashboard/orders/${order.id}/fulfill`} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-role-dark px-3.5 text-xs font-black text-white shadow-sm transition hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring">{primaryAction(order)} <ArrowRight size={14} /></Link>
                   </div>
                 </article>

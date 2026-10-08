@@ -123,36 +123,132 @@ function MetricRow({ icon: Icon, label, value, hint, tone }: { icon: typeof Wall
   return <div className="flex items-center gap-3 px-4 py-3.5 sm:px-5"><span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", tone === "success" ? "bg-success/12 text-success" : tone === "warning" ? "bg-warning/12 text-warning" : "bg-role-soft text-role-dark")}><Icon size={17} /></span><div className="min-w-0 flex-1"><p className="text-xs font-bold text-muted-foreground">{label}</p><p className="text-lg font-black tabular-nums text-foreground">{value}</p></div><p className="max-w-[8rem] text-right text-xs text-muted-foreground">{hint}</p></div>;
 }
 
-function RevenueChart({ orders, days }: { orders: ApiOrder[]; days: 7 | 30 }) {
-  const points = Array.from({ length: days }, (_, index) => {
-    const date = new Date();
-    date.setHours(0, 0, 0, 0);
-    date.setDate(date.getDate() - (days - index - 1));
-    const matching = orders.filter((order) => isSameDay(new Date(order.created_at), date));
-    return {
-      date,
-      revenue: matching.reduce((sum, order) => sum + paidValue(order), 0),
-      orders: matching.length,
-    };
+export function getCurrentWeekInfo(now: Date = new Date()) {
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const dayOfMonth = now.getDate(); // e.g. 8
+
+  // Week of the month (Week 1: 1-7, Week 2: 8-14, Week 3: 15-21, Week 4: 22-28, Week 5: 29-end)
+  const weekNumber = Math.min(5, Math.floor((dayOfMonth - 1) / 7) + 1);
+  const startDay = (weekNumber - 1) * 7 + 1;
+  const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+  const endDay = Math.min(startDay + 6, lastDayOfMonth);
+
+  // 7 days for the chart view
+  const days: Date[] = Array.from({ length: 7 }, (_, index) => {
+    return new Date(year, month, startDay + index);
   });
-  const max = Math.max(1, ...points.map((point) => point.revenue));
+
+  const startDate = new Date(year, month, startDay, 0, 0, 0, 0);
+  const endDate = new Date(year, month, startDay + 6, 23, 59, 59, 999);
+  const monthName = now.toLocaleDateString("en-KE", { month: "short" });
+
+  return {
+    weekNumber,
+    startDay,
+    endDay,
+    startDate,
+    endDate,
+    days,
+    monthName,
+    label: `Week ${weekNumber} · ${startDay} ${monthName} – ${endDay} ${monthName}`,
+  };
+}
+
+function RevenueChart({ orders, days }: { orders: ApiOrder[]; days: 7 | 30 }) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const weekInfo = getCurrentWeekInfo(today);
+
+  const points = days === 7
+    ? weekInfo.days.map((date) => {
+        const d = new Date(date);
+        d.setHours(0, 0, 0, 0);
+        const matching = orders.filter((order) => isSameDay(new Date(order.created_at), d));
+        return {
+          date: d,
+          revenue: matching.reduce((sum, order) => sum + paidValue(order), 0),
+          orders: matching.length,
+          isToday: isSameDay(d, today),
+          isFuture: d > today,
+        };
+      })
+    : Array.from({ length: 30 }, (_, index) => {
+        const date = new Date(today);
+        date.setDate(date.getDate() - (29 - index));
+        const matching = orders.filter((order) => isSameDay(new Date(order.created_at), date));
+        return {
+          date,
+          revenue: matching.reduce((sum, order) => sum + paidValue(order), 0),
+          orders: matching.length,
+          isToday: isSameDay(date, today),
+          isFuture: false,
+        };
+      });
+
+  const maxRevenue = Math.max(1, ...points.map((point) => point.revenue));
+  const maxOrders = Math.max(1, ...points.map((point) => point.orders));
   const labels = days === 7 ? points : points.filter((_, index) => index % 5 === 0 || index === points.length - 1);
 
   return (
     <div>
       <div className="flex h-40 items-end gap-1.5 sm:gap-2">
-        {points.map((point) => (
-          <div key={point.date.toISOString()} className="group relative flex h-full flex-1 items-end">
-            <div
-              className="w-full rounded-t-md bg-role/75 transition-colors group-hover:bg-role"
-              style={{ height: `${Math.max(point.revenue ? 8 : 2, (point.revenue / max) * 100)}%` }}
-              title={`${point.date.toLocaleDateString("en-KE", { day: "numeric", month: "short" })}: ${fmtKES(point.revenue)} · ${point.orders} orders`}
-            />
-          </div>
-        ))}
+        {points.map((point) => {
+          const dateStr = point.date.toLocaleDateString("en-KE", { day: "numeric", month: "short" });
+          const hasRevenue = point.revenue > 0;
+          const hasOrders = point.orders > 0;
+          
+          let heightPercent = 4;
+          let barClass = "bg-dark-accent/40";
+          let tooltip = `${dateStr}: 0 orders · KES 0`;
+
+          if (hasRevenue) {
+            heightPercent = Math.max(14, (point.revenue / maxRevenue) * 100);
+            barClass = "bg-role/85 group-hover:bg-role";
+            tooltip = `${dateStr}: ${fmtKES(point.revenue)} · ${point.orders} order${point.orders === 1 ? "" : "s"}`;
+          } else if (hasOrders) {
+            // Orders exist but payment is still pending/unpaid
+            heightPercent = Math.max(22, Math.min(85, (point.orders / maxOrders) * 60));
+            barClass = "bg-role/35 border border-dashed border-role/80 group-hover:bg-role/50";
+            tooltip = `${dateStr}: ${point.orders} order${point.orders === 1 ? "" : "s"} · KES 0 paid`;
+          } else if (point.isToday) {
+            heightPercent = 8;
+            barClass = "bg-role/25 border border-dashed border-role/40";
+            tooltip = `${dateStr} (Today): No orders yet`;
+          } else if (point.isFuture) {
+            heightPercent = 3;
+            barClass = "bg-dark-accent/25 border-b border-dark-accent";
+            tooltip = `${dateStr}: Upcoming`;
+          }
+
+          return (
+            <div key={point.date.toISOString()} className="group relative flex h-full flex-1 flex-col items-center justify-end">
+              {hasOrders && (
+                <span className="mb-1 text-[10px] font-black text-role tabular-nums opacity-90 group-hover:opacity-100">
+                  {point.orders}
+                </span>
+              )}
+              <div
+                className={cn("w-full rounded-t-md transition-all duration-200", barClass)}
+                style={{ height: `${heightPercent}%` }}
+                title={tooltip}
+              />
+            </div>
+          );
+        })}
       </div>
       <div className="mt-2 flex justify-between text-[10px] font-semibold text-text-muted">
-        {labels.map((point) => <span key={point.date.toISOString()}>{point.date.toLocaleDateString("en-KE", { day: "numeric", month: "short" })}</span>)}
+        {labels.map((point) => (
+          <span
+            key={point.date.toISOString()}
+            className={cn(
+              point.isToday ? "font-black text-role underline underline-offset-4" : ""
+            )}
+          >
+            {point.date.toLocaleDateString("en-KE", { day: "numeric", month: "short" })}
+          </span>
+        ))}
       </div>
     </div>
   );
@@ -161,8 +257,17 @@ function RevenueChart({ orders, days }: { orders: ApiOrder[]; days: 7 | 30 }) {
 export function RevenueAnalytics({ orders }: { orders: ApiOrder[] }) {
   const [tab, setTab] = useState<7 | 30>(7);
   const active = orders.filter((order) => ACTIVE_STATUSES.has(order.status));
-  const revenue = active.filter((order) => inLastDays(order.created_at, tab)).reduce((sum, order) => sum + paidValue(order), 0);
-  const orderCount = active.filter((order) => inLastDays(order.created_at, tab)).length;
+  const weekInfo = getCurrentWeekInfo();
+
+  const filteredOrders = tab === 7
+    ? active.filter((order) => {
+        const d = new Date(order.created_at);
+        return d >= weekInfo.startDate && d <= weekInfo.endDate;
+      })
+    : active.filter((order) => inLastDays(order.created_at, 30));
+
+  const revenue = filteredOrders.reduce((sum, order) => sum + paidValue(order), 0);
+  const orderCount = filteredOrders.length;
   const products = new Map<string, number>();
   active.forEach((order) => order.items?.forEach((item) => products.set(item.product_name || item.custom_name || "Unnamed product", (products.get(item.product_name || item.custom_name || "Unnamed product") ?? 0) + item.quantity)));
   const bestSelling = [...products.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
@@ -172,9 +277,29 @@ export function RevenueAnalytics({ orders }: { orders: ApiOrder[] }) {
     <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
       <SectionCard>
         <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-          <div><p className="text-xs font-bold uppercase tracking-wider text-role">Revenue trends</p><h2 className="text-xl font-black text-text-primary">Revenue vs orders</h2></div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-role">Revenue trends</p>
+            <h2 className="text-xl font-black text-text-primary">Revenue vs orders</h2>
+            <p className="mt-0.5 text-xs font-semibold text-text-muted">
+              {tab === 7 ? weekInfo.label : "Past 30 days"}
+            </p>
+          </div>
           <div className="flex rounded-lg bg-dark-secondary border border-dark-accent p-1">
-            {([7, 30] as const).map((value) => <button key={value} type="button" onClick={() => setTab(value)} className={cn("rounded-md px-3 py-1.5 text-xs font-bold", tab === value ? "bg-dark-card border border-dark-accent text-text-primary shadow-sm" : "text-text-muted hover:text-text-primary")}>{value} days</button>)}
+            {([7, 30] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setTab(value)}
+                className={cn(
+                  "rounded-md px-3 py-1.5 text-xs font-bold transition-colors",
+                  tab === value
+                    ? "bg-dark-card border border-dark-accent text-text-primary shadow-sm"
+                    : "text-text-muted hover:text-text-primary"
+                )}
+              >
+                {value === 7 ? "7 days" : "30 days"}
+              </button>
+            ))}
           </div>
         </div>
         <RevenueChart orders={active} days={tab} />

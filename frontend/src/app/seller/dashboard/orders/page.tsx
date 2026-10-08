@@ -75,9 +75,9 @@ export default function SellerOrdersPage() {
     );
   }
 
-  const counts = {
   const safeList = Array.isArray(orderList) ? orderList : [];
 
+  const counts = {
     new: safeList.filter((o) => o?.status === "submitted").length,
     packing: safeList.filter((o) => o?.status === "sourcing").length,
     ready: safeList.filter((o) => o && ["locked", "debt_active"].includes(o.status)).length,

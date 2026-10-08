@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { Suspense, useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ClipboardList, AlertCircle, ArrowRight, CheckCircle2, Clock, PackageCheck, Search, ShoppingBag } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Container, Section } from "@/components/layouts";
@@ -22,12 +23,12 @@ const FILTERS: { key: Filter; label: string; statuses?: string[] }[] = [
   { key: "cancelled", label: "Cancelled", statuses: ["cancelled"] },
 ];
 
-function itemCount(order: ApiOrder): number {
+function itemCount(order?: ApiOrder | null): number {
   if (!order || !Array.isArray(order.items)) return 0;
   return order.items.reduce((total, item) => total + (typeof item?.quantity === "number" ? item.quantity : 1), 0);
 }
 
-function primaryAction(order: ApiOrder): string {
+function primaryAction(order?: ApiOrder | null): string {
   switch (order?.status) {
     case "submitted": return "Start packing";
     case "sourcing": return "Continue packing";
@@ -39,11 +40,45 @@ function primaryAction(order: ApiOrder): string {
 }
 
 export default function SellerOrdersPage() {
+  return (
+    <Suspense
+      fallback={
+        <AppShell title="Orders">
+          <PageSkeleton showKPIs={false} listCount={4} />
+        </AppShell>
+      }
+    >
+      <SellerOrdersContent />
+    </Suspense>
+  );
+}
+
+function SellerOrdersContent() {
+  const searchParams = useSearchParams();
+  const paramFilter = (searchParams?.get("filter") || searchParams?.get("status") || "").toLowerCase();
+  const initialFilter: Filter =
+    paramFilter === "new" || paramFilter === "submitted" ? "new" :
+    paramFilter === "packing" || paramFilter === "sourcing" ? "packing" :
+    paramFilter === "ready" || paramFilter === "locked" || paramFilter === "debt_active" ? "ready" :
+    paramFilter === "paid" || paramFilter === "cleared" ? "paid" :
+    paramFilter === "cancelled" ? "cancelled" : "all";
+
   const [orderList, setOrderList] = useState<ApiOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>(initialFilter);
   const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    if (paramFilter) {
+      if (paramFilter === "new" || paramFilter === "submitted") setFilter("new");
+      else if (paramFilter === "packing" || paramFilter === "sourcing") setFilter("packing");
+      else if (paramFilter === "ready" || paramFilter === "locked" || paramFilter === "debt_active") setFilter("ready");
+      else if (paramFilter === "paid" || paramFilter === "cleared") setFilter("paid");
+      else if (paramFilter === "cancelled") setFilter("cancelled");
+      else if (paramFilter === "all") setFilter("all");
+    }
+  }, [paramFilter]);
 
   useEffect(() => {
     loadOrders(false);
@@ -84,13 +119,13 @@ export default function SellerOrdersPage() {
     paid: safeList.filter((o) => o?.status === "cleared").length,
     cancelled: safeList.filter((o) => o?.status === "cancelled").length,
   };
-  const visibleOrders = useMemo(() => {
 
+  const visibleOrders = useMemo(() => {
     const selected = FILTERS.find((item) => item.key === filter);
     const normalized = query.trim().toLowerCase();
     return safeList
       .filter((order) => order && (!selected?.statuses || selected.statuses.includes(order.status)))
-      .filter((order) => !normalized || buyerDisplayName(order).toLowerCase().includes(normalized) || String(order.id).includes(normalized))
+      .filter((order) => !normalized || buyerDisplayName(order).toLowerCase().includes(normalized) || String(order?.id ?? "").includes(normalized))
       .sort((a, b) => {
         const timeA = a?.created_at ? new Date(a.created_at).getTime() : 0;
         const timeB = b?.created_at ? new Date(b.created_at).getTime() : 0;
@@ -143,26 +178,26 @@ export default function SellerOrdersPage() {
             <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center"><p className="font-bold text-foreground">No matching orders</p><button type="button" onClick={() => { setFilter("all"); setQuery(""); }} className="mt-2 text-sm font-bold text-role-dark hover:underline">Clear filters</button></div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {visibleOrders.map((order) => (
-                <article key={order.id} className="group rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm transition hover:-translate-y-0.5 hover:border-role/40 hover:shadow-md">
+              {visibleOrders.map((order, idx) => (
+                <article key={order?.id ?? idx} className="group rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm transition hover:-translate-y-0.5 hover:border-role/40 hover:shadow-md">
                   <div className="flex items-start gap-4">
                     <Avatar name={buyerDisplayName(order)} size="lg" className="shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <Link href={`/seller/dashboard/orders/${order.id}/fulfill`} className="hover:underline">
+                          <Link href={`/seller/dashboard/orders/${order?.id}/fulfill`} className="hover:underline">
                             <p className="text-lg font-black text-foreground truncate">{buyerDisplayName(order)}</p>
-                            <p className="mt-0.5 text-xs font-semibold text-muted-foreground">Order #{order.id} · {itemCount(order)} item{itemCount(order) === 1 ? "" : "s"}</p>
+                            <p className="mt-0.5 text-xs font-semibold text-muted-foreground">Order #{order?.id} · {itemCount(order)} item{itemCount(order) === 1 ? "" : "s"}</p>
                           </Link>
                         </div>
-                        <span className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-wide ${order.status === "submitted" ? "border-purple-300 bg-purple-100 text-purple-800" : order.status === "sourcing" ? "border-orange-300 bg-orange-100 text-orange-800" : order.status === "cleared" ? "border-success/30 bg-success/10 text-success" : order.status === "cancelled" ? "border-error/30 bg-error/10 text-error" : "border-info/30 bg-info/10 text-info"}`}>{getStatusLabel(order.status)}</span>
+                        <span className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-wide ${order?.status === "submitted" ? "border-purple-300 bg-purple-100 text-purple-800" : order?.status === "sourcing" ? "border-orange-300 bg-orange-100 text-orange-800" : order?.status === "cleared" ? "border-success/30 bg-success/10 text-success" : order?.status === "cancelled" ? "border-error/30 bg-error/10 text-error" : "border-info/30 bg-info/10 text-info"}`}>{getStatusLabel(order?.status ?? "")}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-end justify-between gap-3 border-t border-border mt-4 pt-4">
-                    <div><span className="text-caption font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Clock size={12} /> {order.created_at && !isNaN(new Date(order.created_at).getTime()) ? new Date(order.created_at).toLocaleDateString("en-KE") : "Recent"}</span><p className="mt-1 text-xl font-black text-role">{fmtKES(order.final_total ?? order.total_price)}</p></div>
-                    <Link href={`/seller/dashboard/orders/${order.id}/fulfill`} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-role-dark px-3.5 text-xs font-black text-white shadow-sm transition hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring">{primaryAction(order)} <ArrowRight size={14} /></Link>
+                    <div><span className="text-caption font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Clock size={12} /> {order?.created_at && !isNaN(new Date(order.created_at).getTime()) ? new Date(order.created_at).toLocaleDateString("en-KE") : "Recent"}</span><p className="mt-1 text-xl font-black text-role">{fmtKES(order?.final_total ?? order?.total_price)}</p></div>
+                    <Link href={`/seller/dashboard/orders/${order?.id}/fulfill`} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-role-dark px-3.5 text-xs font-black text-white shadow-sm transition hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring">{primaryAction(order)} <ArrowRight size={14} /></Link>
                   </div>
                 </article>
               ))}

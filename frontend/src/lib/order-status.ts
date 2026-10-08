@@ -37,13 +37,14 @@ const LABEL_MAP: Record<string, string> = {
 };
 
 /** The buyer's real name for display — falls back to their username, then a generic label, since no order should show a raw system login as if it were a person's name. */
-export function buyerDisplayName(order: { buyer_full_name?: string; buyer_username?: string }): string {
+export function buyerDisplayName(order?: { buyer_full_name?: string; buyer_username?: string } | null): string {
+  if (!order) return "Unknown buyer";
   return order.buyer_full_name || order.buyer_username || "Unknown buyer";
 }
 
 /** Just the buyer's first name — for short, personal copy like "Shema Says They Paid" where the full name would be too long. */
-export function buyerFirstName(order: { buyer_full_name?: string; buyer_username?: string }): string {
-  return buyerDisplayName(order).split(" ")[0];
+export function buyerFirstName(order?: { buyer_full_name?: string; buyer_username?: string } | null): string {
+  return (buyerDisplayName(order).split(" ")[0]) || "Buyer";
 }
 
 /**
@@ -53,9 +54,15 @@ export function buyerFirstName(order: { buyer_full_name?: string; buyer_username
  * care about at a glance. The numeric id still shows up as a small
  * secondary reference wherever a buyer might need to quote it to a seller.
  */
-export function buyerOrderLabel(sellerName: string | undefined, createdAt: string): string {
-  const date = new Date(createdAt).toLocaleDateString("en-KE", { day: "numeric", month: "short" });
-  return sellerName ? `To ${sellerName} · ${date}` : `Order · ${date}`;
+export function buyerOrderLabel(sellerName: string | undefined, createdAt?: string | null): string {
+  try {
+    if (!createdAt) return sellerName ? `To ${sellerName}` : "Order";
+    const d = new Date(createdAt);
+    const date = !isNaN(d.getTime()) ? d.toLocaleDateString("en-KE", { day: "numeric", month: "short" }) : "Recent";
+    return sellerName ? `To ${sellerName} · ${date}` : `Order · ${date}`;
+  } catch {
+    return sellerName ? `To ${sellerName}` : "Order";
+  }
 }
 
 export interface StatusExplanation {
@@ -129,13 +136,20 @@ const TRACKER_LABELS = [
   "Paid",
 ];
 
-function formatEventDate(iso: string): string {
-  return new Date(iso).toLocaleString("en-KE", {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+function formatEventDate(iso?: string | null): string {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    return d.toLocaleString("en-KE", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "";
+  }
 }
 
 export interface TrackerStep {

@@ -126,14 +126,15 @@ function extractApiErrorMessage(body: unknown, fallback: string): string {
 
 export function fmtKES(amount: number | string | null | undefined): string {
   if (amount == null) return "KES 0";
-  const num = typeof amount === "string" ? parseFloat(amount) : amount;
+  const num = typeof amount === "number" ? amount : typeof amount === "string" ? parseFloat(amount) : NaN;
   if (isNaN(num)) return "KES 0";
   return `KES ${num.toLocaleString("en-KE")}`;
 }
 
 export function parsePrice(price: number | string | null | undefined): number {
   if (price == null) return 0;
-  if (typeof price === "number") return price;
+  if (typeof price === "number") return isNaN(price) ? 0 : price;
+  if (typeof price !== "string") return 0;
   const cleaned = price.replace(/[^0-9.]/g, "");
   const val = parseFloat(cleaned);
   return isNaN(val) ? 0 : val;

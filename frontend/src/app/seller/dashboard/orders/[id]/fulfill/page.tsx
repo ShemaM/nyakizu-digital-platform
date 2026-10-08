@@ -36,11 +36,12 @@ export default function FulfillOrderPage() {
 }
 
 function FulfillOrderContent() {
-  const { id } = useParams<{ id: string }>();
+  const params = useParams<{ id: string }>();
+  const id = params?.id;
   const router = useRouter();
   const searchParams = useSearchParams();
-  const orderId = parseInt(id);
-  const basePath = `/seller/dashboard/orders/${id}/fulfill`;
+  const orderId = id ? parseInt(String(id), 10) : NaN;
+  const basePath = id ? `/seller/dashboard/orders/${id}/fulfill` : "/seller/dashboard/orders";
   // "Send price" and "Record payment" used to be Dialog overlays — with a
   // price breakdown, a sourced-items note, and an editable total, they were
   // exactly the content-heavy case that can overflow behind the bottom nav
@@ -273,7 +274,7 @@ function FulfillOrderContent() {
   const balance = parsePrice(order.balance ?? displayTotal - amountPaid);
   const paidProgress = displayTotal > 0 ? (amountPaid / displayTotal) * 100 : 0;
 
-  const items = order.items ?? [];
+  const items = Array.isArray(order.items) ? order.items.filter(Boolean) : [];
   const packableItems = items.filter((i) => !i.not_found);
   const packedCount = packableItems.filter((i) => i.is_packed).length;
   const allPacked = packableItems.length > 0 && packedCount === packableItems.length;

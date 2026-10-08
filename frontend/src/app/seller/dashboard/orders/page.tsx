@@ -141,7 +141,12 @@ export default function SellerOrdersPage() {
                     <Avatar name={buyerDisplayName(order)} size="lg" className="shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-3">
-                        <div><p className="text-lg font-black text-foreground truncate">{buyerDisplayName(order)}</p><p className="mt-0.5 text-xs font-semibold text-muted-foreground">Order #{order.id} · {itemCount(order)} item{itemCount(order) === 1 ? "" : "s"}</p></div>
+                        <div>
+                          <Link href={`/seller/dashboard/orders/${order.id}/fulfill`} className="hover:underline">
+                            <p className="text-lg font-black text-foreground truncate">{buyerDisplayName(order)}</p>
+                            <p className="mt-0.5 text-xs font-semibold text-muted-foreground">Order #{order.id} · {itemCount(order)} item{itemCount(order) === 1 ? "" : "s"}</p>
+                          </Link>
+                        </div>
                         <span className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-wide ${order.status === "submitted" ? "border-purple-300 bg-purple-100 text-purple-800" : order.status === "sourcing" ? "border-orange-300 bg-orange-100 text-orange-800" : order.status === "cleared" ? "border-success/30 bg-success/10 text-success" : order.status === "cancelled" ? "border-error/30 bg-error/10 text-error" : "border-info/30 bg-info/10 text-info"}`}>{getStatusLabel(order.status)}</span>
                       </div>
                     </div>

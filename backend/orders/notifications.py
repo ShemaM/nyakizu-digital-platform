@@ -71,7 +71,7 @@ def send_order_status_email(order, status):
         total=order.final_total if order.final_total is not None else order.total_price,
         balance=order.balance,
     )
-    order_url = f"{_frontend_base_url()}/buyer/orders/{order.id}/"
+    order_url = f"{_frontend_base_url()}/buyer/orders/{order.id}"
     cta_text = "Track Order Status"
     if status == "locked":
         cta_text = "Review Confirmed Price & Pay"
@@ -95,7 +95,7 @@ def send_new_order_seller_email(order):
     if not order.seller or not order.seller.email:
         return
     buyer_name = order.buyer.get_full_name() or order.buyer.username
-    fulfill_url = f"{_frontend_base_url()}/seller/dashboard/orders/{order.id}/fulfill/"
+    fulfill_url = f"{_frontend_base_url()}/seller/dashboard/orders/{order.id}/fulfill"
     send_mail_async(
         subject="Nyakizu: You have a new order",
         message=(
@@ -176,7 +176,7 @@ def send_payment_claim_seller_email(order, claim):
     if not order.seller or not order.seller.email:
         return
     buyer_name = order.buyer.get_full_name() or order.buyer.username
-    fulfill_url = f"{_frontend_base_url()}/seller/dashboard/orders/{order.id}/fulfill/"
+    fulfill_url = f"{_frontend_base_url()}/seller/dashboard/orders/{order.id}/fulfill"
     send_mail_async(
         subject="Nyakizu: Buyer says they've paid",
         message=(

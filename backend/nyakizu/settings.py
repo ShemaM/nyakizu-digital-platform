@@ -478,10 +478,12 @@ CSRF_TRUSTED_ORIGINS = _dev_frontend_origins + list(_extra_csrf_origins)
 # tracking protection regardless of Secure, which is what broke login
 # before the proxy was added.
 CSRF_COOKIE_SAMESITE = config('CSRF_COOKIE_SAMESITE', default='Lax')
+CSRF_COOKIE_DOMAIN   = config('CSRF_COOKIE_DOMAIN', default=None if DEBUG else '.nyakizudigital.me')
 
 # ── Session cookies ───────────────────────────────────────────────────────────
 SESSION_COOKIE_SAMESITE = config('SESSION_COOKIE_SAMESITE', default='Lax')
 SESSION_COOKIE_SECURE   = config('SESSION_COOKIE_SECURE', default=not DEBUG, cast=bool)
+SESSION_COOKIE_DOMAIN   = config('SESSION_COOKIE_DOMAIN', default=None if DEBUG else '.nyakizudigital.me')
 
 # Without these, Django's default is a 2-week persistent session cookie —
 # a browser that logged into /admin/ once stays signed in for two weeks,

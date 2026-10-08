@@ -64,13 +64,20 @@ export function AppShell({
     ((inSellerSection && user.role !== "seller") || (inBuyerSection && user.role !== "buyer"));
 
   useEffect(() => {
+    if (isLoading) return;
+
+    if (!user && (inSellerSection || inBuyerSection)) {
+      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+      return;
+    }
+
     if (!roleMismatch || !user) return;
     if (inSellerSection) {
       router.replace(user.role === "buyer" ? "/buyer" : "/login");
     } else if (inBuyerSection) {
       router.replace(user.role === "seller" ? "/seller/dashboard" : "/login");
     }
-  }, [roleMismatch, user, inSellerSection, inBuyerSection, router]);
+  }, [isLoading, roleMismatch, user, inSellerSection, inBuyerSection, pathname, router]);
 
   const handleLogout = async () => {
     await logout();

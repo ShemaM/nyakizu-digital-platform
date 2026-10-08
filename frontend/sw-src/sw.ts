@@ -102,7 +102,7 @@ const serwist = new Serwist({
   // Small, stable app-shell routes — precached on install so /offline (and
   // the sign-in entry points) work from a true cold start with no network.
   precacheEntries: ["/", "/offline", "/login", "/register"],
-  skipWaiting: false, // never activate a new SW silently — see PWARegister.tsx
+  skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
   runtimeCaching,

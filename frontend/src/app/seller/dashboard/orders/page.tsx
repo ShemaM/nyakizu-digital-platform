@@ -47,6 +47,15 @@ export default function SellerOrdersPage() {
     loadOrders();
   }, []);
 
+  const visibleOrders = useMemo(() => {
+    const selected = FILTERS.find((item) => item.key === filter);
+    const normalized = query.trim().toLowerCase();
+    return orderList
+      .filter((order) => !selected?.statuses || selected.statuses.includes(order.status))
+      .filter((order) => !normalized || buyerDisplayName(order).toLowerCase().includes(normalized) || String(order.id).includes(normalized))
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [filter, orderList, query]);
+
   const loadOrders = async () => {
     try {
       setIsLoading(true);
@@ -76,14 +85,6 @@ export default function SellerOrdersPage() {
     paid: orderList.filter((o) => o.status === "cleared").length,
     cancelled: orderList.filter((o) => o.status === "cancelled").length,
   };
-  const visibleOrders = useMemo(() => {
-    const selected = FILTERS.find((item) => item.key === filter);
-    const normalized = query.trim().toLowerCase();
-    return orderList
-      .filter((order) => !selected?.statuses || selected.statuses.includes(order.status))
-      .filter((order) => !normalized || buyerDisplayName(order).toLowerCase().includes(normalized) || String(order.id).includes(normalized))
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  }, [filter, orderList, query]);
 
   return (
     <AppShell title="Orders">

@@ -1,3 +1,5 @@
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
@@ -156,7 +158,9 @@ class VerifyEmailView(APIView):
         return Response({"message": "Email verified. You can now sign in."})
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class PasswordResetRequestView(APIView):
+    authentication_classes = []
     """
     POST /api/accounts/password-reset/
     Body: { email }
@@ -201,7 +205,9 @@ class PasswordResetRequestView(APIView):
         return Response({"message": self.GENERIC_MESSAGE})
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class PasswordResetConfirmView(APIView):
+    authentication_classes = []
     """
     POST /api/accounts/password-reset/confirm/
     Body: { uid, token, new_password }
@@ -243,7 +249,9 @@ class PasswordResetConfirmView(APIView):
         return Response({"message": "Password reset. You can now sign in with your new password."})
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class LoginView(APIView):
+    authentication_classes = []
     """
     POST /api/accounts/login/
     Accepts { phone, password } — phone is used as the identifier.

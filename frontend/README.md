@@ -25,7 +25,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - `/register` - New account creation
 - `/buyer/*` - Buyer dashboard and features
 - `/seller/*` - Seller dashboard and features
-- `/admin/*` - Admin management panel
+- `/admin/*` - Admin management panel (Django backend)
 
 ## Design System
 

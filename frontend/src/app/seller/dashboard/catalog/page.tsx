@@ -39,7 +39,6 @@ export default function SellerCatalogPage() {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ApiProduct | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [savingPriceId, setSavingPriceId] = useState<number | null>(null);
   const [shareProductTarget, setShareProductTarget] = useState<ApiProduct | null>(null);
   const [isJustPublished, setIsJustPublished] = useState(false);
 
@@ -157,20 +156,6 @@ export default function SellerCatalogPage() {
     }
   }
 
-  async function handlePriceUpdate(product: ApiProduct, price: number) {
-    setSavingPriceId(product.id);
-    try {
-      const updated = await products.update(product.id, { price });
-      setProductList((prev) => prev.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)));
-      toast(`Price for "${product.name}" updated.`, "success");
-    } catch (err) {
-      toast(err instanceof ApiError ? err.message : "Could not update that price.", "error");
-      throw err;
-    } finally {
-      setSavingPriceId(null);
-    }
-  }
-
   if (isLoading) {
     return (
       <AppShell title={PAGE_TITLE}>
@@ -212,17 +197,9 @@ export default function SellerCatalogPage() {
     >
       <Section spacing="md">
         <Container size="xl" className="space-y-5 pb-24">
-          {/* Page intro — makes explicit that the grid below isn't just an
-              internal list, it's what buyers actually see when they open
-              this shop. */}
-          <p className="text-sm text-text-muted -mb-1">
-            This is your catalog — the photos, names, and prices below are exactly what buyers see when they open your shop.
-          </p>
-
           <StoreShareBar
-            storeName={storeName}
             storeLink={storeLink}
-            productCount={productList.length}
+            productCount={productList.filter((product) => product.status === "available").length}
             onCopyLink={copyStoreLink}
             onShare={shareStore}
           />
@@ -262,15 +239,15 @@ export default function SellerCatalogPage() {
           </div>
 
           {/* Analytics */}
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
-            <div className="rounded-2xl border border-slate-200 dark:border-dark-accent bg-white dark:bg-dark-secondary shadow-sm p-4">
+          <div className="grid grid-cols-2 divide-x divide-border border-y border-border">
+            <div className="px-4 py-3">
               <div className="flex items-center gap-1.5 text-text-muted">
                 <Layers size={14} aria-hidden="true" />
                 <span className="text-xs font-bold uppercase tracking-wider">Total Items</span>
               </div>
               <p className="text-2xl font-black text-text-primary mt-1.5 tabular-nums">{productList.length}</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 dark:border-dark-accent bg-white dark:bg-dark-secondary shadow-sm p-4">
+            <div className="px-4 py-3">
               <div className="flex items-center gap-1.5 text-warning">
                 <AlertTriangle size={14} aria-hidden="true" />
                 <span className="text-xs font-bold uppercase tracking-wider">Low Stock</span>
@@ -300,7 +277,7 @@ export default function SellerCatalogPage() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            <div className="divide-y divide-slate-200 dark:divide-dark-accent border-y border-slate-200 dark:border-dark-accent">
               {filteredProducts.map((product) => (
                 <ProductCard
                   key={product.id}
@@ -311,8 +288,6 @@ export default function SellerCatalogPage() {
                   onOpenMenu={() => setOpenMenuId(product.id)}
                   onCloseMenu={() => setOpenMenuId(null)}
                   onEdit={() => router.push(`/seller/dashboard/catalog/new?id=${product.id}`)}
-                  savingPrice={savingPriceId === product.id}
-                  onSavePrice={(price) => handlePriceUpdate(product, price)}
                   onDelete={() => {
                     setOpenMenuId(null);
                     setDeleteTarget(product);
@@ -385,16 +360,11 @@ interface ProductCardProps {
   onCloseMenu: () => void;
   onEdit: () => void;
   onShare: () => void;
-  savingPrice: boolean;
-  onSavePrice: (price: number) => Promise<void>;
   onDelete: () => void;
 }
 
-function ProductCard({ product, storePath, menuOpen, onOpenMenu, onCloseMenu, onEdit, onShare, savingPrice, onSavePrice, onDelete }: ProductCardProps) {
+function ProductCard({ product, storePath, menuOpen, onOpenMenu, onCloseMenu, onEdit, onShare, onDelete }: ProductCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
-  const [editingPrice, setEditingPrice] = useState(false);
-  const [priceInput, setPriceInput] = useState(String(product.price));
-  const [priceError, setPriceError] = useState<string | null>(null);
   const lowStock = isLowStock(product);
 
   const status =
@@ -407,9 +377,9 @@ function ProductCard({ product, storePath, menuOpen, onOpenMenu, onCloseMenu, on
       : { label: "In Stock", classes: "bg-success text-white" };
 
   return (
-    <div className="bg-white dark:bg-dark-secondary border border-slate-200 dark:border-dark-accent shadow-sm rounded-2xl overflow-hidden flex flex-col">
+    <article className="flex items-start gap-4 py-4 sm:gap-5">
       {/* Photo — seller-only page, but the image itself is the same asset buyers see */}
-      <button type="button" onClick={onEdit} className="relative aspect-[4/3] bg-slate-100 dark:bg-dark-deepest overflow-hidden text-left">
+      <div className="relative h-24 w-24 sm:h-28 sm:w-28 shrink-0 rounded-xl bg-slate-100 dark:bg-dark-deepest overflow-hidden">
         {product.image_url && !imageFailed ? (
           <Image
             src={product.image_url}
@@ -430,12 +400,12 @@ function ProductCard({ product, storePath, menuOpen, onOpenMenu, onCloseMenu, on
           {status.label === "Low Stock" && <AlertTriangle size={12} />}
           {status.label}
         </span>
-      </button>
+      </div>
 
       {/* Info — stock quantity and edit controls are seller-only: this whole
           page lives under /seller/dashboard, which buyers can't reach, and
           the buyer-facing store page renders a separate, simpler card. */}
-      <div className="p-3.5 flex-1 flex flex-col gap-2.5">
+      <div className="min-w-0 flex-1 flex flex-col gap-2.5">
         {product.category_name && (
           <span className="inline-flex items-center gap-1 text-xs font-semibold text-text-muted">
             <Tag size={12} aria-hidden="true" /> {product.category_name}
@@ -449,61 +419,8 @@ function ProductCard({ product, storePath, menuOpen, onOpenMenu, onCloseMenu, on
             <p className="text-sm font-bold text-text-primary tabular-nums">{product.stock_quantity ?? 0} units</p>
           </div>
           <div className="text-right">
-            {editingPrice ? (
-              <form
-                className="flex items-end gap-1.5"
-                onSubmit={async (event) => {
-                  event.preventDefault();
-                  const nextPrice = Number(priceInput);
-                  if (!Number.isFinite(nextPrice) || nextPrice <= 0) {
-                    setPriceError("Enter a price above 0.");
-                    return;
-                  }
-                  setPriceError(null);
-                  try {
-                    await onSavePrice(nextPrice);
-                    setEditingPrice(false);
-                  } catch {
-                    // The parent toast contains the API error; keep the editor open.
-                  }
-                }}
-              >
-                <label htmlFor={`price-${product.id}`} className="sr-only">Price in KES</label>
-                <input
-                  id={`price-${product.id}`}
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={priceInput}
-                  onChange={(event) => {
-                    setPriceInput(event.target.value);
-                    setPriceError(null);
-                  }}
-                  disabled={savingPrice}
-                  className="w-24 h-9 rounded-lg border border-brand-gold/50 bg-white dark:bg-dark-deepest px-2 text-right text-sm font-bold text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold"
-                />
-                <button type="submit" disabled={savingPrice} className="h-9 rounded-lg bg-brand-gold text-slate-950 px-2.5 text-xs font-bold disabled:opacity-50">
-                  {savingPrice ? "Saving…" : "Save"}
-                </button>
-              </form>
-            ) : (
-              <>
-                <p className="text-[11px] font-bold uppercase tracking-wide text-text-muted">Price</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPriceInput(String(product.price));
-                    setPriceError(null);
-                    setEditingPrice(true);
-                  }}
-                  className="text-sm font-black text-brand-gold tabular-nums hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold rounded"
-                  aria-label={`Edit price for ${product.name}`}
-                >
-                  {fmtKES(product.price)}
-                </button>
-              </>
-            )}
-            {priceError && <p className="text-[10px] font-semibold text-error mt-1">{priceError}</p>}
+            <p className="text-[11px] font-bold uppercase tracking-wide text-text-muted">Price</p>
+            <p className="text-sm font-black text-brand-gold tabular-nums">{fmtKES(product.price)}</p>
           </div>
         </div>
 
@@ -514,14 +431,6 @@ function ProductCard({ product, storePath, menuOpen, onOpenMenu, onCloseMenu, on
             className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-dark-tertiary dark:hover:bg-dark-accent text-slate-800 dark:text-text-primary font-bold text-sm py-2.5 transition-colors"
           >
             <Edit2 size={14} /> Edit
-          </button>
-          <button
-            type="button"
-            onClick={onShare}
-            aria-label={`Share ${product.name}`}
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-brand-gold hover:bg-brand-gold-dark text-slate-950 font-bold text-sm py-2.5 transition-colors shadow-sm focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Share2 size={14} /> Share
           </button>
           <button
             type="button"
@@ -568,46 +477,33 @@ function ProductCard({ product, storePath, menuOpen, onOpenMenu, onCloseMenu, on
           )}
         </div>
       </div>
-    </div>
+    </article>
   );
 }
 
 function StoreShareBar({
-  storeName,
   storeLink,
   productCount,
   onCopyLink,
   onShare,
 }: {
-  storeName: string;
   storeLink: string;
   productCount: number;
   onCopyLink: () => void;
   onShare: () => void;
 }) {
-  const shareWhatsApp = () => {
-    const text = `🛍️ *${storeName}* Wholesale Catalog\nBrowse our latest products and place orders online:\n${storeLink}\n\nPowered by Nyakizu Marketplace`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
-  };
-
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-dark-accent bg-white dark:bg-dark-secondary shadow-sm p-4 sm:p-5">
+    <section className="border-y border-slate-200 dark:border-dark-accent py-4 sm:py-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 text-xs font-bold text-amber-700 dark:text-amber-400">
-              <Share2 size={12} /> Share Your Store
+          <div className="flex items-center gap-2 text-xs text-text-muted">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 font-bold text-success">
+              <CheckCircle2 size={13} /> {productCount} {productCount === 1 ? "product" : "products"}
             </span>
-            <span className="text-xs text-text-muted">
-              {productCount} {productCount === 1 ? "product" : "products"} live
-            </span>
+            <span>in your shop</span>
           </div>
-          <h2 className="text-base sm:text-lg font-bold text-text-primary mt-1">
-            Send your catalog link to buyers
-          </h2>
-          <p className="text-xs sm:text-sm text-text-secondary mt-0.5">
-            Buyers can view your products and order without installing an app.
-          </p>
+          <h2 className="text-base sm:text-lg font-bold text-text-primary mt-2">Your shop is ready to share</h2>
+          <p className="text-xs sm:text-sm text-text-secondary mt-0.5">Buyers can browse your catalog and order online.</p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
@@ -622,7 +518,6 @@ function StoreShareBar({
         </div>
       </div>
 
-      {/* URL & Action buttons */}
       <div className="mt-3.5 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
         <div className="flex-1 flex items-center gap-2 rounded-xl border border-slate-200 dark:border-dark-accent bg-slate-50 dark:bg-dark-deepest px-3.5 py-2.5 min-w-0">
           <Link2 size={15} className="text-brand-gold shrink-0" />
@@ -641,21 +536,14 @@ function StoreShareBar({
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
-            onClick={shareWhatsApp}
-            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] text-white px-4 py-2.5 text-xs sm:text-sm font-bold shadow-sm transition-transform active:scale-95"
-          >
-            <MessageCircle size={15} /> WhatsApp
-          </button>
-          <button
-            type="button"
             onClick={onShare}
             className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-xl bg-brand-gold hover:bg-brand-gold-dark text-slate-950 px-4 py-2.5 text-xs sm:text-sm font-bold shadow-sm transition-transform active:scale-95"
           >
-            <Share2 size={15} /> Share Store
+            <Share2 size={15} /> Share shop
           </button>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 

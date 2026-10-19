@@ -20,7 +20,7 @@ def _safe_bool(val):
     return str(val).strip().lower() in ('1', 'true', 't', 'yes', 'y', 'on')
 
 DEBUG      = config('DEBUG', default=False, cast=_safe_bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,testserver', cast=Csv())
 
 # Automated M-Pesa Daraja top-ups stay disabled until production onboarding,
 # credentials, callbacks, and reconciliation requirements are complete.
@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     'products',
     'orders',
     'billing',
+    'security',
 ]
 
 MIDDLEWARE = [
@@ -89,6 +90,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'allauth.account.middleware.AccountMiddleware',
+    'security.middleware.PlatformCircuitBreakerMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -238,39 +240,36 @@ UNFOLD = {
     # the whole admin dark on any machine set to dark mode, regardless of
     # anything themed below. That auto-detect, not a template bug, was the
     # actual source of the "dark blue background" complaint.
-    "THEME": "light",
+    "THEME": "auto",
     "COLORS": {
-        # Tailwind's `blue` scale — matches the platform's brand primary (#2563eb / blue-600),
-        # i.e. the same --primary/--ring token frontend/tailwind.config.ts defines.
+        # Brand Gold scale matching frontend/tailwind.config.ts (brand.gold: #F59E0B)
         "primary": {
-            "50":  "#eff6ff",
-            "100": "#dbeafe",
-            "200": "#bfdbfe",
-            "300": "#93c5fd",
-            "400": "#60a5fa",
-            "500": "#3b82f6",
-            "600": "#2563eb",
-            "700": "#1d4ed8",
-            "800": "#1e40af",
-            "900": "#1e3a8a",
-            "950": "#172554",
+            "50":  "#fffbeb",
+            "100": "#fef3c7",
+            "200": "#fde68a",
+            "300": "#fcd34d",
+            "400": "#fbbf24",
+            "500": "#f59e0b",
+            "600": "#d97706",
+            "700": "#b45309",
+            "800": "#92400e",
+            "900": "#78350f",
+            "950": "#451a03",
         },
-        # Tailwind's `stone` scale — replaces unfold's default cool-slate
-        # neutrals with the same warm-paper/warm-ink undertone as the
-        # frontend's dark.* tokens (#FAF9F6 paper, #14120E ink), instead of
-        # a mismatched cool gray sitting next to the app's warm one.
+        # GitHub-grade dark slate neutrals matching frontend/src/app/globals.css
+        # (#0D1117 canvas, #161B22 cards, #21262D elevated, #30363D borders, #F0F6FC text)
         "base": {
-            "50":  "#fafaf9",
-            "100": "#f5f5f4",
-            "200": "#e7e5e4",
-            "300": "#d6d3d1",
-            "400": "#a8a29e",
-            "500": "#78716c",
-            "600": "#57534e",
-            "700": "#44403c",
-            "800": "#292524",
-            "900": "#1c1917",
-            "950": "#0c0a09",
+            "50":  "#f0f6fc",
+            "100": "#e6edf3",
+            "200": "#d0d7de",
+            "300": "#afb8c1",
+            "400": "#8c959f",
+            "500": "#6e7781",
+            "600": "#57606a",
+            "700": "#424a53",
+            "800": "#30363d",
+            "900": "#161b22",
+            "950": "#0d1117",
         },
     },
     "DASHBOARD_CALLBACK": "nyakizu.admin_dashboard.dashboard_callback",
@@ -279,108 +278,129 @@ UNFOLD = {
         "show_all_applications": False,
         "navigation": [
             {
-                "title": "Overview",
+                "title": "Executive MIS",
                 "separator": True,
                 "items": [
                     {
-                        "title": "Dashboard",
+                        "title": "Operations Dashboard",
                         "icon": "dashboard",
                         "link": reverse_lazy("admin:index"),
                     },
                 ],
             },
             {
-                "title": "Users & Approvals",
+                "title": "Billing & Finance Dept",
                 "separator": True,
                 "items": [
                     {
-                        "title": "Users",
-                        "icon": "group",
-                        "link": reverse_lazy("admin:accounts_customuser_changelist"),
+                        "title": "Seller Accounts & Escrow",
+                        "icon": "account_balance_wallet",
+                        "link": reverse_lazy("admin:billing_selleraccount_changelist"),
                     },
                     {
-                        "title": "Buyer profiles",
-                        "icon": "person",
-                        "link": reverse_lazy("admin:accounts_buyerprofile_changelist"),
+                        "title": "Immutable Credit Ledger",
+                        "icon": "menu_book",
+                        "link": reverse_lazy("admin:billing_creditentry_changelist"),
                     },
                     {
-                        "title": "Seller stores",
+                        "title": "Order Fees (Charged & Waived)",
+                        "icon": "receipt_long",
+                        "link": reverse_lazy("admin:billing_orderfee_changelist"),
+                    },
+                    {
+                        "title": "M-Pesa Top-up Payments",
+                        "icon": "payments",
+                        "link": reverse_lazy("admin:billing_payment_changelist"),
+                    },
+                    {
+                        "title": "Platform Fee Schedules",
+                        "icon": "sell",
+                        "link": reverse_lazy("admin:billing_feeschedule_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Seller Operations Dept",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Wholesale Stores",
                         "icon": "storefront",
                         "link": reverse_lazy("admin:accounts_sellerprofile_changelist"),
                         "badge": "nyakizu.admin_dashboard.pending_sellers_badge",
                     },
                     {
-                        "title": "Buyer–Seller Links",
+                        "title": "Product Catalog",
+                        "icon": "inventory_2",
+                        "link": reverse_lazy("admin:products_product_changelist"),
+                    },
+                    {
+                        "title": "Product Categories",
+                        "icon": "category",
+                        "link": reverse_lazy("admin:products_category_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Buyer Operations Dept",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Buyer Profiles",
+                        "icon": "person",
+                        "link": reverse_lazy("admin:accounts_buyerprofile_changelist"),
+                    },
+                    {
+                        "title": "Buyer–Seller Trade Links",
                         "icon": "handshake",
                         "link": reverse_lazy("admin:accounts_buyersellerrelationship_changelist"),
                     },
                     {
-                        "title": "Store follows",
+                        "title": "Store Follows",
                         "icon": "favorite",
                         "link": reverse_lazy("admin:accounts_buyerstorefollow_changelist"),
                     },
-                ],
-            },
-            {
-                "title": "Catalog",
-                "separator": True,
-                "items": [
                     {
-                        "title": "Categories",
-                        "icon": "category",
-                        "link": reverse_lazy("admin:products_category_changelist"),
-                    },
-                    {
-                        "title": "Products",
-                        "icon": "inventory_2",
-                        "link": reverse_lazy("admin:products_product_changelist"),
+                        "title": "User Accounts Directory",
+                        "icon": "group",
+                        "link": reverse_lazy("admin:accounts_customuser_changelist"),
                     },
                 ],
             },
             {
-                "title": "Orders & Finance",
+                "title": "Order Logistics Dept",
                 "separator": True,
                 "items": [
                     {
-                        "title": "Orders",
+                        "title": "All Marketplace Orders",
                         "icon": "shopping_cart",
                         "link": reverse_lazy("admin:orders_order_changelist"),
                     },
                     {
-                        "title": "Order status log",
+                        "title": "Order Fulfillment Status Logs",
                         "icon": "history",
                         "link": reverse_lazy("admin:orders_orderstatusevent_changelist"),
                     },
                 ],
             },
             {
-                "title": "Billing",
+                "title": "Security & Continuity Dept",
                 "separator": True,
                 "items": [
                     {
-                        "title": "Seller accounts",
-                        "icon": "account_balance_wallet",
-                        "link": reverse_lazy("admin:billing_selleraccount_changelist"),
+                        "title": "Security Audit Trail",
+                        "icon": "shield",
+                        "link": reverse_lazy("admin:security_securityauditlog_changelist"),
                     },
                     {
-                        "title": "Credit ledger",
-                        "icon": "menu_book",
-                        "link": reverse_lazy("admin:billing_creditentry_changelist"),
+                        "title": "DR Backups & Snapshots",
+                        "icon": "backup",
+                        "link": reverse_lazy("admin:security_systembackuprecord_changelist"),
                     },
                     {
-                        "title": "Order fees",
-                        "icon": "receipt_long",
-                        "link": reverse_lazy("admin:billing_orderfee_changelist"),
-                    },
-                    {
-                        "title": "Payments",
-                        "icon": "payments",
-                        "link": reverse_lazy("admin:billing_payment_changelist"),
-                    },
-                    {
-                        "title": "Fee schedule",
-                        "icon": "sell",
-                        "link": reverse_lazy("admin:billing_feeschedule_changelist"),
+                        "title": "Emergency Circuit Breakers",
+                        "icon": "emergency",
+                        "link": reverse_lazy("admin:security_platformsecuritypolicy_changelist"),
                     },
                 ],
             },
@@ -528,8 +548,8 @@ DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='Nyakizu <noreply@nyak
 # admin-error emails triggered by mail_admins()/mail_managers() on a 500,
 # which only fire when ADMINS is populated (it isn't yet, so this is inert
 # until that's set — Sentry is what currently surfaces those exceptions).
-SERVER_EMAIL = config('SERVER_EMAIL', default='noreply@nyakizudigital.me')
-FRONTEND_VERIFY_BASE_URL = config('FRONTEND_VERIFY_BASE_URL', default='http://localhost:3000')
+FRONTEND_VERIFY_BASE_URL = config('FRONTEND_VERIFY_BASE_URL', default='http://localhost:3001' if DEBUG else 'https://www.nyakizudigital.me')
+LOGIN_URL = 'admin:login'
 
 # ── Outbound sender identities ────────────────────────────────────────────────
 # Every outbound email goes out from a purpose-specific address so recipients

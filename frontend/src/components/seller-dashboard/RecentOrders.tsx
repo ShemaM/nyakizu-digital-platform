@@ -48,7 +48,7 @@ export const RecentOrders: React.FC<RecentOrdersProps> = ({ orders = [] }) => {
   const safeOrders = Array.isArray(orders) ? orders : [];
   if (safeOrders.length === 0) {
     return (
-      <div className="bg-dark-card p-10 rounded-2xl border border-dark-accent shadow-sm text-center flex flex-col justify-center items-center min-h-[220px]">
+      <div className="border-y border-dark-accent py-10 text-center flex flex-col justify-center items-center min-h-[220px]">
         <div className="w-14 h-14 rounded-2xl bg-role-soft flex items-center justify-center mb-3">
           <Package className="w-6 h-6 text-role" />
         </div>
@@ -59,7 +59,7 @@ export const RecentOrders: React.FC<RecentOrdersProps> = ({ orders = [] }) => {
   }
 
   return (
-    <div className="bg-dark-card rounded-2xl border border-dark-accent shadow-sm overflow-hidden divide-y divide-dark-accent">
+    <div className="border-y border-dark-accent divide-y divide-dark-accent">
       {safeOrders.map((order) => (
         <div key={order.id} className="p-4 sm:p-5 flex items-center gap-4 hover:bg-dark-tertiary transition-colors">
           <Link

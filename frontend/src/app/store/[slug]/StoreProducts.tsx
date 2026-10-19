@@ -85,16 +85,27 @@ export function StoreProducts({ products }: Props) {
 
   if (products.length === 0) {
     return (
-      <div className="rounded-2xl border border-dark-accent bg-dark-card p-8 text-center">
-        <Package size={28} className="mx-auto mb-2 text-text-muted" />
-        <p className="text-body text-text-secondary">This store has nothing listed yet.</p>
+      <div className="rounded-3xl border border-dark-accent bg-dark-card px-6 py-14 text-center shadow-sm">
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-dark-secondary text-brand-gold">
+          <Package size={25} />
+        </span>
+        <h2 className="mt-4 text-lg font-bold text-text-primary">This catalog is being prepared</h2>
+        <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-text-secondary">Products will appear here once the seller adds them to the shop.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-5">
-      <div className="sticky top-0 z-10 -mx-4 border-b border-dark-accent bg-dark-primary/90 px-4 py-2 backdrop-blur-xl">
+    <div>
+      <div className="mb-4 flex items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-gold">Shop</p>
+          <h2 className="mt-1 text-2xl font-black tracking-tight text-text-primary">Product catalog</h2>
+        </div>
+        <p className="pb-1 text-sm text-text-muted">{products.length} {products.length === 1 ? "item" : "items"}</p>
+      </div>
+
+      <div className="sticky top-[57px] z-20 -mx-4 mb-6 border-y border-dark-accent bg-dark-primary/95 px-4 py-2 backdrop-blur-xl sm:-mx-6 sm:px-6">
         <CategoryFilter
           categories={categories}
           active={activeCat}
@@ -102,6 +113,7 @@ export function StoreProducts({ products }: Props) {
         />
       </div>
 
+      <div className="space-y-8">
       {grouped.map(({ name, products: groupProducts }) => (
         <section key={name} className="space-y-3">
           <div className="flex items-center gap-2">
@@ -111,7 +123,7 @@ export function StoreProducts({ products }: Props) {
             </span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
             {groupProducts.map((p) => {
               const availability = availabilityFor(p);
               return (
@@ -123,7 +135,7 @@ export function StoreProducts({ products }: Props) {
                   className="group text-left overflow-hidden rounded-2xl border border-dark-accent bg-dark-card transition hover:border-brand-gold/40 hover:shadow-card-elevated cursor-pointer focus:outline-none"
                   aria-label={`View details for ${p.name}`}
                 >
-                  <div className="relative aspect-square overflow-hidden bg-dark-secondary">
+                  <div className="relative aspect-[4/3] overflow-hidden bg-dark-secondary">
                     <ProductImage src={p.image_url} alt={p.name} />
                     <span className="absolute top-2 left-2">
                       <Badge variant={availability.variant}>{availability.label}</Badge>
@@ -146,6 +158,7 @@ export function StoreProducts({ products }: Props) {
           </div>
         </section>
       ))}
+      </div>
 
       {/* Product Details Modal */}
       <ProductDetailModal

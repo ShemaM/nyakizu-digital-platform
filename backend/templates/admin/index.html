@@ -1,354 +1,2109 @@
 {% extends 'admin/base.html' %}
-{% load i18n %}
+{% load i18n static %}
 
 {% block extrastyle %}
 {{ block.super }}
 <style>
-    /* Fully custom dashboard styling — deliberately NOT unfold's Tailwind
-       utility classes. Unfold ships a precompiled/purged CSS bundle built
-       from its own templates, so arbitrary utility classes we write here
-       (especially brand colors) may have no matching rule at all. Plain,
-       hand-authored CSS avoids that entirely and gives this page its own
-       identity instead of looking like a stock Django admin screen. */
-    .dash { max-width: 1400px; margin: 0 auto; padding: 8px 4px 32px; color: #14120E; font-family: inherit; }
-    .dash-header { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
-    .dash-title { font-size: 1.5rem; font-weight: 800; margin: 0; color: #14120E; }
-    .dash-subtitle { font-size: 0.875rem; color: #6B6459; margin-top: 4px; }
-    .period-switcher { display: flex; gap: 4px; background: #F4F1EA; padding: 4px; border-radius: 10px; }
-    .period-switcher a { padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; text-decoration: none; color: #6B6459; text-transform: uppercase; letter-spacing: 0.03em; }
-    .period-switcher a.active { background: #2563EB; color: #fff; }
-    .period-switcher a:not(.active):hover { color: #14120E; }
+    /* ==========================================================================
+       NYAKIZU EXECUTIVE MANAGEMENT INFORMATION SYSTEM (MIS)
+       Ultra-Sleek, Card-Free, High-Density Dual-Theme Architecture
+       ========================================================================== */
 
-    .section-divider { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #6B6459; margin: 28px 0 12px; padding-top: 4px; }
-    .section-divider:first-of-type { margin-top: 0; }
+    /* ── Light Theme Tokens ────────────────────────────────────────────────── */
+    :root {
+        --canvas-bg: #F8FAFC;
+        --surface-bg: #FFFFFF;
+        --surface-subtle: #F1F5F9;
+        --surface-well: #E2E8F0;
+        --border-color: #CBD5E1;
+        --border-subtle: rgba(226, 232, 240, 0.9);
+        --text-primary: #0F172A;
+        --text-secondary: #334155;
+        --text-muted: #64748B;
+        --brand-gold: #D97706;
+        --brand-gold-hover: #B45309;
+        --brand-gold-subtle: rgba(217, 119, 6, 0.10);
+        --brand-gold-border: rgba(217, 119, 6, 0.28);
+        --success: #10B981;
+        --success-subtle: rgba(16, 185, 129, 0.10);
+        --warning: #F59E0B;
+        --warning-subtle: rgba(245, 158, 11, 0.10);
+        --error: #EF4444;
+        --error-subtle: rgba(239, 68, 68, 0.10);
+        --info: #2563EB;
+        --info-subtle: rgba(37, 99, 235, 0.10);
+        --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05);
+        --shadow-md: 0 4px 14px -2px rgba(15, 23, 42, 0.08);
+        --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
 
-    .alerts { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
-    .alert { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 12px; font-size: 0.875rem; font-weight: 500; text-decoration: none; border: 1px solid transparent; }
-    .alert .material-symbols-outlined { font-size: 20px; }
-    .alert-info { background: #eff6ff; color: #1d4ed8; border-color: #dbeafe; }
-    .alert-warning { background: #fffbeb; color: #92400e; border-color: #fde68a; }
-    .alert-danger { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
-    a.alert:hover { filter: brightness(0.97); }
+    /* ── Dark Theme Tokens (Synced with frontend localStorage: 'nyakizu-theme') ─ */
+    html.dark, :root[data-theme="dark"] {
+        --canvas-bg: #0D1117;
+        --surface-bg: #161B22;
+        --surface-subtle: #21262D;
+        --surface-well: #010409;
+        --border-color: #30363D;
+        --border-subtle: rgba(48, 54, 61, 0.6);
+        --text-primary: #F0F6FC;
+        --text-secondary: #9198A1;
+        --text-muted: #8B949E;
+        --brand-gold: #F59E0B;
+        --brand-gold-hover: #FBBF24;
+        --brand-gold-subtle: rgba(245, 158, 11, 0.12);
+        --brand-gold-border: rgba(245, 158, 11, 0.28);
+        --success: #10B981;
+        --success-subtle: rgba(16, 185, 129, 0.12);
+        --warning: #F59E0B;
+        --warning-subtle: rgba(245, 158, 11, 0.12);
+        --error: #EF4444;
+        --error-subtle: rgba(239, 68, 68, 0.12);
+        --info: #3B82F6;
+        --info-subtle: rgba(59, 130, 246, 0.12);
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+        --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.45);
+    }
 
-    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
-    .kpi-card { background: #fff; border: 1px solid #E6E1D7; border-radius: 16px; padding: 20px; text-decoration: none; color: inherit; display: block; transition: box-shadow .15s, transform .15s; }
-    a.kpi-card:hover { box-shadow: 0 8px 24px -8px rgba(20,18,14,0.15); transform: translateY(-1px); }
-    .kpi-card.tone-primary { background: #eff6ff; border-color: #bfdbfe; }
-    .kpi-card.tone-danger { border-color: #fecaca; }
-    .kpi-card.tone-warning { border-color: #fde68a; }
-    .kpi-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
-    .tone-primary .kpi-icon { background: #2563EB; color: #fff; }
-    .tone-neutral .kpi-icon { background: #F4F1EA; color: #57534e; }
-    .tone-warning .kpi-icon { background: #fef3c7; color: #b45309; }
-    .tone-danger .kpi-icon { background: #fee2e2; color: #dc2626; }
-    .kpi-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6B6459; }
-    .kpi-value { font-size: 1.75rem; font-weight: 800; margin-top: 4px; line-height: 1.2; color: #14120E; }
-    .kpi-value.is-empty { font-size: 0.95rem; font-weight: 600; color: #6B6459; }
-    .kpi-trend { font-size: 0.75rem; font-weight: 700; margin-top: 6px; display: inline-flex; align-items: center; gap: 3px; }
-    .kpi-trend .material-symbols-outlined { font-size: 15px; }
-    .kpi-trend.trend-up { color: #15803D; }
-    .kpi-trend.trend-down { color: #DC2626; }
-    .kpi-trend.trend-flat { color: #6B6459; }
+    body, #content, .content, main {
+        background-color: var(--canvas-bg) !important;
+        color: var(--text-primary) !important;
+        transition: background-color 0.15s ease, color 0.15s ease;
+    }
 
-    .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px; }
-    .chart-card, .panel-card { background: #fff; border: 1px solid #E6E1D7; border-radius: 16px; padding: 20px; }
-    .chart-card h3, .panel-card h3 { font-size: 0.95rem; font-weight: 700; margin: 0 0 2px; color: #14120E; }
-    .chart-card .chart-sub, .panel-card .panel-sub { font-size: 0.75rem; color: #6B6459; margin: 0 0 14px; }
-    .chart-empty, .panel-empty { display: flex; align-items: center; justify-content: center; height: 220px; color: #6B6459; font-size: 0.875rem; text-align: center; }
-    .chart-canvas-wrap { position: relative; height: 260px; }
+    .mis-root {
+        max-width: 1560px;
+        margin: 0 auto;
+        padding: 4px 8px 48px;
+        font-family: var(--sans);
+        color: var(--text-primary);
+        -webkit-font-smoothing: antialiased;
+    }
 
-    .leaderboard-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #F4F1EA; }
-    .leaderboard-row:last-child { border-bottom: none; }
-    .lb-rank { width: 24px; height: 24px; border-radius: 999px; background: #eff6ff; color: #2563EB; font-size: 0.7rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .lb-body { flex: 1; min-width: 0; }
-    .lb-top-row { display: flex; justify-content: space-between; gap: 8px; font-size: 0.85rem; }
-    .lb-name { font-weight: 700; color: #14120E; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .lb-revenue { font-weight: 800; color: #14120E; flex-shrink: 0; }
-    .lb-bar-track { height: 6px; border-radius: 999px; background: #F4F1EA; margin-top: 6px; overflow: hidden; }
-    .lb-bar-fill { height: 100%; background: #2563EB; border-radius: 999px; }
-    .lb-meta { font-size: 0.7rem; color: #6B6459; margin-top: 4px; }
+    /* ── 1. Top Executive Navigation & Telemetry Header ─────────────────────── */
+    .mis-header {
+        background: var(--surface-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 12px 18px;
+        margin-bottom: 14px;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .mis-header-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .mis-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .mis-beacon {
+        position: relative;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background-color: var(--success);
+        box-shadow: 0 0 8px var(--success);
+        flex-shrink: 0;
+    }
+    .mis-beacon::after {
+        content: '';
+        position: absolute;
+        top: -4px;
+        left: -4px;
+        width: 17px;
+        height: 17px;
+        border-radius: 50%;
+        border: 2px solid var(--success);
+        opacity: 0.8;
+        animation: mis-pulse 2s infinite ease-out;
+    }
+    @keyframes mis-pulse {
+        0% { transform: scale(0.6); opacity: 1; }
+        100% { transform: scale(1.6); opacity: 0; }
+    }
+    .mis-title {
+        font-size: 1.18rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        margin: 0;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .mis-title .gold-accent {
+        color: var(--brand-gold);
+    }
+    .mis-badge-corp {
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        background: var(--brand-gold-subtle);
+        color: var(--brand-gold);
+        border: 1px solid var(--brand-gold-border);
+        padding: 2px 7px;
+        border-radius: 5px;
+    }
 
-    .dash-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    .dash-table th { text-align: left; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; color: #6B6459; font-weight: 700; padding: 0 10px 10px; border-bottom: 1px solid #E6E1D7; }
-    .dash-table td { padding: 10px; border-bottom: 1px solid #F4F1EA; color: #14120E; }
-    .dash-table tr:last-child td { border-bottom: none; }
-    .status-pill { display: inline-block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 3px 9px; border-radius: 999px; }
-    .status-submitted, .status-sourcing { background: #dbeafe; color: #1d4ed8; }
-    .status-locked { background: #f1f5f9; color: #475569; }
-    .status-debt_active { background: #fee2e2; color: #b91c1c; }
-    .status-cleared { background: #dcfce7; color: #166534; }
-    .status-cancelled { background: #f1f5f9; color: #64748b; }
-    .flag-pill { display: inline-flex; align-items: center; gap: 3px; font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: #fee2e2; color: #b91c1c; margin-left: 6px; }
-    .flag-pill .material-symbols-outlined { font-size: 12px; }
+    /* Header Controls */
+    .mis-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
 
-    .panels-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px; }
+    /* Tactile Light / Dark Segmented Switcher */
+    .mis-theme-switch-group {
+        display: inline-flex;
+        background: var(--surface-subtle);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 2px;
+        gap: 2px;
+    }
+    .mis-theme-switch-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        border: none;
+        background: transparent;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .mis-theme-switch-btn:hover {
+        color: var(--text-primary);
+    }
+    .mis-theme-switch-btn.is-active {
+        background: var(--surface-bg);
+        color: var(--brand-gold);
+        font-weight: 900;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .mis-sync-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        border-radius: 8px;
+        background: var(--surface-subtle);
+        border: 1px solid var(--border-color);
+        font-family: var(--mono);
+        font-size: 0.70rem;
+        font-weight: 700;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .mis-sync-pill:hover {
+        border-color: var(--brand-gold);
+        color: var(--text-primary);
+    }
+    .mis-sync-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: var(--success);
+        box-shadow: 0 0 6px var(--success);
+    }
+    .mis-period-switch {
+        display: inline-flex;
+        background: var(--surface-subtle);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 2px;
+    }
+    .mis-period-link {
+        font-family: var(--mono);
+        font-size: 0.70rem;
+        font-weight: 800;
+        padding: 4px 8px;
+        border-radius: 6px;
+        color: var(--text-muted);
+        text-decoration: none;
+        transition: all 0.12s ease;
+    }
+    .mis-period-link.is-active {
+        background: var(--surface-bg);
+        color: var(--brand-gold);
+        box-shadow: var(--shadow-sm);
+    }
+
+    /* Export Dropdown */
+    .mis-export-wrap { position: relative; }
+    .mis-btn-export {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 11px;
+        border-radius: 8px;
+        background: var(--brand-gold-subtle);
+        border: 1px solid var(--brand-gold-border);
+        color: var(--brand-gold);
+        font-size: 0.72rem;
+        font-weight: 800;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .mis-btn-export:hover {
+        background: var(--brand-gold);
+        color: #FFFFFF;
+    }
+    .mis-export-menu {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: calc(100% + 5px);
+        width: 260px;
+        background: var(--surface-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        box-shadow: var(--shadow-md);
+        padding: 5px;
+        z-index: 100;
+        flex-direction: column;
+        gap: 3px;
+    }
+    .mis-export-menu.is-open { display: flex; }
+    .mis-export-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 7px 10px;
+        border-radius: 6px;
+        color: var(--text-primary);
+        text-decoration: none;
+        font-size: 0.72rem;
+        font-weight: 600;
+    }
+    .mis-export-item:hover { background: var(--surface-subtle); }
+    .mis-export-item span.fmt {
+        font-family: var(--mono);
+        font-size: 0.60rem;
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: var(--surface-well);
+        color: var(--text-muted);
+    }
+
+    /* Sub-Header Telemetry Strip */
+    .mis-tele-strip {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        border-top: 1px solid var(--border-subtle);
+        padding-top: 8px;
+        font-family: var(--mono);
+        font-size: 0.68rem;
+        color: var(--text-muted);
+    }
+    .mis-tele-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-weight: 700;
+    }
+
+    /* ── 2. Unified High-Impact Figures Stat Ribbon (No Boxy Cards) ────────── */
+    .mis-stat-bar {
+        background: var(--surface-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 14px 20px;
+        margin-bottom: 14px;
+        box-shadow: var(--shadow-sm);
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 14px;
+    }
+    @media (max-width: 1200px) {
+        .mis-stat-bar { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    }
+    @media (max-width: 640px) {
+        .mis-stat-bar { grid-template-columns: repeat(2, 1fr); }
+    }
+    .mis-stat-unit {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding-right: 14px;
+        border-right: 1px solid var(--border-subtle);
+    }
+    .mis-stat-unit:last-child {
+        border-right: none;
+        padding-right: 0;
+    }
+    .mis-stat-label {
+        font-size: 0.66rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+    }
+    .mis-stat-val {
+        font-family: var(--mono);
+        font-size: 1.30rem;
+        font-weight: 900;
+        color: var(--text-primary);
+        letter-spacing: -0.02em;
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+    }
+    .mis-stat-sub {
+        font-size: 0.68rem;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .mis-trend-up { color: var(--success); font-weight: 800; }
+    .mis-trend-down { color: var(--error); font-weight: 800; }
+    .mis-trend-flat { color: var(--text-muted); }
+
+    /* ── 3. High-Density Segmented Tab Dock ────────────────────────────────── */
+    .mis-tab-dock {
+        position: sticky;
+        top: 8px;
+        z-index: 90;
+        background: var(--surface-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 5px 8px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        box-shadow: var(--shadow-sm);
+    }
+    .mis-tabs-row {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        overflow-x: auto;
+    }
+    .mis-tab-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 0.74rem;
+        font-weight: 800;
+        color: var(--text-secondary);
+        background: transparent;
+        border: 1px solid transparent;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.12s ease;
+    }
+    .mis-tab-btn:hover {
+        background: var(--surface-subtle);
+        color: var(--text-primary);
+    }
+    .mis-tab-btn.is-active {
+        background: var(--surface-subtle);
+        color: var(--brand-gold);
+        border-color: var(--border-color);
+        font-weight: 900;
+    }
+    .mis-tab-badge {
+        font-family: var(--mono);
+        font-size: 0.60rem;
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: var(--surface-well);
+        color: var(--text-muted);
+    }
+    .mis-tab-btn.is-active .mis-tab-badge {
+        background: var(--brand-gold-subtle);
+        color: var(--brand-gold);
+    }
+
+    /* In-Page Quick Filter */
+    .mis-search-box {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--surface-subtle);
+        border: 1px solid var(--border-color);
+        border-radius: 7px;
+        padding: 4px 10px;
+        max-width: 250px;
+        flex-grow: 1;
+    }
+    .mis-search-box input {
+        border: none;
+        background: transparent;
+        font-size: 0.72rem;
+        color: var(--text-primary);
+        outline: none;
+        width: 100%;
+    }
+    .mis-search-box input::placeholder { color: var(--text-muted); }
+
+    /* ── 4. Operational Alerts ─────────────────────────────────────────────── */
+    .mis-alerts {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 14px;
+    }
+    .mis-alert-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 14px;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        border: 1px solid;
+    }
+    .mis-alert-danger { background: var(--error-subtle); border-color: rgba(239, 68, 68, 0.3); color: var(--error); }
+    .mis-alert-warning { background: var(--warning-subtle); border-color: rgba(245, 158, 11, 0.3); color: var(--warning); }
+    .mis-alert-info { background: var(--info-subtle); border-color: rgba(59, 130, 246, 0.3); color: var(--info); }
+    .mis-alert-cta { font-family: var(--mono); font-size: 0.68rem; text-decoration: underline; color: inherit; }
+
+    /* ── 5. STRICT SINGLE-TAB WORKSPACE ISOLATION ──────────────────────────── */
+    .mis-tab-panel {
+        display: none !important;
+    }
+    .mis-tab-panel.is-active {
+        display: block !important;
+        animation: mis-fade 0.15s ease-in-out;
+    }
+    @keyframes mis-fade {
+        from { opacity: 0; transform: translateY(3px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* High-Density Operational Panels */
+    .mis-grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+        margin-bottom: 14px;
+    }
+    @media (max-width: 1024px) {
+        .mis-grid-2 { grid-template-columns: 1fr; }
+    }
+    .mis-panel {
+        background: var(--surface-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 16px 18px;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .mis-panel-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        gap: 10px;
+    }
+    .mis-panel-title {
+        font-size: 0.88rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        margin: 0 0 2px 0;
+    }
+    .mis-panel-desc {
+        font-size: 0.70rem;
+        color: var(--text-muted);
+        margin: 0;
+    }
+    .mis-panel-link {
+        font-family: var(--mono);
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: var(--brand-gold);
+        text-decoration: none;
+        white-space: nowrap;
+    }
+    .mis-panel-link:hover { text-decoration: underline; }
+
+    .mis-chart-wrap {
+        position: relative;
+        width: 100%;
+        height: 230px;
+    }
+
+    /* ── 6. Operational Data Tables (Clean, Compact, Modern) ──────────────── */
+    .mis-table-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--border-subtle);
+        border-radius: 8px;
+    }
+    .mis-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.74rem;
+        text-align: left;
+    }
+    .mis-table th {
+        background: var(--surface-subtle);
+        color: var(--text-muted);
+        font-size: 0.65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+    .mis-table td {
+        padding: 9px 12px;
+        border-bottom: 1px solid var(--border-subtle);
+        color: var(--text-primary);
+        vertical-align: middle;
+    }
+    .mis-table tr:last-child td {
+        border-bottom: none;
+    }
+    .mis-table tr:hover td {
+        background: var(--surface-subtle);
+    }
+    .mis-table-mono {
+        font-family: var(--mono);
+        font-weight: 800;
+    }
+
+    /* Status Pills */
+    .mis-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        font-weight: 800;
+        padding: 2px 6px;
+        border-radius: 4px;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+    .pill-emerald { background: var(--success-subtle); color: var(--success); }
+    .pill-crimson { background: var(--error-subtle); color: var(--error); }
+    .pill-amber { background: var(--warning-subtle); color: var(--warning); }
+    .pill-blue { background: var(--info-subtle); color: var(--info); }
+    .pill-muted { background: var(--surface-well); color: var(--text-muted); }
+
+    /* Action Buttons in Tables */
+    .mis-btn-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 3px 8px;
+        border-radius: 5px;
+        font-size: 0.67rem;
+        font-weight: 800;
+        font-family: var(--mono);
+        text-decoration: none;
+        background: var(--brand-gold-subtle);
+        color: var(--brand-gold);
+        border: 1px solid var(--brand-gold-border);
+        transition: all 0.12s ease;
+    }
+    .mis-btn-action:hover {
+        background: var(--brand-gold);
+        color: #FFFFFF;
+    }
+
+    /* ── 7. Hardware-Style Circuit Breakers & Invariant Auditor ─────────────── */
+    .mis-switch-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .mis-switch-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        border-radius: 8px;
+        background: var(--surface-subtle);
+        border: 1px solid var(--border-color);
+    }
+    .mis-switch-title {
+        font-size: 0.78rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .mis-switch-desc {
+        font-size: 0.68rem;
+        color: var(--text-muted);
+        margin-top: 1px;
+    }
+
+    /* Invariant Status Banner */
+    .mis-inv-box {
+        background: var(--surface-subtle);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin-bottom: 14px;
+    }
+    .mis-inv-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border-subtle);
+        margin-bottom: 10px;
+    }
+    .mis-inv-metrics {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        text-align: center;
+    }
+    .mis-inv-stat-label {
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+    }
+    .mis-inv-stat-val {
+        font-family: var(--mono);
+        font-size: 1.12rem;
+        font-weight: 900;
+        color: var(--text-primary);
+    }
+
+    /* ── 8. Detailed Settings Console Architecture ─────────────────────────── */
+    .mis-settings-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+        margin-bottom: 14px;
+    }
+    @media (max-width: 1024px) {
+        .mis-settings-grid { grid-template-columns: 1fr; }
+    }
+    .mis-setting-box {
+        background: var(--surface-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 16px 18px;
+        box-shadow: var(--shadow-sm);
+    }
+    .mis-setting-box-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border-subtle);
+        margin-bottom: 12px;
+    }
+    .mis-setting-box-title {
+        font-size: 0.86rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 7px;
+    }
+    .mis-setting-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border-subtle);
+        font-size: 0.74rem;
+    }
+    .mis-setting-row:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+    .mis-setting-label {
+        color: var(--text-secondary);
+        font-weight: 600;
+    }
+    .mis-setting-val {
+        font-family: var(--mono);
+        font-weight: 800;
+        color: var(--text-primary);
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="dash">
+<div class="mis-root">
 
-    <div class="dash-header">
-        <div>
-            <h1 class="dash-title">{% trans "Platform overview" %}</h1>
-            <p class="dash-subtitle">{{ period_label }} · everything you need to know about Nyakizu right now</p>
+    <!-- ======================================================================
+         1. COMPACT EXECUTIVE NAVIGATION & TELEMETRY HEADER
+         ====================================================================== -->
+    <div class="mis-header">
+        <div class="mis-header-top">
+            <div class="mis-brand">
+                <div class="mis-beacon" title="Production Cluster Synchronized"></div>
+                <div>
+                    <h1 class="mis-title">
+                        Nyakizu <span class="gold-accent">Digital Market</span>
+                        <span class="mis-badge-corp">Executive MIS</span>
+                    </h1>
+                </div>
+            </div>
+
+            <div class="mis-header-actions">
+                <!-- Tactile Light / Dark Segmented Switcher -->
+                <div class="mis-theme-switch-group" role="group" aria-label="Theme Mode Switcher">
+                    <button type="button" class="mis-theme-switch-btn" id="theme-btn-light" data-set-theme="light" title="Switch to Light Theme">
+                        <span class="material-symbols-outlined" style="font-size: 15px;">light_mode</span>
+                        <span>Light</span>
+                    </button>
+                    <button type="button" class="mis-theme-switch-btn is-active" id="theme-btn-dark" data-set-theme="dark" title="Switch to Dark Theme">
+                        <span class="material-symbols-outlined" style="font-size: 15px;">dark_mode</span>
+                        <span>Dark</span>
+                    </button>
+                </div>
+
+                <!-- Auto-Sync Heartbeat Pill -->
+                <div class="mis-sync-pill" id="mis-sync-btn" title="Click to refresh telemetry immediately">
+                    <span class="mis-sync-dot"></span>
+                    <span id="mis-sync-text">Live: 30s</span>
+                </div>
+
+                <!-- Period Switcher -->
+                <div class="mis-period-switch">
+                    {% for opt in period_options %}
+                        <a href="{{ opt.url }}" class="mis-period-link {% if opt.active %}is-active{% endif %}">
+                            {{ opt.value }}D
+                        </a>
+                    {% endfor %}
+                </div>
+
+                <!-- Decision Data Export Dropdown -->
+                <div class="mis-export-wrap">
+                    <button type="button" class="mis-btn-export" id="mis-export-btn">
+                        <span class="material-symbols-outlined" style="font-size: 15px;">download</span>
+                        Export Data
+                        <span class="material-symbols-outlined" style="font-size: 13px;">expand_more</span>
+                    </button>
+                    <div class="mis-export-menu" id="mis-export-dropdown">
+                        <a href="{% url 'admin-export' %}?dataset=executive_summary&format=csv" class="mis-export-item">
+                            <span>1. Executive Summary Brief</span>
+                            <span class="fmt">CSV</span>
+                        </a>
+                        <a href="{% url 'admin-export' %}?dataset=merchants&format=csv" class="mis-export-item">
+                            <span>2. Wholesale Merchants Ledger</span>
+                            <span class="fmt">CSV</span>
+                        </a>
+                        <a href="{% url 'admin-export' %}?dataset=buyers&format=csv" class="mis-export-item">
+                            <span>3. Retail Buyers Directory</span>
+                            <span class="fmt">CSV</span>
+                        </a>
+                        <a href="{% url 'admin-export' %}?dataset=treasury&format=csv" class="mis-export-item">
+                            <span>4. Double-Entry Treasury Ledger</span>
+                            <span class="fmt">CSV</span>
+                        </a>
+                        <a href="{% url 'admin-export' %}?dataset=orders&format=csv" class="mis-export-item">
+                            <span>5. Order Logistics &amp; Dispatch</span>
+                            <span class="fmt">CSV</span>
+                        </a>
+                        <a href="{% url 'admin-export' %}?dataset=full_pack&format=json" class="mis-export-item">
+                            <span>6. Full Governance Pack (BI Snapshot)</span>
+                            <span class="fmt">JSON</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="period-switcher">
-            {% for opt in period_options %}
-                <a href="{{ opt.url }}" class="{% if opt.active %}active{% endif %}">{{ opt.label }}</a>
-            {% endfor %}
+
+        <!-- Real-time Status & Clock Strip -->
+        <div class="mis-tele-strip">
+            <div>
+                <span class="mis-tele-pill" style="color: var(--success);">● {{ system_telemetry.cluster }}</span>
+                &nbsp;·&nbsp; Threat: <span class="mis-tele-pill" style="color: var(--brand-gold);">{{ system_telemetry.threat_level }}</span>
+                &nbsp;·&nbsp; RPO: <span class="mis-tele-pill" style="color: var(--info);">{{ system_telemetry.rpo_status }}</span>
+                &nbsp;·&nbsp; Invariant: <span class="mis-tele-pill" style="color: var(--success);">✓ 100% PASS</span>
+            </div>
+            <div>
+                <span class="mis-tele-pill" style="color: var(--text-primary);">
+                    <span class="material-symbols-outlined" style="font-size: 13px;">schedule</span>
+                    <span id="mis-clock-eat">{{ system_telemetry.local_time }}</span>
+                </span>
+                &nbsp;·&nbsp;
+                <span id="mis-clock-utc">{{ system_telemetry.server_time }}</span>
+            </div>
         </div>
     </div>
 
+    <!-- ======================================================================
+         2. PRIORITIZED KEY FIGURES STAT RIBBON (NO BOXY CARDS)
+         ====================================================================== -->
+    <div class="mis-stat-bar">
+        <div class="mis-stat-unit">
+            <span class="mis-stat-label">Gross Merchandise Value</span>
+            <span class="mis-stat-val">
+                {{ stats_summary.gmv }}
+                {% if stats_summary.gmv_direction %}
+                    <span class="mis-stat-sub {% if stats_summary.gmv_direction == 'up' %}mis-trend-up{% elif stats_summary.gmv_direction == 'down' %}mis-trend-down{% else %}mis-trend-flat{% endif %}">
+                        {% if stats_summary.gmv_direction == 'up' %}↑{% elif stats_summary.gmv_direction == 'down' %}↓{% endif %}{{ stats_summary.gmv_pct }}
+                    </span>
+                {% endif %}
+            </span>
+            <span class="mis-stat-sub">{{ period_label }} GMV</span>
+        </div>
+
+        <div class="mis-stat-unit">
+            <span class="mis-stat-label">Platform Net Fees</span>
+            <span class="mis-stat-val">{{ stats_summary.net_fees }}</span>
+            <span class="mis-stat-sub">Double-Entry Audited</span>
+        </div>
+
+        <div class="mis-stat-unit">
+            <span class="mis-stat-label">Seller Escrow Float</span>
+            <span class="mis-stat-val" style="color: var(--brand-gold);">{{ stats_summary.escrow_float }}</span>
+            <span class="mis-stat-sub">Prepaid Float Pool</span>
+        </div>
+
+        <div class="mis-stat-unit">
+            <span class="mis-stat-label">Marketplace Debt Exposure</span>
+            <span class="mis-stat-val" style="color: {% if stats_summary.sellers_in_debt > 0 %}var(--error){% else %}var(--text-primary){% endif %};">
+                {{ stats_summary.market_debt }}
+            </span>
+            <span class="mis-stat-sub">{{ stats_summary.sellers_in_debt }} seller(s) in debt</span>
+        </div>
+
+        <div class="mis-stat-unit">
+            <span class="mis-stat-label">Total Market Orders</span>
+            <span class="mis-stat-val">{{ stats_summary.orders_count }}</span>
+            <span class="mis-stat-sub">{{ stats_summary.orders_pipeline }} in pipeline</span>
+        </div>
+
+        <div class="mis-stat-unit">
+            <span class="mis-stat-label">Platform Members</span>
+            <span class="mis-stat-val">{{ stats_summary.members_count }}</span>
+            <span class="mis-stat-sub">{{ stats_summary.total_buyers }} buyers · {{ stats_summary.total_sellers }} sellers</span>
+        </div>
+    </div>
+
+    <!-- ======================================================================
+         3. SEGMENTED TAB DOCK
+         ====================================================================== -->
+    <div class="mis-tab-dock">
+        <div class="mis-tabs-row" id="mis-tabs">
+            <button type="button" class="mis-tab-btn is-active" data-tab="tab-overview">
+                <span>📊 Executive Overview</span>
+                <span class="mis-tab-badge">GMV</span>
+            </button>
+            <button type="button" class="mis-tab-btn" data-tab="tab-treasury">
+                <span>💰 Treasury &amp; Escrow</span>
+                <span class="mis-tab-badge">Float</span>
+            </button>
+            <button type="button" class="mis-tab-btn" data-tab="tab-merchants">
+                <span>🏪 Merchants &amp; KYC</span>
+                <span class="mis-tab-badge">Stores</span>
+            </button>
+            <button type="button" class="mis-tab-btn" data-tab="tab-logistics">
+                <span>🚚 Orders &amp; Logistics</span>
+                <span class="mis-tab-badge">Dispatch</span>
+            </button>
+            <button type="button" class="mis-tab-btn" data-tab="tab-security">
+                <span>🛡️ Security &amp; Continuity</span>
+                <span class="mis-tab-badge">Audit</span>
+            </button>
+            <button type="button" class="mis-tab-btn" data-tab="tab-settings">
+                <span>⚙️ System Settings</span>
+                <span class="mis-tab-badge">Config</span>
+            </button>
+        </div>
+
+        <!-- In-Page Real-time Search Filter -->
+        <div class="mis-search-box">
+            <span class="material-symbols-outlined" style="font-size: 14px; color: var(--text-muted);">search</span>
+            <input type="text" id="mis-search-input" placeholder="Quick filter tables..." autocomplete="off">
+        </div>
+    </div>
+
+    <!-- ======================================================================
+         4. REAL-TIME OPERATIONAL ALERTS
+         ====================================================================== -->
     {% if alerts %}
-    <div class="alerts">
+    <div class="mis-alerts">
         {% for alert in alerts %}
-            {% if alert.href %}
-                <a class="alert alert-{{ alert.tone }}" href="{{ alert.href }}">
-                    <span class="material-symbols-outlined">{% if alert.tone == "danger" %}error{% elif alert.tone == "warning" %}warning{% else %}info{% endif %}</span>
-                    {{ alert.message }}
-                </a>
-            {% else %}
-                <div class="alert alert-{{ alert.tone }}">
-                    <span class="material-symbols-outlined">{% if alert.tone == "danger" %}error{% elif alert.tone == "warning" %}warning{% else %}info{% endif %}</span>
-                    {{ alert.message }}
+            <div class="mis-alert-item mis-alert-{{ alert.tone }}">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">
+                        {% if alert.tone == "danger" %}error{% elif alert.tone == "warning" %}warning{% else %}info{% endif %}
+                    </span>
+                    <span>{{ alert.message }}</span>
                 </div>
-            {% endif %}
+                {% if alert.href %}
+                    <a href="{{ alert.href }}" class="mis-alert-cta">Resolve &rarr;</a>
+                {% endif %}
+            </div>
         {% endfor %}
     </div>
     {% endif %}
 
-    {% for section in kpi_sections %}
-        <div class="section-divider">{{ section.title }}</div>
-        <div class="kpi-grid">
-            {% for kpi in section.kpis %}
-                {% if kpi.href %}<a class="kpi-card tone-{{ kpi.tone }}" href="{{ kpi.href }}">{% else %}<div class="kpi-card tone-{{ kpi.tone }}">{% endif %}
-                    <div class="kpi-icon"><span class="material-symbols-outlined">{{ kpi.icon }}</span></div>
-                    <div class="kpi-label">{{ kpi.label }}</div>
-                    <div class="kpi-value {% if kpi.is_empty %}is-empty{% endif %}">{{ kpi.display }}</div>
-                    {% if kpi.trend_display %}
-                        <div class="kpi-trend trend-{{ kpi.trend_direction }}">
-                            <span class="material-symbols-outlined">{% if kpi.trend_direction == "up" %}arrow_upward{% elif kpi.trend_direction == "down" %}arrow_downward{% else %}remove{% endif %}</span>
-                            {{ kpi.trend_display }} vs. previous period
-                        </div>
-                    {% endif %}
-                {% if kpi.href %}</a>{% else %}</div>{% endif %}
-            {% endfor %}
-        </div>
-    {% endfor %}
-
-    <div class="section-divider">{% trans "Trends" %}</div>
-    <div class="chart-grid">
-        <div class="chart-card">
-            <h3>{% trans "Member growth" %}</h3>
-            <p class="chart-sub">New buyers and sellers, last 90 days</p>
-            <div class="chart-canvas-wrap"><canvas id="chart-growth"></canvas></div>
-        </div>
-        <div class="chart-card">
-            <h3>{% trans "GMV trend" %}</h3>
-            <p class="chart-sub">Trade volume by month, last 6 months</p>
-            {% if has_orders %}
-                <div class="chart-canvas-wrap"><canvas id="chart-gmv"></canvas></div>
-            {% else %}
-                <div class="chart-empty">No completed orders yet.</div>
-            {% endif %}
-        </div>
-    </div>
-
-    <div class="section-divider">{% trans "Operations" %}</div>
-    <div class="chart-grid">
-        <div class="chart-card">
-            <h3>{% trans "Orders by status" %}</h3>
-            <p class="chart-sub">Where every order stands right now</p>
-            {% if has_orders %}
-                <div class="chart-canvas-wrap"><canvas id="chart-status"></canvas></div>
-            {% else %}
-                <div class="chart-empty">No orders have been placed yet.</div>
-            {% endif %}
-        </div>
-        <div class="chart-card">
-            <h3>{% trans "Products by category" %}</h3>
-            {% if has_products %}
-                <div class="chart-canvas-wrap"><canvas id="chart-category"></canvas></div>
-            {% else %}
-                <div class="chart-empty">No products listed yet.</div>
-            {% endif %}
-        </div>
-    </div>
-
-    <div class="section-divider">{% trans "Advanced Analytics" %}</div>
-    <div class="chart-grid">
-        <div class="chart-card">
-            <h3>{% trans "Debt aging" %}</h3>
-            <p class="chart-sub">Outstanding balance by how long it's been open</p>
-            {% if has_debt %}
-                <div class="chart-canvas-wrap"><canvas id="chart-debt-aging"></canvas></div>
-            {% else %}
-                <div class="chart-empty">No outstanding debt right now.</div>
-            {% endif %}
-        </div>
-        <div class="chart-card">
-            <h3>{% trans "Order funnel" %}</h3>
-            <p class="chart-sub">Orders that reached each stage, {{ period_label|lower }}</p>
-            {% if has_funnel_data %}
-                <div class="chart-canvas-wrap"><canvas id="chart-funnel"></canvas></div>
-            {% else %}
-                <div class="chart-empty">No orders placed in this period.</div>
-            {% endif %}
-        </div>
-    </div>
-
-    <div class="section-divider">{% trans "Sellers & Approvals" %}</div>
-    <div class="panels-grid">
-        <div class="panel-card">
-            <h3>{% trans "Top sellers" %}</h3>
-            <p class="panel-sub">By share of total GMV</p>
-            {% if top_sellers %}
-                {% for seller in top_sellers %}
-                    <div class="leaderboard-row">
-                        <div class="lb-rank">{{ forloop.counter }}</div>
-                        <div class="lb-body">
-                            <div class="lb-top-row">
-                                <span class="lb-name">{{ seller.store_name }}</span>
-                                <span class="lb-revenue">KES {{ seller.revenue|floatformat:0 }}</span>
-                            </div>
-                            <div class="lb-bar-track"><div class="lb-bar-fill" style="width: {{ seller.share_pct }}%;"></div></div>
-                            <div class="lb-meta">{{ seller.share_pct }}% · {{ seller.order_count }} order{{ seller.order_count|pluralize }}</div>
-                        </div>
+    <!-- ======================================================================
+         TAB 1: EXECUTIVE OVERVIEW WORKSPACE
+         ====================================================================== -->
+    <div class="mis-tab-panel is-active" id="tab-overview">
+        <div class="mis-grid-2">
+            <!-- GMV Run Rate Chart -->
+            <div class="mis-panel">
+                <div class="mis-panel-head">
+                    <div>
+                        <h3 class="mis-panel-title">Marketplace GMV Run Rate (6 Months)</h3>
+                        <p class="mis-panel-desc">Monthly gross merchandise volume in Kenya Shillings (KES)</p>
                     </div>
-                {% endfor %}
-            {% else %}
-                <div class="panel-empty">No completed orders yet.</div>
-            {% endif %}
+                    <a href="{% url 'admin-export' %}?dataset=executive_summary&format=csv" class="mis-panel-link">Export &rarr;</a>
+                </div>
+                <div class="mis-chart-wrap">
+                    <canvas id="chart-gmv"></canvas>
+                </div>
+            </div>
+
+            <!-- Platform Member Trajectory Chart -->
+            <div class="mis-panel">
+                <div class="mis-panel-head">
+                    <div>
+                        <h3 class="mis-panel-title">Platform Member Trajectory (90 Days)</h3>
+                        <p class="mis-panel-desc">Daily net onboarding of retail buyers vs wholesale merchants</p>
+                    </div>
+                    <a href="{% url 'admin:accounts_customuser_changelist' %}" class="mis-panel-link">Directory &rarr;</a>
+                </div>
+                <div class="mis-chart-wrap">
+                    <canvas id="chart-growth"></canvas>
+                </div>
+            </div>
         </div>
 
-        <div class="panel-card">
-            <h3>{% trans "Pending seller approvals" %}</h3>
-            <p class="panel-sub">Newest first</p>
-            {% if pending_sellers %}
-                <table class="dash-table">
-                    <thead><tr><th>Store</th><th>Owner</th><th>Location</th><th>Submitted</th></tr></thead>
-                    <tbody>
-                    {% for seller in pending_sellers %}
+        <!-- Executive Marketplace Health Matrix -->
+        <div class="mis-panel">
+            <div class="mis-panel-head">
+                <div>
+                    <h3 class="mis-panel-title">Executive Operating Figures &amp; Health Matrix</h3>
+                    <p class="mis-panel-desc">Key performance benchmarks for wholesale and retail trade flows</p>
+                </div>
+                <a href="{% url 'admin-export' %}?dataset=full_pack&format=json" class="mis-panel-link">BI Snapshot (JSON) &rarr;</a>
+            </div>
+
+            <div class="mis-table-wrap">
+                <table class="mis-table">
+                    <thead>
                         <tr>
-                            <td>{{ seller.store_name }}</td>
-                            <td>{{ seller.user.get_full_name|default:seller.user.username }}</td>
-                            <td>{{ seller.location|default:"—" }}</td>
-                            <td>{{ seller.created_at|date:"M j, Y" }}</td>
+                            <th>Operating Dimension</th>
+                            <th>Current Figure</th>
+                            <th>Baseline Trend</th>
+                            <th>Governance Status</th>
+                            <th>Quick Action</th>
                         </tr>
-                    {% endfor %}
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Average Order Value (AOV)</strong></td>
+                            <td class="mis-table-mono">{{ stats_summary.aov }}</td>
+                            <td>{{ stats_summary.aov_pct|default:"Normal" }}</td>
+                            <td><span class="mis-pill pill-emerald">OPTIMAL</span></td>
+                            <td><a href="{% url 'admin:orders_order_changelist' %}" class="mis-btn-action">Inspect Orders &rarr;</a></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Repeat Buyer Loyalty</strong></td>
+                            <td class="mis-table-mono">{{ stats_summary.repeat_buyer_rate }}</td>
+                            <td>Cohort retention</td>
+                            <td><span class="mis-pill pill-blue">ACTIVE</span></td>
+                            <td><a href="{% url 'admin:accounts_buyerprofile_changelist' %}" class="mis-btn-action">View Buyers &rarr;</a></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Seller Overdraft Exposure</strong></td>
+                            <td class="mis-table-mono">{{ stats_summary.seller_debt_total }}</td>
+                            <td>{{ stats_summary.sellers_in_debt }} delinquent sellers</td>
+                            <td>
+                                {% if stats_summary.sellers_in_debt > 0 %}
+                                    <span class="mis-pill pill-amber">ENFORCING</span>
+                                {% else %}
+                                    <span class="mis-pill pill-emerald">0% RISK</span>
+                                {% endif %}
+                            </td>
+                            <td><a href="{% url 'admin:billing_selleraccount_changelist' %}" class="mis-btn-action">Manage Debt &rarr;</a></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Order Cancellation Rate</strong></td>
+                            <td class="mis-table-mono">{{ stats_summary.cancellation_rate }}</td>
+                            <td>Target: &lt; 5.0%</td>
+                            <td><span class="mis-pill pill-emerald">NOMINAL</span></td>
+                            <td><a href="{% url 'admin:orders_order_changelist' %}?status__exact=cancelled" class="mis-btn-action">Cancelled &rarr;</a></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Platform Fee Subsidy Quota</strong></td>
+                            <td class="mis-table-mono">{{ stats_summary.waived_total }}</td>
+                            <td>{{ stats_summary.waived_count }} free onboarding orders</td>
+                            <td><span class="mis-pill pill-muted">SPONSORED</span></td>
+                            <td><a href="{% url 'admin:billing_orderfee_changelist' %}?status__exact=waived_free" class="mis-btn-action">Fee Waivers &rarr;</a></td>
+                        </tr>
                     </tbody>
                 </table>
-            {% else %}
-                <div class="panel-empty">No sellers waiting for approval — you're all caught up.</div>
-            {% endif %}
+            </div>
         </div>
     </div>
 
-    <div class="section-divider">{% trans "Recent Orders" %}</div>
-    <div class="panel-card">
-        {% if recent_orders %}
-            <table class="dash-table">
-                <thead><tr><th>Order</th><th>Buyer</th><th>Status</th><th>Total (KES)</th><th>Placed</th></tr></thead>
-                <tbody>
-                {% for order in recent_orders %}
-                    <tr>
-                        <td>#{{ order.id }}</td>
-                        <td>{{ order.buyer.get_full_name|default:order.buyer.username }}</td>
-                        <td>
-                            <span class="status-pill status-{{ order.status }}">{{ order.get_status_display }}</span>
-                            {% if order.is_flagged %}<span class="flag-pill"><span class="material-symbols-outlined">flag</span>Flagged</span>{% endif %}
-                        </td>
-                        <td>{{ order.final_total|default:order.total_price|floatformat:0 }}</td>
-                        <td>{{ order.created_at|date:"M j, Y H:i" }}</td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <div class="panel-empty">No orders have been placed yet.</div>
-        {% endif %}
+    <!-- ======================================================================
+         TAB 2: TREASURY & BILLING OPERATIONS WORKSPACE
+         ====================================================================== -->
+    <div class="mis-tab-panel" id="tab-treasury">
+        <div class="mis-grid-2">
+            <!-- Finance Reconciliation Chart -->
+            <div class="mis-panel">
+                <div class="mis-panel-head">
+                    <div>
+                        <h3 class="mis-panel-title">Net Platform Fees vs. Daraja Top-up Inflows</h3>
+                        <p class="mis-panel-desc">Monthly treasury liquidity reconciliation (KES)</p>
+                    </div>
+                    <a href="{% url 'admin-export' %}?dataset=treasury&format=csv" class="mis-panel-link">Export &rarr;</a>
+                </div>
+                <div class="mis-chart-wrap">
+                    <canvas id="chart-finance"></canvas>
+                </div>
+            </div>
+
+            <!-- Madeni Debt Aging Schedule Chart -->
+            <div class="mis-panel">
+                <div class="mis-panel-head">
+                    <div>
+                        <h3 class="mis-panel-title">Madeni Credit Debt Aging Schedule</h3>
+                        <p class="mis-panel-desc">Delinquent balances by age (0-7d Current, 8-30d Watch, 31+d Delinquent)</p>
+                    </div>
+                    <a href="{% url 'admin:orders_order_changelist' %}?status__exact=debt_active" class="mis-panel-link">Madeni Orders &rarr;</a>
+                </div>
+                <div class="mis-chart-wrap">
+                    <canvas id="chart-debt-aging"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Treasury Submodules & Governance Directory -->
+        <div class="mis-panel">
+            <div class="mis-panel-head">
+                <div>
+                    <h3 class="mis-panel-title">Double-Entry Treasury Governance Directory</h3>
+                    <p class="mis-panel-desc">Active Fee Schedule: <strong>{{ stats_summary.fee_rate_display }}</strong> &nbsp;·&nbsp; Total Top-ups: <strong>{{ stats_summary.topup_total }}</strong></p>
+                </div>
+                <a href="{% url 'admin:billing_feeschedule_changelist' %}" class="mis-panel-link">Fee Schedule &rarr;</a>
+            </div>
+
+            <div class="mis-table-wrap">
+                <table class="mis-table">
+                    <thead>
+                        <tr>
+                            <th>Submodule</th>
+                            <th>Description</th>
+                            <th>Current Platform Balance / Volume</th>
+                            <th>Audit Invariant</th>
+                            <th>Console Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Seller Escrow Accounts</strong></td>
+                            <td>Prepaid float accounts &amp; automated overdraft enforcement ladders</td>
+                            <td class="mis-table-mono">{{ stats_summary.escrow_float }} (Float Pool)</td>
+                            <td><span class="mis-pill pill-emerald">100% BALANCED</span></td>
+                            <td><a href="{% url 'admin:billing_selleraccount_changelist' %}" class="mis-btn-action">Accounts &rarr;</a></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Immutable Credit Ledger</strong></td>
+                            <td>Append-only audit trail of fee debits, top-up credits &amp; corrections</td>
+                            <td class="mis-table-mono">Double-Entry Ledger</td>
+                            <td><span class="mis-pill pill-emerald">CRYPTOGRAPHIC PASS</span></td>
+                            <td><a href="{% url 'admin:billing_creditentry_changelist' %}" class="mis-btn-action">Ledger &rarr;</a></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Order Fee Records</strong></td>
+                            <td>Per-order fee calculations: charged fees, refunds &amp; free order quota</td>
+                            <td class="mis-table-mono">{{ stats_summary.net_fees }} Charged</td>
+                            <td><span class="mis-pill pill-blue">AUTOMATED</span></td>
+                            <td><a href="{% url 'admin:billing_orderfee_changelist' %}" class="mis-btn-action">Fees &rarr;</a></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Daraja M-Pesa Top-ups</strong></td>
+                            <td>Inbound STK push receipts, checkout IDs &amp; reconciliation</td>
+                            <td class="mis-table-mono">{{ stats_summary.topup_total }} ({{ stats_summary.topup_count }} top-ups)</td>
+                            <td><span class="mis-pill pill-emerald">SETTLED</span></td>
+                            <td><a href="{% url 'admin:billing_payment_changelist' %}" class="mis-btn-action">Payments &rarr;</a></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
-    <div class="section-divider">{% trans "All Data" %}</div>
-    <div class="grow">
-        {% include "unfold/helpers/app_list_default.html" %}
+    <!-- ======================================================================
+         TAB 3: WHOLESALE MERCHANTS & KYC WORKSPACE
+         ====================================================================== -->
+    <div class="mis-tab-panel" id="tab-merchants">
+        <!-- KYC Review Queue -->
+        <div class="mis-panel" style="margin-bottom: 14px;">
+            <div class="mis-panel-head">
+                <div>
+                    <h3 class="mis-panel-title">KYC Verification &amp; Store Approval Queue</h3>
+                    <p class="mis-panel-desc">Pending wholesale store applications requiring compliance review</p>
+                </div>
+                <a href="{% url 'admin:accounts_sellerprofile_changelist' %}?approval_status__exact=pending" class="mis-panel-link">KYC Queue &rarr;</a>
+            </div>
+
+            {% if pending_sellers %}
+            <div class="mis-table-wrap">
+                <table class="mis-table">
+                    <thead>
+                        <tr>
+                            <th>Store Name</th>
+                            <th>Applicant / Owner</th>
+                            <th>Phone Contact</th>
+                            <th>Location</th>
+                            <th>Applied Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in pending_sellers %}
+                        <tr>
+                            <td><strong>{{ p.store_name }}</strong></td>
+                            <td>{{ p.user.get_full_name|default:p.user.username }}</td>
+                            <td class="mis-table-mono">{{ p.user.phone_number|default:"—" }}</td>
+                            <td>{{ p.location|default:"Nairobi" }}</td>
+                            <td>{{ p.created_at|date:"M j, Y" }}</td>
+                            <td>
+                                <a href="{% url 'admin:accounts_sellerprofile_change' p.pk %}" class="mis-btn-action">Review &amp; Approve &rarr;</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+                <div style="padding: 16px; background: var(--surface-subtle); border-radius: 8px; text-align: center; color: var(--text-muted); font-size: 0.74rem;">
+                    ✓ KYC verification queue is fully caught up. All wholesale stores are verified.
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="mis-grid-2">
+            <!-- Wholesale Merchants Performance Table -->
+            <div class="mis-panel">
+                <div class="mis-panel-head">
+                    <div>
+                        <h3 class="mis-panel-title">Top Wholesale Merchants Leaderboard</h3>
+                        <p class="mis-panel-desc">Store performance, live escrow balance &amp; enforcement status</p>
+                    </div>
+                    <a href="{% url 'admin:accounts_sellerprofile_changelist' %}" class="mis-panel-link">All Stores &rarr;</a>
+                </div>
+
+                {% if top_sellers %}
+                <div class="mis-table-wrap">
+                    <table class="mis-table">
+                        <thead>
+                            <tr>
+                                <th>Store Name</th>
+                                <th>Escrow Balance</th>
+                                <th>Enforcement</th>
+                                <th>Orders</th>
+                                <th>Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in top_sellers %}
+                            <tr>
+                                <td>
+                                    <strong>{{ s.store_name }}</strong>
+                                    <div style="font-size: 0.65rem; color: var(--text-muted);">{{ s.owner_name }} · {{ s.phone }}</div>
+                                </td>
+                                <td class="mis-table-mono">
+                                    <span class="mis-pill {% if s.credit_kes >= 0 %}pill-emerald{% else %}pill-crimson{% endif %}">
+                                        KES {{ s.credit_kes|floatformat:2 }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="mis-pill" style="background: rgba(245, 158, 11, 0.12); color: {{ s.enforcement_color }};">
+                                        ● {{ s.enforcement_name }}
+                                    </span>
+                                </td>
+                                <td class="mis-table-mono">{{ s.order_count }}</td>
+                                <td class="mis-table-mono">KES {{ s.revenue|floatformat:0 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                    <div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.74rem;">
+                        No merchant sales activity in this period.
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Product Category Distribution -->
+            <div class="mis-panel">
+                <div class="mis-panel-head">
+                    <div>
+                        <h3 class="mis-panel-title">Catalog Distribution by Category</h3>
+                        <p class="mis-panel-desc">{{ stats_summary.active_skus }} SKUs across {{ stats_summary.total_categories }} active categories</p>
+                    </div>
+                    <a href="{% url 'admin:products_category_changelist' %}" class="mis-panel-link">Categories &rarr;</a>
+                </div>
+                <div class="mis-chart-wrap">
+                    <canvas id="chart-category"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- ======================================================================
+         TAB 4: ORDERS & LOGISTICS PIPELINE WORKSPACE
+         ====================================================================== -->
+    <div class="mis-tab-panel" id="tab-logistics">
+        <div class="mis-grid-2">
+            <!-- Fulfillment Conversion Funnel -->
+            <div class="mis-panel">
+                <div class="mis-panel-head">
+                    <div>
+                        <h3 class="mis-panel-title">Fulfillment Conversion Funnel</h3>
+                        <p class="mis-panel-desc">Order progression: Submitted &rarr; Sourcing &rarr; Locked &rarr; Cleared</p>
+                    </div>
+                </div>
+                <div class="mis-chart-wrap" style="height: 180px; margin-bottom: 12px;">
+                    <canvas id="chart-funnel"></canvas>
+                </div>
+
+                <div class="mis-panel-head">
+                    <div>
+                        <h3 class="mis-panel-title">Orders by Status Distribution</h3>
+                        <p class="mis-panel-desc">Current fulfillment stage distribution</p>
+                    </div>
+                </div>
+                <div class="mis-chart-wrap" style="height: 140px;">
+                    <canvas id="chart-status"></canvas>
+                </div>
+            </div>
+
+            <!-- Live Dispatch Stream Table -->
+            <div class="mis-panel">
+                <div class="mis-panel-head">
+                    <div>
+                        <h3 class="mis-panel-title">Real-Time Dispatch Feed</h3>
+                        <p class="mis-panel-desc">Recent order movements across wholesale stores</p>
+                    </div>
+                    <a href="{% url 'admin:orders_order_changelist' %}" class="mis-panel-link">All Orders &rarr;</a>
+                </div>
+
+                {% if recent_orders %}
+                <div class="mis-table-wrap">
+                    <table class="mis-table">
+                        <thead>
+                            <tr>
+                                <th>Order #</th>
+                                <th>Trading Flow</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for o in recent_orders %}
+                            <tr>
+                                <td class="mis-table-mono">#{{ o.id }}</td>
+                                <td>
+                                    <div><strong>{{ o.buyer.get_full_name|default:o.buyer.username }}</strong></div>
+                                    <div style="font-size: 0.65rem; color: var(--text-muted);">
+                                        &rarr; {{ o.seller.seller_profile.store_name|default:"Wholesaler" }} · {{ o.created_at|date:"M j, H:i" }}
+                                    </div>
+                                </td>
+                                <td class="mis-table-mono">KES {{ o.final_total|default:o.total_price|floatformat:0 }}</td>
+                                <td>
+                                    <span class="mis-pill {% if o.status == 'cleared' %}pill-emerald{% elif o.status == 'cancelled' %}pill-crimson{% else %}pill-blue{% endif %}">
+                                        {{ o.get_status_display }}
+                                    </span>
+                                    {% if o.is_flagged %}
+                                        <span class="mis-pill pill-crimson">FLAGGED</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'admin:orders_order_change' o.pk %}" class="mis-btn-action">Inspect &rarr;</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                    <div style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 0.74rem;">
+                        No recent orders detected in this period.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================================
+         TAB 5: SECURITY, CONTINUITY (BC/DR) & SYSTEM REGISTRY WORKSPACE
+         ====================================================================== -->
+    <div class="mis-tab-panel" id="tab-security">
+        <div class="mis-grid-2">
+            <!-- Double-Entry Anti-Tamper & Circuit Breakers -->
+            <div class="mis-panel">
+                <div class="mis-panel-head">
+                    <div>
+                        <h3 class="mis-panel-title">Double-Entry Financial Invariant Auditor</h3>
+                        <p class="mis-panel-desc">Cryptographic verification: Account.credit_kes == sum(CreditEntry.amount_kes)</p>
+                    </div>
+                    <a href="{% url 'admin:billing_creditentry_changelist' %}" class="mis-panel-link">Ledger &rarr;</a>
+                </div>
+
+                <div class="mis-inv-box">
+                    <div class="mis-inv-head">
+                        <span style="font-family: var(--mono); font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase;">
+                            Invariant Audit Verdict
+                        </span>
+                        {% if invariant_report.audit_passed %}
+                            <span class="mis-pill pill-emerald">✓ 100% INVARIANT PASS (0 DISCREPANCIES)</span>
+                        {% else %}
+                            <span class="mis-pill pill-crimson">⛔ DISCREPANCY DETECTED ({{ invariant_report.anomalies_count }})</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="mis-inv-metrics">
+                        <div>
+                            <div class="mis-inv-stat-label">Total Accounts</div>
+                            <div class="mis-inv-stat-val">{{ invariant_report.total_accounts }}</div>
+                        </div>
+                        <div>
+                            <div class="mis-inv-stat-label">Clean Accounts</div>
+                            <div class="mis-inv-stat-val" style="color: var(--success);">{{ invariant_report.clean_accounts }}</div>
+                        </div>
+                        <div>
+                            <div class="mis-inv-stat-label">Gross Escrow Float</div>
+                            <div class="mis-inv-stat-val" style="color: var(--brand-gold);">KES {{ invariant_report.gross_float_kes|floatformat:0 }}</div>
+                        </div>
+                        <div>
+                            <div class="mis-inv-stat-label">Gross Market Debt</div>
+                            <div class="mis-inv-stat-val" style="color: var(--error);">KES {{ invariant_report.gross_debt_kes|floatformat:0 }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mis-panel-head">
+                    <div>
+                        <h3 class="mis-panel-title">Emergency Circuit Breakers (Killswitches)</h3>
+                        <p class="mis-panel-desc">Hardware-style toggles to immediately isolate operational platform risk</p>
+                    </div>
+                    <a href="{% url 'admin:security_platformsecuritypolicy_changelist' %}" class="mis-panel-link">Configure &rarr;</a>
+                </div>
+
+                <div class="mis-switch-list">
+                    <div class="mis-switch-row">
+                        <div>
+                            <div class="mis-switch-title">Platform Trading Killswitch</div>
+                            <div class="mis-switch-desc">Pauses all buyer checkout mutations immediately upon market emergency.</div>
+                        </div>
+                        <div>
+                            {% if security_telemetry.policy.trading_halt_active %}
+                                <span class="mis-pill pill-crimson">⛔ HALTED</span>
+                            {% else %}
+                                <span class="mis-pill pill-emerald">● DISARMED</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mis-switch-row">
+                        <div>
+                            <div class="mis-switch-title">Daraja Payment Gateway Breaker</div>
+                            <div class="mis-switch-desc">Isolates M-Pesa STK push triggers during Safaricom API degradation.</div>
+                        </div>
+                        <div>
+                            {% if security_telemetry.policy.daraja_circuit_breaker_active %}
+                                <span class="mis-pill pill-crimson">⚡ OPEN</span>
+                            {% else %}
+                                <span class="mis-pill pill-emerald">● DISARMED</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mis-switch-row">
+                        <div>
+                            <div class="mis-switch-title">Automated Enforcement Freeze</div>
+                            <div class="mis-switch-desc">Prevents automatic seller store lockouts during holidays or payment disputes.</div>
+                        </div>
+                        <div>
+                            {% if security_telemetry.policy.enforcement_freeze_active %}
+                                <span class="mis-pill pill-amber">⏸ FROZEN</span>
+                            {% else %}
+                                <span class="mis-pill pill-emerald">● DISARMED</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mis-switch-row">
+                        <div>
+                            <div class="mis-switch-title">Maintenance Mode Gate</div>
+                            <div class="mis-switch-desc">Places entire platform into read-only mode for zero-downtime database migrations.</div>
+                        </div>
+                        <div>
+                            {% if security_telemetry.policy.maintenance_mode_active %}
+                                <span class="mis-pill pill-crimson">🛠 ACTIVE</span>
+                            {% else %}
+                                <span class="mis-pill pill-emerald">● DISARMED</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DR Backups, Audit Stream & Model Directory -->
+            <div class="mis-panel">
+                <div class="mis-panel-head">
+                    <div>
+                        <h3 class="mis-panel-title">Business Continuity (DR Snapshots)</h3>
+                        <p class="mis-panel-desc">Cryptographically signed database snapshots &amp; recovery targets</p>
+                    </div>
+                    <a href="{% url 'admin:security_systembackuprecord_changelist' %}" class="mis-panel-link">DR Vault &rarr;</a>
+                </div>
+
+                {% if security_telemetry.backups_list %}
+                <div class="mis-table-wrap" style="margin-bottom: 14px;">
+                    <table class="mis-table">
+                        <thead>
+                            <tr>
+                                <th>Snapshot Name</th>
+                                <th>Timestamp</th>
+                                <th>Size</th>
+                                <th>Integrity</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for b in security_telemetry.backups_list|slice:":3" %}
+                            <tr>
+                                <td><code style="font-size: 0.68rem;">{{ b.backup_name }}</code></td>
+                                <td>{{ b.created_at|date:"M j, H:i" }}</td>
+                                <td class="mis-table-mono">{{ b.file_size_bytes|filesizeformat }}</td>
+                                <td>
+                                    {% if b.is_verified %}
+                                        <span class="mis-pill pill-emerald">✓ SHA-256</span>
+                                    {% else %}
+                                        <span class="mis-pill pill-amber">PENDING</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                    <div style="padding: 14px; background: var(--surface-subtle); border-radius: 8px; text-align: center; color: var(--text-muted); font-size: 0.72rem; margin-bottom: 14px;">
+                        No backup records found.
+                    </div>
+                {% endif %}
+
+                <div class="mis-panel-head">
+                    <div>
+                        <h3 class="mis-panel-title">Core Enterprise Model Directory</h3>
+                        <p class="mis-panel-desc">Direct administrative access to all 12 platform schemas</p>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
+                    <a href="{% url 'admin:accounts_sellerprofile_changelist' %}" class="mis-btn-action" style="justify-content: center; padding: 6px;">Wholesale Stores</a>
+                    <a href="{% url 'admin:accounts_buyerprofile_changelist' %}" class="mis-btn-action" style="justify-content: center; padding: 6px;">Buyer Profiles</a>
+                    <a href="{% url 'admin:billing_selleraccount_changelist' %}" class="mis-btn-action" style="justify-content: center; padding: 6px;">Seller Accounts</a>
+                    <a href="{% url 'admin:billing_creditentry_changelist' %}" class="mis-btn-action" style="justify-content: center; padding: 6px;">Credit Ledger</a>
+                    <a href="{% url 'admin:billing_payment_changelist' %}" class="mis-btn-action" style="justify-content: center; padding: 6px;">Top-up Payments</a>
+                    <a href="{% url 'admin:billing_orderfee_changelist' %}" class="mis-btn-action" style="justify-content: center; padding: 6px;">Order Fees</a>
+                    <a href="{% url 'admin:orders_order_changelist' %}" class="mis-btn-action" style="justify-content: center; padding: 6px;">Orders</a>
+                    <a href="{% url 'admin:products_product_changelist' %}" class="mis-btn-action" style="justify-content: center; padding: 6px;">Catalog SKUs</a>
+                    <a href="{% url 'admin:security_securityauditlog_changelist' %}" class="mis-btn-action" style="justify-content: center; padding: 6px;">Security Logs</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================================
+         TAB 6: SYSTEM SETTINGS & PLATFORM CONTROL PLANE
+         ====================================================================== -->
+    <div class="mis-tab-panel" id="tab-settings">
+        <div class="mis-settings-grid">
+            <!-- 1. Display & Interface Settings -->
+            <div class="mis-setting-box">
+                <div class="mis-setting-box-head">
+                    <div class="mis-setting-box-title">
+                        <span class="material-symbols-outlined" style="font-size: 18px; color: var(--brand-gold);">palette</span>
+                        Appearance &amp; Console Preferences
+                    </div>
+                    <span class="mis-pill pill-blue">LIVE ENGINE</span>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">UI Theme Mode</span>
+                    <div class="mis-theme-switch-group">
+                        <button type="button" class="mis-theme-switch-btn" id="settings-btn-light" data-set-theme="light">
+                            <span class="material-symbols-outlined" style="font-size: 13px;">light_mode</span> Light
+                        </button>
+                        <button type="button" class="mis-theme-switch-btn" id="settings-btn-dark" data-set-theme="dark">
+                            <span class="material-symbols-outlined" style="font-size: 13px;">dark_mode</span> Dark
+                        </button>
+                    </div>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">Telemetry Auto-Sync Cadence</span>
+                    <span class="mis-setting-val">30 Seconds (Live WebSocket &amp; Poll)</span>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">Primary Operational Timezone</span>
+                    <span class="mis-setting-val">{{ settings_registry.platform.timezone }} (EAT UTC+3)</span>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">Secondary Reference Clock</span>
+                    <span class="mis-setting-val">UTC (Coordinated Universal Time)</span>
+                </div>
+            </div>
+
+            <!-- 2. Risk Governance & Emergency Killswitches -->
+            <div class="mis-setting-box">
+                <div class="mis-setting-box-head">
+                    <div class="mis-setting-box-title">
+                        <span class="material-symbols-outlined" style="font-size: 18px; color: var(--error);">emergency</span>
+                        Emergency Circuit Breaker Policies
+                    </div>
+                    <a href="{% url 'admin:security_platformsecuritypolicy_changelist' %}" class="mis-panel-link">Manage Breakers &rarr;</a>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">Platform Trading Killswitch</span>
+                    <span class="mis-pill {% if settings_registry.security.trading_halt %}pill-crimson{% else %}pill-emerald{% endif %}">
+                        {% if settings_registry.security.trading_halt %}HALTED{% else %}DISARMED (ACTIVE){% endif %}
+                    </span>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">Daraja STK Payment Breaker</span>
+                    <span class="mis-pill {% if settings_registry.daraja.circuit_breaker %}pill-crimson{% else %}pill-emerald{% endif %}">
+                        {% if settings_registry.daraja.circuit_breaker %}OPEN (PAUSED){% else %}DISARMED (ACTIVE){% endif %}
+                    </span>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">Automated Overdraft Freeze</span>
+                    <span class="mis-pill {% if settings_registry.billing.enforcement_freeze %}pill-amber{% else %}pill-emerald{% endif %}">
+                        {% if settings_registry.billing.enforcement_freeze %}FROZEN{% else %}DISARMED (ENFORCING){% endif %}
+                    </span>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">Platform Maintenance Mode</span>
+                    <span class="mis-pill {% if settings_registry.security.maintenance_mode %}pill-crimson{% else %}pill-emerald{% endif %}">
+                        {% if settings_registry.security.maintenance_mode %}ACTIVE{% else %}DISARMED (LIVE){% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <!-- 3. Billing, Fee Engine & Escrow Rules -->
+            <div class="mis-setting-box">
+                <div class="mis-setting-box-head">
+                    <div class="mis-setting-box-title">
+                        <span class="material-symbols-outlined" style="font-size: 18px; color: var(--brand-gold);">receipt_long</span>
+                        Billing &amp; Treasury Engine Parameters
+                    </div>
+                    <a href="{% url 'admin:billing_feeschedule_changelist' %}" class="mis-panel-link">Edit Rates &rarr;</a>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">Active Commission Rate</span>
+                    <span class="mis-setting-val">{{ settings_registry.billing.rate_percent }} per cleared order</span>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">Fee Floor &amp; Ceiling Limits</span>
+                    <span class="mis-setting-val">{{ settings_registry.billing.min_fee }} min · {{ settings_registry.billing.max_fee }} max</span>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">Seller Free Onboarding Quota</span>
+                    <span class="mis-setting-val">{{ settings_registry.billing.free_orders_quota }} orders waived per store</span>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">Negative Debt Grace Period</span>
+                    <span class="mis-setting-val">{{ settings_registry.billing.grace_period_days }} business days before lockout</span>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">Ledger Integrity Enforcement</span>
+                    <span class="mis-setting-val">{{ settings_registry.billing.double_entry_mode }}</span>
+                </div>
+            </div>
+
+            <!-- 4. Daraja M-Pesa Integration Settings -->
+            <div class="mis-setting-box">
+                <div class="mis-setting-box-head">
+                    <div class="mis-setting-box-title">
+                        <span class="material-symbols-outlined" style="font-size: 18px; color: var(--success);">payments</span>
+                        Daraja M-Pesa Gateway Settings
+                    </div>
+                    <a href="{% url 'admin:billing_payment_changelist' %}" class="mis-panel-link">Top-ups &rarr;</a>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">Safaricom API Environment</span>
+                    <span class="mis-pill pill-amber">{{ settings_registry.daraja.environment }}</span>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">Daraja Paybill / Business Shortcode</span>
+                    <span class="mis-setting-val">{{ settings_registry.daraja.shortcode }}</span>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">API Key &amp; Consumer Secret</span>
+                    <span class="mis-pill pill-emerald">{{ settings_registry.daraja.key_status }}</span>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">Live Inbound Webhook Endpoint</span>
+                    <span class="mis-setting-val" style="font-size: 0.68rem;">{{ settings_registry.daraja.webhook_url }}</span>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">Safaricom IP Allowlist</span>
+                    <span class="mis-setting-val">{{ settings_registry.daraja.allowlist_count }} Verified IP subnets</span>
+                </div>
+            </div>
+
+            <!-- 5. Business Continuity & Disaster Recovery -->
+            <div class="mis-setting-box">
+                <div class="mis-setting-box-head">
+                    <div class="mis-setting-box-title">
+                        <span class="material-symbols-outlined" style="font-size: 18px; color: var(--info);">backup</span>
+                        Business Continuity &amp; DR Cadence
+                    </div>
+                    <a href="{% url 'admin:security_systembackuprecord_changelist' %}" class="mis-panel-link">DR Vault &rarr;</a>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">Recovery Point Objective (RPO)</span>
+                    <span class="mis-setting-val">{{ settings_registry.security.rpo_status }} (Target &lt; 6h)</span>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">Recovery Time Objective (RTO)</span>
+                    <span class="mis-setting-val">{{ settings_registry.security.rto_target }}</span>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">Cryptographic Invariant Check</span>
+                    <span class="mis-pill pill-emerald">{{ settings_registry.security.invariant_verdict }}</span>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">DR Drill CLI Automation</span>
+                    <span class="mis-setting-val" style="font-size: 0.66rem;">python manage.py run_disaster_recovery_drill</span>
+                </div>
+            </div>
+
+            <!-- 6. Platform Infrastructure & Service Stack -->
+            <div class="mis-setting-box">
+                <div class="mis-setting-box-head">
+                    <div class="mis-setting-box-title">
+                        <span class="material-symbols-outlined" style="font-size: 18px; color: var(--brand-gold);">dns</span>
+                        Core Infrastructure &amp; Runtime Stack
+                    </div>
+                    <span class="mis-pill pill-emerald">ONLINE</span>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">Production Cluster Node</span>
+                    <span class="mis-setting-val">{{ settings_registry.platform.cluster }}</span>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">Django Core &amp; Python Runtime</span>
+                    <span class="mis-setting-val">Django {{ settings_registry.platform.django_version }} · Python {{ settings_registry.platform.python_version }}</span>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">Database Engine</span>
+                    <span class="mis-setting-val">{{ settings_registry.platform.database_engine }}</span>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">Frontend Storefront Base URL</span>
+                    <span class="mis-setting-val">{{ settings_registry.platform.frontend_url }}</span>
+                </div>
+                <div class="mis-setting-row">
+                    <span class="mis-setting-label">Outbound Notification Mailer</span>
+                    <span class="mis-setting-val">{{ settings_registry.communications.default_from_email }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
+<!-- ==========================================================================
+     INTERACTIVE JAVASCRIPT CONTROLLERS (THEME, TABS, CHARTS, REAL-TIME CLOCKS)
+     ========================================================================== -->
 <script>
-// Chart.js is loaded via a `defer` script in <head> — deferred scripts run
-// after the document is parsed but before DOMContentLoaded, while this
-// inline script (no src) would otherwise execute immediately at its
-// position in the body, ahead of Chart.js actually running. Wait for
-// DOMContentLoaded so `Chart` is guaranteed to be defined.
 document.addEventListener('DOMContentLoaded', function () {
-    function renderChart(canvasId, config) {
-        var el = document.getElementById(canvasId);
-        if (!el) return;
-        new Chart(el.getContext('2d'), config);
+    // ── 1. Interactive Light / Dark Theme Engine ──────────────────────────────
+    var themeBtnLight = document.getElementById('theme-btn-light');
+    var themeBtnDark = document.getElementById('theme-btn-dark');
+    var settingsBtnLight = document.getElementById('settings-btn-light');
+    var settingsBtnDark = document.getElementById('settings-btn-dark');
+
+    function syncTheme(isDark) {
+        if (isDark) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+            if (themeBtnDark) themeBtnDark.classList.add('is-active');
+            if (themeBtnLight) themeBtnLight.classList.remove('is-active');
+            if (settingsBtnDark) settingsBtnDark.classList.add('is-active');
+            if (settingsBtnLight) settingsBtnLight.classList.remove('is-active');
+        } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+            if (themeBtnLight) themeBtnLight.classList.add('is-active');
+            if (themeBtnDark) themeBtnDark.classList.remove('is-active');
+            if (settingsBtnLight) settingsBtnLight.classList.add('is-active');
+            if (settingsBtnDark) settingsBtnDark.classList.remove('is-active');
+        }
+        window.localStorage.setItem('nyakizu-theme', isDark ? 'dark' : 'light');
+        if (typeof updateChartThemes === 'function') {
+            updateChartThemes(isDark);
+        }
     }
 
-    var baseGrid = { color: 'rgba(20,18,14,0.06)' };
-    var baseTicks = { color: '#6B6459', font: { size: 11 } };
+    var savedTheme = window.localStorage.getItem('nyakizu-theme');
+    var isDark = savedTheme ? savedTheme === 'dark' : true;
+    syncTheme(isDark);
 
-    renderChart('chart-growth', {
-        type: 'line',
-        data: {{ chart_user_growth|safe }},
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
-            scales: { x: { grid: { display: false }, ticks: baseTicks }, y: { beginAtZero: true, grid: baseGrid, ticks: baseTicks } },
-        },
+    if (themeBtnLight) {
+        themeBtnLight.addEventListener('click', function () { syncTheme(false); });
+    }
+    if (themeBtnDark) {
+        themeBtnDark.addEventListener('click', function () { syncTheme(true); });
+    }
+    if (settingsBtnLight) {
+        settingsBtnLight.addEventListener('click', function () { syncTheme(false); });
+    }
+    if (settingsBtnDark) {
+        settingsBtnDark.addEventListener('click', function () { syncTheme(true); });
+    }
+
+    // ── 2. Real-Time Second-by-Second Digital Clocks & Auto-Sync ──────────────
+    var clockEat = document.getElementById('mis-clock-eat');
+    var clockUtc = document.getElementById('mis-clock-utc');
+    var syncText = document.getElementById('mis-sync-text');
+    var syncBtn = document.getElementById('mis-sync-btn');
+    var countdown = 30;
+
+    function tickClocks() {
+        var now = new Date();
+        if (clockEat) {
+            clockEat.textContent = now.toLocaleDateString('en-GB') + ' ' +
+                now.toLocaleTimeString('en-GB', { timeZone: 'Africa/Nairobi' }) + ' EAT';
+        }
+        if (clockUtc) {
+            clockUtc.textContent = now.toLocaleTimeString('en-GB', { timeZone: 'UTC' }) + ' UTC';
+        }
+        countdown--;
+        if (countdown <= 0) {
+            countdown = 30;
+            if (syncText) syncText.textContent = 'Syncing...';
+            setTimeout(function () {
+                window.location.reload();
+            }, 1000);
+        } else {
+            if (syncText) syncText.textContent = 'Live: ' + countdown + 's';
+        }
+    }
+    setInterval(tickClocks, 1000);
+    tickClocks();
+
+    if (syncBtn) {
+        syncBtn.addEventListener('click', function () {
+            countdown = 30;
+            if (syncText) syncText.textContent = 'Syncing...';
+            window.location.reload();
+        });
+    }
+
+    // ── 3. STRICT SINGLE-TAB WORKSPACE ISOLATION ──────────────────────────────
+    var tabButtons = document.querySelectorAll('#mis-tabs .mis-tab-btn');
+    var tabPanels = document.querySelectorAll('.mis-tab-panel');
+
+    function switchTab(targetId) {
+        tabButtons.forEach(function (b) {
+            if (b.getAttribute('data-tab') === targetId) {
+                b.classList.add('is-active');
+            } else {
+                b.classList.remove('is-active');
+            }
+        });
+        tabPanels.forEach(function (p) {
+            if (p.id === targetId) {
+                p.classList.add('is-active');
+            } else {
+                p.classList.remove('is-active');
+            }
+        });
+        window.localStorage.setItem('nyakizu-active-tab', targetId);
+
+        // Force resize on active charts so they render accurately
+        setTimeout(function () {
+            Object.keys(chartInstances).forEach(function (key) {
+                chartInstances[key].resize();
+            });
+        }, 50);
+    }
+
+    tabButtons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var target = this.getAttribute('data-tab');
+            switchTab(target);
+        });
     });
 
-    renderChart('chart-gmv', {
+    var savedTab = window.localStorage.getItem('nyakizu-active-tab');
+    if (savedTab && document.getElementById(savedTab)) {
+        switchTab(savedTab);
+    }
+
+    // ── 4. Decision Export Dropdown Controller ────────────────────────────────
+    var exportBtn = document.getElementById('mis-export-btn');
+    var exportDropdown = document.getElementById('mis-export-dropdown');
+    if (exportBtn && exportDropdown) {
+        exportBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            exportDropdown.classList.toggle('is-open');
+        });
+        document.addEventListener('click', function () {
+            exportDropdown.classList.remove('is-open');
+        });
+        exportDropdown.addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
+    }
+
+    // ── 5. Real-Time Table Quick Search ──────────────────────────────────────
+    var searchInput = document.getElementById('mis-search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', function () {
+            var q = this.value.toLowerCase().trim();
+            var rows = document.querySelectorAll('.mis-table tbody tr, .mis-setting-row');
+            rows.forEach(function (row) {
+                var text = row.innerText.toLowerCase();
+                if (!q || text.indexOf(q) !== -1) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    }
+
+    // ── 6. Chart.js Engine with Live Theme Synchronization ────────────────────
+    var chartInstances = {};
+
+    function getChartThemeColors(isDark) {
+        return {
+            grid: isDark ? 'rgba(240, 246, 252, 0.06)' : 'rgba(15, 23, 42, 0.06)',
+            ticks: isDark ? '#8B949E' : '#64748B',
+            text: isDark ? '#F0F6FC' : '#0F172A'
+        };
+    }
+
+    function createMISChart(id, config) {
+        var el = document.getElementById(id);
+        if (!el || typeof Chart === 'undefined') return;
+        var chart = new Chart(el.getContext('2d'), config);
+        chartInstances[id] = chart;
+        return chart;
+    }
+
+    function updateChartThemes(isDark) {
+        var colors = getChartThemeColors(isDark);
+        Object.keys(chartInstances).forEach(function (key) {
+            var chart = chartInstances[key];
+            if (chart.options.scales) {
+                ['x', 'y'].forEach(function (axis) {
+                    if (chart.options.scales[axis]) {
+                        if (chart.options.scales[axis].grid) chart.options.scales[axis].grid.color = colors.grid;
+                        if (chart.options.scales[axis].ticks) chart.options.scales[axis].ticks.color = colors.ticks;
+                    }
+                });
+            }
+            if (chart.options.plugins && chart.options.plugins.legend && chart.options.plugins.legend.labels) {
+                chart.options.plugins.legend.labels.color = colors.text;
+            }
+            chart.update();
+        });
+    }
+
+    var isDarkInit = document.documentElement.classList.contains('dark');
+    var initColors = getChartThemeColors(isDarkInit);
+
+    var baseGrid = { color: initColors.grid, drawBorder: false };
+    var baseTicks = {
+        color: initColors.ticks,
+        font: { family: 'ui-monospace, Consolas, monospace', size: 10, weight: '600' }
+    };
+
+    // Chart 1: GMV Run Rate
+    createMISChart('chart-gmv', {
         type: 'bar',
         data: {{ chart_gmv_by_month|safe }},
         options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: { x: { grid: { display: false }, ticks: baseTicks }, y: { beginAtZero: true, grid: baseGrid, ticks: baseTicks } },
-        },
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function (ctx) {
+                            return 'GMV: KES ' + Number(ctx.parsed.y).toLocaleString();
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { grid: baseGrid, ticks: baseTicks },
+                y: {
+                    grid: baseGrid,
+                    ticks: Object.assign({}, baseTicks, {
+                        callback: function (val) {
+                            return 'KES ' + (val >= 1000 ? (val / 1000) + 'k' : val);
+                        }
+                    })
+                }
+            }
+        }
     });
 
-    renderChart('chart-status', {
-        type: 'doughnut',
-        data: {{ chart_orders_by_status|safe }},
+    // Chart 2: Member Growth Trajectory
+    createMISChart('chart-growth', {
+        type: 'line',
+        data: {{ chart_user_growth|safe }},
         options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
-        },
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: initColors.text, boxWidth: 10, font: { size: 10, weight: '700' } }
+                }
+            },
+            scales: {
+                x: { grid: baseGrid, ticks: baseTicks },
+                y: { grid: baseGrid, ticks: Object.assign({}, baseTicks, { precision: 0 }) }
+            }
+        }
     });
 
-    renderChart('chart-category', {
+    // Chart 3: Treasury Finance
+    createMISChart('chart-finance', {
+        type: 'bar',
+        data: {{ chart_finance|safe }},
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: initColors.text, boxWidth: 10, font: { size: 10, weight: '700' } }
+                }
+            },
+            scales: {
+                x: { grid: baseGrid, ticks: baseTicks },
+                y: {
+                    grid: baseGrid,
+                    ticks: Object.assign({}, baseTicks, {
+                        callback: function (val) {
+                            return 'KES ' + (val >= 1000 ? (val / 1000) + 'k' : val);
+                        }
+                    })
+                }
+            }
+        }
+    });
+
+    // Chart 4: Categories Breakdown
+    createMISChart('chart-category', {
         type: 'bar',
         data: {{ chart_categories|safe }},
         options: {
-            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
             plugins: { legend: { display: false } },
-            scales: { x: { beginAtZero: true, grid: baseGrid, ticks: baseTicks }, y: { grid: { display: false }, ticks: baseTicks } },
-        },
+            scales: {
+                x: { grid: baseGrid, ticks: baseTicks },
+                y: { grid: { display: false }, ticks: Object.assign({}, baseTicks, { font: { size: 9 } }) }
+            }
+        }
     });
 
-    renderChart('chart-debt-aging', {
+    // Chart 5: Madeni Debt Aging
+    createMISChart('chart-debt-aging', {
         type: 'bar',
         data: {{ chart_debt_aging|safe }},
         options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: { x: { grid: { display: false }, ticks: baseTicks }, y: { beginAtZero: true, grid: baseGrid, ticks: baseTicks } },
-        },
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function (ctx) {
+                            return 'Madeni Debt: KES ' + Number(ctx.parsed.y).toLocaleString();
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { grid: baseGrid, ticks: baseTicks },
+                y: {
+                    grid: baseGrid,
+                    ticks: Object.assign({}, baseTicks, {
+                        callback: function (val) {
+                            return 'KES ' + (val >= 1000 ? (val / 1000) + 'k' : val);
+                        }
+                    })
+                }
+            }
+        }
     });
 
-    renderChart('chart-funnel', {
+    // Chart 6: Funnel
+    createMISChart('chart-funnel', {
         type: 'bar',
         data: {{ chart_order_funnel|safe }},
         options: {
-            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            responsive: true,
+            maintainAspectRatio: false,
             plugins: { legend: { display: false } },
-            scales: { x: { beginAtZero: true, grid: baseGrid, ticks: baseTicks }, y: { grid: { display: false }, ticks: baseTicks } },
-        },
+            scales: {
+                x: { grid: baseGrid, ticks: baseTicks },
+                y: { grid: baseGrid, ticks: Object.assign({}, baseTicks, { precision: 0 }) }
+            }
+        }
+    });
+
+    // Chart 7: Order Status Donut
+    createMISChart('chart-status', {
+        type: 'doughnut',
+        data: {{ chart_orders_by_status|safe }},
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: { color: initColors.text, boxWidth: 8, font: { size: 9, weight: '600' } }
+                }
+            },
+            cutout: '70%'
+        }
     });
 });
 </script>

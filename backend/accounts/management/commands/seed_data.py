@@ -228,7 +228,7 @@ class Command(BaseCommand):
         # ── Summary ───────────────────────────────────────────────────────────
         self.stdout.write(self.style.MIGRATE_HEADING('\n=== Done ==='))
         self.stdout.write(
-            '\n  Django admin :  http://localhost:8000/admin/'
+            '\n  Technical admin :  http://localhost:8000/technical-admin/'
             '\n  Admin        :  admin / Admin1234!'
             '\n  Seller       :  hassan@rngplaza.com / Seller1234!'
             '\n  Buyer        :  fatuma@buyer.com / Buyer1234!'

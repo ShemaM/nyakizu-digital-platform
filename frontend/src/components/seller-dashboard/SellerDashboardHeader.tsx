@@ -36,10 +36,10 @@ export function SellerDashboardHeader({
   const lowStock = safeProducts.filter((product) => product && product.status !== "out_of_stock" && (product.stock_quantity ?? 0) > 0 && (product.stock_quantity ?? 0) <= 3).length;
   const buyerRequests = safeRelationships.filter((relationship) => relationship?.status === "pending").length;
   const priorities = [
-    { count: newOrders, label: "Orders awaiting processing", href: "/seller/dashboard/orders", icon: ShoppingBag, tone: "text-error bg-error/8" },
-    { count: outOfStock + lowStock, label: "Products need restocking", href: "/seller/dashboard/catalog", icon: Package, tone: "text-warning bg-warning/10" },
-    { count: awaitingPayment, label: "Payments awaiting confirmation", href: "/seller/dashboard/ledger", icon: Bell, tone: "text-warning bg-warning/10" },
-    { count: buyerRequests, label: "Buyer requests pending", href: "/seller/dashboard/buyers", icon: Users, tone: "text-info bg-info/8" },
+    { count: newOrders, label: "Orders awaiting processing", href: "/seller/dashboard/orders", icon: ShoppingBag, tone: "text-error" },
+    { count: outOfStock + lowStock, label: "Products need restocking", href: "/seller/dashboard/catalog", icon: Package, tone: "text-warning" },
+    { count: awaitingPayment, label: "Payments awaiting confirmation", href: "/seller/dashboard/ledger", icon: Bell, tone: "text-warning" },
+    { count: buyerRequests, label: "Buyer requests pending", href: "/seller/dashboard/buyers", icon: Users, tone: "text-info" },
   ].filter((priority) => priority.count > 0);
   const matches = query.trim().length < 2 ? [] : [
     ...products.filter((product) => product.name.toLowerCase().includes(query.toLowerCase())).slice(0, 3).map((product) => ({
@@ -61,7 +61,7 @@ export function SellerDashboardHeader({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+      <section className="border-y border-border py-5 sm:py-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-role">Today's priorities</p>
@@ -70,15 +70,15 @@ export function SellerDashboardHeader({
           </div>
           <CheckCircle2 className="text-success" size={24} aria-label="Dashboard priorities" />
         </div>
-        <div className="mt-5 grid gap-2 sm:grid-cols-2">
+        <div className="mt-5 divide-y divide-border border-y border-border">
           {priorities.length ? priorities.map(({ count, label, href, icon: Icon, tone }) => (
-            <Link key={label} href={href} className={`group flex min-h-12 items-center justify-between gap-3 rounded-xl border border-border px-3 py-2.5 text-sm font-bold transition hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring ${tone}`}>
+            <Link key={label} href={href} className={`group flex min-h-12 items-center justify-between gap-3 py-3 text-sm font-bold transition hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring ${tone}`}>
               <span className="flex items-center gap-2"><Icon size={17} aria-hidden="true" /><span>{count} {label}</span></span>
               <ArrowRight size={16} className="shrink-0 transition-transform group-hover:translate-x-0.5" />
             </Link>
           )) : <p className="text-sm font-semibold text-muted-foreground">No urgent actions right now. Your shop is in good shape.</p>}
         </div>
-      </div>
+      </section>
 
       <div className="relative">
         <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={18} aria-hidden="true" />
@@ -102,13 +102,13 @@ export function SellerDashboardHeader({
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+      <div className="grid grid-cols-1 divide-y divide-border border-y border-border sm:grid-cols-3 sm:divide-y-0 sm:divide-x">
         {[
-          { label: "New orders", count: newOrders, href: "/seller/dashboard/orders", icon: ShoppingBag, active: "border-error bg-error/8 text-error" },
-          { label: "Awaiting payment", count: awaitingPayment, href: "/seller/dashboard/ledger", icon: Bell, active: "border-warning bg-warning/10 text-warning" },
-          { label: "Confirmed", count: confirmedPayments, href: "/seller/dashboard/ledger", icon: CheckCircle2, active: "border-success bg-success/8 text-success" },
+          { label: "New orders", count: newOrders, href: "/seller/dashboard/orders", icon: ShoppingBag, active: "text-error" },
+          { label: "Awaiting payment", count: awaitingPayment, href: "/seller/dashboard/ledger", icon: Bell, active: "text-warning" },
+          { label: "Confirmed", count: confirmedPayments, href: "/seller/dashboard/ledger", icon: CheckCircle2, active: "text-success" },
         ].map(({ label, count, href, icon: Icon, active }) => (
-          <Link key={label} href={href} className={`group flex min-h-14 items-center justify-between rounded-xl border px-4 py-3 transition hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring ${active}`}>
+          <Link key={label} href={href} className={`group flex min-h-14 items-center justify-between gap-3 px-3 py-3 text-foreground transition hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring sm:px-4 sm:first:pl-0 ${active}`}>
             <span className="flex items-center gap-2 text-sm font-bold"><Icon size={17} aria-hidden="true" />{label}</span>
             <span className="flex items-center gap-2 text-xl font-black tabular-nums text-foreground">{count}<ArrowRight size={16} className="text-muted-foreground transition-transform group-hover:translate-x-0.5" /></span>
           </Link>

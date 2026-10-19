@@ -5,8 +5,7 @@
 // proxy), and also as the base for API_BASE_URL itself when there's no
 // browser origin for a relative path to resolve against (see below).
 export const BACKEND_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/api\/?$/, "");
-export const DJANGO_ADMIN_URL = new URL("/admin/", BACKEND_ORIGIN).toString();
-
+export const DJANGO_ADMIN_URL = `${BACKEND_ORIGIN}/admin/`;
 // Same-origin on purpose in the browser — see next.config.ts's rewrites(),
 // which proxies this to the real Django backend. Browsers (Brave/Safari
 // especially) increasingly block cookies between two different top-level
@@ -148,6 +147,7 @@ export interface User {
   full_name: string;
   phone_number: string;
   is_email_verified: boolean;
+  is_main_admin: boolean;
   date_joined: string;
   avatar_url?: string | null;
   seller_profile?: {
@@ -468,6 +468,182 @@ class AuthAPI {
   }
 }
 export const auth = new AuthAPI();
+
+export interface AdminRevenueReport {
+  currency: "KES";
+  definition: string;
+  all_time: {
+    seller_order_value_gmv_kes: string;
+    platform_fee_revenue: { gross_fees_kes: string; fee_refunds_kes: string; net_fees_kes: string };
+    successful_seller_topups_kes: string;
+    free_orders_waived: number;
+  };
+  last_30_days: {
+    seller_order_value_gmv_kes: string;
+    platform_fee_revenue: { gross_fees_kes: string; fee_refunds_kes: string; net_fees_kes: string };
+    successful_seller_topups_kes: string;
+    free_orders_waived: number;
+  };
+  seller_credit_balances: {
+    unused_credit_liability_kes: string;
+    seller_receivables_kes: string;
+  };
+}
+
+export interface AdminMetrics {
+  total_users: number;
+  total_buyers: number;
+  total_sellers: number;
+  total_admins: number;
+  sellers_by_status: Record<string, number>;
+  total_orders: number;
+  orders_by_status: Record<string, number>;
+  total_volume: number;
+  active_listings: number;
+  flagged_orders: number;
+  last_7_days: { new_users: number; transactions: number; volume: number; avg_order_value: number };
+  previous_7_days: { new_users: number; transactions: number; volume: number; avg_order_value: number };
+  last_30_days: { new_users: number; transactions: number; volume: number; avg_order_value: number };
+  previous_30_days: { new_users: number; transactions: number; volume: number; avg_order_value: number };
+  user_growth_90d: Array<{ date: string; buyers: number; sellers: number }>;
+  gmv_by_month: Array<{ month: string; volume: number }>;
+  top_sellers: Array<{ store_name: string; order_count: number; revenue: number; share_pct: number }>;
+  products_by_category: Array<{ category: string; count: number }>;
+  repeat_buyer_rate: number;
+  debt_aging: Array<{ label: string; amount: number }>;
+  order_funnel_30d: Array<{ stage: string; orders: number }>;
+  revenue: AdminRevenueReport;
+}
+
+class AdminMetricsAPI {
+  async get(): Promise<AdminMetrics> {
+    const response = await fetchWithSession(`${API_BASE_URL}/admin/metrics/`, { cache: "no-store" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new ApiError(extractApiErrorMessage(data, "Could not load company reporting."), response.status);
+    }
+    return data as AdminMetrics;
+  }
+}
+
+export const adminMetrics = new AdminMetricsAPI();
+
+export interface AdminLedgerEntry {
+  id: number;
+  created_at: string;
+  account_number: string;
+  seller: string;
+  kind: "fee_charged" | "fee_refunded" | "top_up" | "adjustment";
+  amount_kes: string;
+  balance_after_kes: string;
+  order_id: number | null;
+  payment_reference: string | null;
+  note: string;
+  created_by: string | null;
+}
+
+export interface AdminTopUpPayment {
+  id: number;
+  created_at: string;
+  reference: string;
+  account_number: string | null;
+  seller: string;
+  amount_kes: string;
+  status: "initiated" | "success" | "failed";
+  phone_masked: string;
+}
+
+export interface AdminBillingPage {
+  count: number;
+  num_pages: number;
+  page: number;
+  results: AdminLedgerEntry[] | AdminTopUpPayment[];
+}
+
+export interface AdminBillingHistory {
+  revenue: AdminRevenueReport;
+  ledger: Omit<AdminBillingPage, "results"> & { results: AdminLedgerEntry[] };
+  payments: Omit<AdminBillingPage, "results"> & { results: AdminTopUpPayment[] };
+}
+
+class AdminBillingAPI {
+  async get(filters: {
+    page?: number;
+    page_size?: number;
+    search?: string;
+    kind?: string;
+    payment_status?: string;
+    date_from?: string;
+    date_to?: string;
+  } = {}): Promise<AdminBillingHistory> {
+    const query = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== "") query.set(key, String(value));
+    });
+    const response = await fetchWithSession(`${API_BASE_URL}/admin/billing/?${query.toString()}`, { cache: "no-store" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new ApiError(extractApiErrorMessage(data, "Could not load billing history."), response.status);
+    }
+    return data as AdminBillingHistory;
+  }
+}
+
+export const adminBilling = new AdminBillingAPI();
+
+export interface SellerBillingSummary {
+  account_number: string;
+  credit_kes: string;
+  free_orders_used: number;
+  free_orders_remaining: number;
+  debt_since: string | null;
+  enforcement_level: number;
+  charging_enabled: boolean;
+  enforcement_enabled: boolean;
+  min_topup_kes: number;
+  max_topup_kes: number;
+  fee_schedule: {
+    rate_percent: string;
+    round_to_kes: number;
+    min_fee_kes: string;
+    max_fee_kes: string;
+    free_orders_allowance: number;
+    buyer_rate_percent: string;
+  };
+}
+
+export interface SellerBillingHistory {
+  summary: SellerBillingSummary;
+  ledger: Array<{
+    id: number;
+    kind: "fee_charged" | "fee_refunded" | "top_up" | "adjustment";
+    amount_kes: string;
+    balance_after_kes: string;
+    order_id: number | null;
+    note: string;
+    created_at: string;
+  }>;
+  payments: Array<{
+    id: number;
+    reference: string;
+    amount_kes: string;
+    status: "initiated" | "success" | "failed";
+    created_at: string;
+  }>;
+}
+
+class SellerBillingAPI {
+  async history(): Promise<SellerBillingHistory> {
+    const response = await fetchWithSession(`${API_BASE_URL}/billing/history/`, { cache: "no-store" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new ApiError(extractApiErrorMessage(data, "Could not load billing history."), response.status);
+    }
+    return data as SellerBillingHistory;
+  }
+}
+
+export const sellerBilling = new SellerBillingAPI();
 
 function buildProductFormData(productData: Record<string, unknown>, imageFile: File): FormData {
   const formData = new FormData();

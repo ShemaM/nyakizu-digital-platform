@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Clock3, Package, Settings, Share2, Check, ArrowRight, Lock } from "lucide-react";
-import { Card, CardSection } from "@/components/ui/Card";
 import { CopyStoreLink } from "@/app/store/[slug]/CopyStoreLink";
 import { SITE_URL } from "@/lib/seo";
 
@@ -24,8 +23,7 @@ export function PendingApprovalView({ productCount, username }: PendingApprovalV
 
   return (
     <div className="space-y-6">
-      <Card className="border-warning/20 bg-warning/5">
-        <CardSection className="flex flex-col items-center text-center py-8 sm:py-10">
+      <div className="flex flex-col items-center border-y border-warning/30 py-8 text-center sm:py-10">
           <span className="flex items-center justify-center w-14 h-14 rounded-full bg-warning/15 text-warning mb-4">
             <Clock3 size={28} />
           </span>
@@ -34,18 +32,16 @@ export function PendingApprovalView({ productCount, username }: PendingApprovalV
             Our team checks every new shop before it goes live. We&apos;ll email you the moment you&apos;re approved
             — no need to keep checking back.
           </p>
-        </CardSection>
-      </Card>
+      </div>
 
       <div>
         <p className="text-xs font-black text-text-muted uppercase tracking-widest mb-3">
           While you wait
         </p>
 
-        <div className="space-y-3">
+        <div className="divide-y divide-dark-accent border-y border-dark-accent">
           {/* Step 1 — actionable now, tracked against real product count */}
-          <Card>
-            <CardSection className="flex items-center gap-4 py-4">
+          <div className="flex items-center gap-4 py-4">
               <span
                 className={
                   "flex items-center justify-center w-10 h-10 rounded-full shrink-0 " +
@@ -70,12 +66,10 @@ export function PendingApprovalView({ productCount, username }: PendingApprovalV
               >
                 {hasProducts ? "Add more" : "Add now"} <ArrowRight size={14} />
               </Link>
-            </CardSection>
-          </Card>
+          </div>
 
           {/* Step 2 — actionable now */}
-          <Card>
-            <CardSection className="flex items-center gap-4 py-4">
+          <div className="flex items-center gap-4 py-4">
               <span className="flex items-center justify-center w-10 h-10 rounded-full bg-role-soft text-role-dark shrink-0">
                 <Settings size={18} />
               </span>
@@ -91,13 +85,11 @@ export function PendingApprovalView({ productCount, username }: PendingApprovalV
               >
                 Open <ArrowRight size={14} />
               </Link>
-            </CardSection>
-          </Card>
+          </div>
 
           {/* Step 3 — locked until approved: the store literally isn't
               visible to buyers yet, so sharing it now would just 404. */}
-          <Card className="opacity-60">
-            <CardSection className="flex items-center gap-4 py-4">
+          <div className="flex items-center gap-4 py-4 opacity-60">
               <span className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 text-text-muted shrink-0">
                 <Lock size={16} />
               </span>
@@ -106,21 +98,18 @@ export function PendingApprovalView({ productCount, username }: PendingApprovalV
                 <p className="text-xs text-text-muted mt-0.5">Unlocks once your shop is approved.</p>
               </div>
               <Share2 size={16} className="text-text-muted shrink-0" />
-            </CardSection>
-          </Card>
+          </div>
         </div>
       </div>
 
       {/* Their store link, ready to copy the moment they're approved —
           shown now (not gated behind the lock above) so it's one less
           thing to hunt for later. */}
-      <Card variant="outlined">
-        <CardSection>
+      <div className="border-y border-dark-accent py-4">
           <p className="text-xs font-black text-text-muted uppercase tracking-widest mb-2">Your store link</p>
           <p className="text-xs text-text-muted mb-3">This is ready — save it now, share it once you're approved.</p>
           <CopyStoreLink url={storeUrl} />
-        </CardSection>
-      </Card>
+      </div>
     </div>
   );
 }

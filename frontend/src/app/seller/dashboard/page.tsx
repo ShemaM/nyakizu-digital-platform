@@ -7,7 +7,6 @@ import { AppShell } from "@/components/AppShell";
 import { Container, Section } from "@/components/layouts";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { PageSkeleton } from "@/components/ui/LoadingState";
-import { Card, CardSection } from "@/components/ui/Card";
 import { orders, products, relationships, type ApiOrder, type ApiProduct, type ApiRelationship, ApiError, parsePrice } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
@@ -77,7 +76,7 @@ export default function SellerDashboardPage() {
   if (error) {
     return (
       <AppShell title="Dashboard">
-        <div className="bg-error/10 border border-error/20 rounded-2xl p-6 text-center m-4 sm:m-6">
+        <div className="border-y border-error/20 py-6 text-center">
           <p className="text-error font-medium mb-3">{error}</p>
           <button
             onClick={() => loadDashboardData(false)}
@@ -111,8 +110,7 @@ export default function SellerDashboardPage() {
             {approvalStatus === "pending" ? (
               <PendingApprovalView productCount={productList.length} username={user?.username || ""} />
             ) : (
-              <Card className="border-error/20 bg-error/5">
-                <CardSection className="flex flex-col items-center text-center py-8 sm:py-10">
+              <div className="flex flex-col items-center border-y border-error/20 py-8 text-center sm:py-10">
                   <span className="flex items-center justify-center w-14 h-14 rounded-full bg-error/15 text-error mb-4">
                     <AlertTriangle size={28} />
                   </span>
@@ -131,8 +129,7 @@ export default function SellerDashboardPage() {
                   >
                     Get help <ArrowRight size={14} />
                   </Link>
-                </CardSection>
-              </Card>
+              </div>
             )}
           </Container>
         </Section>

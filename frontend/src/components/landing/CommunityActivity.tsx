@@ -9,7 +9,7 @@ import { community, type CommunityActivityData } from "@/lib/api";
 
 function StatCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-md p-4 sm:p-5 space-y-2.5 sm:space-y-3 animate-pulse">
+    <div className="py-4 space-y-2.5 sm:space-y-3 animate-pulse">
       <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-brand-gold/15" />
       <div className="h-7 w-16 rounded bg-white/10" />
       <div className="h-4 w-24 rounded bg-white/5" />
@@ -74,7 +74,7 @@ export default function CommunityActivity() {
         </div>
 
         {isEmpty ? (
-          <div className="max-w-xl mx-auto text-center rounded-3xl border border-white/10 bg-dark-card/40 backdrop-blur-2xl p-8 sm:p-10 shadow-2xl space-y-4">
+          <div className="max-w-xl mx-auto border-y border-white/10 py-8 sm:py-10 text-center space-y-4">
             <h3 className="text-2xl font-bold text-text-primary">You&apos;re Among the First</h3>
             <p className="text-text-secondary text-sm sm:text-base">
               Nyakizu is just getting started. Join now and help shape the marketplace from day one.
@@ -88,14 +88,14 @@ export default function CommunityActivity() {
             <p className="text-center text-caption text-text-muted mb-6">
               These are real, live numbers from a small pilot — not projections.
             </p>
-            <div className="rounded-3xl border border-white/10 bg-dark-card/40 backdrop-blur-2xl p-5 sm:p-8 shadow-2xl">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="border-y border-white/10">
+              <div className="grid divide-y divide-white/10 md:grid-cols-4 md:divide-y-0 md:divide-x">
                 {isLoading
                   ? Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
                   : stats.map((stat) => (
                       <div
                         key={stat.label}
-                        className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-md p-4 sm:p-5 space-y-2.5 sm:space-y-3 hover:bg-white/[0.06] hover:border-brand-gold/30 transition-all"
+                        className="py-4 sm:px-4 sm:py-5 space-y-2.5 sm:space-y-3 first:pl-0"
                       >
                         <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-brand-gold/15 flex items-center justify-center border border-brand-gold/20">
                           <stat.icon className="w-4 h-4 sm:w-5 sm:h-5 text-brand-gold" aria-hidden="true" />

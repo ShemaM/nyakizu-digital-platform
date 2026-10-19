@@ -19,25 +19,26 @@ const ACTIONS: ShortcutAction[] = [
 
 export const QuickActions: React.FC = () => {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <div className="grid grid-cols-1 divide-y divide-border border-y border-border sm:grid-cols-2 sm:divide-y-0 sm:divide-x">
       {ACTIONS.map(({ label, description, href, Icon, primary }) => (
         <Link
           key={href}
           href={href}
           className={cn(
-            "flex flex-col items-center text-center gap-2 rounded-2xl border p-4 sm:p-5 transition-all active:scale-[0.98]",
+            "group flex items-center gap-4 py-4 text-left transition-colors hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring sm:px-4 sm:first:pl-0",
             primary
-              ? "bg-brand-gold text-slate-950 font-bold border-transparent hover:bg-brand-gold-dark shadow-md"
-              : "bg-dark-card text-text-primary border-dark-accent shadow-sm hover:border-brand-gold/40 hover:bg-dark-tertiary"
+              ? "text-brand-gold"
+              : "text-text-primary"
           )}
         >
-          <div className={cn("w-11 h-11 rounded-full flex items-center justify-center", primary ? "bg-slate-950/15" : "bg-brand-gold/15")}>
-            <Icon className={cn("w-5 h-5", primary ? "text-slate-950" : "text-brand-gold")} />
+          <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", primary ? "bg-brand-gold/15" : "bg-dark-secondary")}>
+            <Icon className={cn("w-5 h-5", primary ? "text-brand-gold" : "text-text-secondary")} />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-bold leading-tight">{label}</p>
-            <p className={cn("text-xs mt-0.5", primary ? "text-slate-950/80 font-medium" : "text-text-muted")}>{description}</p>
+            <p className="mt-0.5 text-xs text-text-muted">{description}</p>
           </div>
+          <span className="text-xs font-bold text-text-muted transition-transform group-hover:translate-x-0.5">→</span>
         </Link>
       ))}
     </div>

@@ -102,14 +102,6 @@ function SellerOrdersContent() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <AppShell title="Orders">
-        <PageSkeleton showKPIs={false} listCount={4} />
-      </AppShell>
-    );
-  }
-
   const safeList = Array.isArray(orderList) ? orderList : [];
 
   const counts = {
@@ -133,23 +125,31 @@ function SellerOrdersContent() {
       });
   }, [filter, safeList, query]);
 
+  if (isLoading) {
+    return (
+      <AppShell title="Orders">
+        <PageSkeleton showKPIs={false} listCount={4} />
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell title="Orders">
       <Section spacing="md">
         <Container size="xl" className="space-y-6">
-          <div className="rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm sm:p-6">
+          <div className="border-y border-border py-5 text-card-foreground sm:py-6">
             <p className="text-xs font-bold uppercase tracking-wider text-role">Today's priorities</p>
             <div className="mt-1 flex flex-wrap items-end justify-between gap-4">
               <div><h1 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">Orders workspace</h1><p className="mt-1 text-sm text-muted-foreground">Know what to process next and keep every order moving.</p></div>
               {counts.new + counts.ready > 0 && <Link href="#orders-list" className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-role-dark px-4 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-ring"><PackageCheck size={16} /> Start processing orders <ArrowRight size={15} /></Link>}
             </div>
-            <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="mt-5 grid grid-cols-2 border-y border-border [&>*:nth-child(n+3)]:border-t [&>*:nth-child(n+3)]:border-border sm:grid-cols-4 sm:[&>*:nth-child(n+3)]:border-t-0 sm:[&>*]:border-l sm:[&>*]:border-border sm:[&>*:first-child]:border-l-0">
               {([
                 { key: "new", count: counts.new, label: "Orders need packing", icon: ShoppingBag },
                 { key: "ready", count: counts.ready, label: "Orders ready", icon: PackageCheck },
                 { key: "paid", count: counts.paid, label: "Paid orders", icon: CheckCircle2 },
                 { key: "cancelled", count: counts.cancelled, label: "Cancelled", icon: ClipboardList },
-              ] as const).map(({ key, count, label, icon: Icon }) => <button key={key} type="button" onClick={() => setFilter(key)} className="flex min-h-16 items-center gap-3 rounded-xl border border-border bg-background px-3 py-2 text-left transition hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring"><Icon size={17} className="shrink-0 text-role" /><span><strong className="block text-xl font-black tabular-nums text-foreground">{count}</strong><span className="text-xs font-semibold text-muted-foreground">{label}</span></span></button>)}
+              ] as const).map(({ key, count, label, icon: Icon }) => <button key={key} type="button" onClick={() => setFilter(key)} className="flex min-h-16 items-center gap-3 border-l border-border px-3 py-2 text-left transition hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring first:border-l-0"><Icon size={17} className="shrink-0 text-role" /><span><strong className="block text-xl font-black tabular-nums text-foreground">{count}</strong><span className="text-xs font-semibold text-muted-foreground">{label}</span></span></button>)}
             </div>
           </div>
 
@@ -177,9 +177,9 @@ function SellerOrdersContent() {
           ) : visibleOrders.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center"><p className="font-bold text-foreground">No matching orders</p><button type="button" onClick={() => { setFilter("all"); setQuery(""); }} className="mt-2 text-sm font-bold text-role-dark hover:underline">Clear filters</button></div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="divide-y divide-border border-y border-border">
               {visibleOrders.map((order, idx) => (
-                <article key={order?.id ?? idx} className="group rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm transition hover:-translate-y-0.5 hover:border-role/40 hover:shadow-md">
+                <article key={order?.id ?? idx} className="group py-5 text-card-foreground transition-colors hover:bg-muted/20 first:pt-0">
                   <div className="flex items-start gap-4">
                     <Avatar name={buyerDisplayName(order)} size="lg" className="shrink-0" />
                     <div className="flex-1 min-w-0">

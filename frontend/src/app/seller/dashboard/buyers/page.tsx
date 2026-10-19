@@ -5,7 +5,6 @@ import { AppShell } from "@/components/AppShell";
 import { Container, Section } from "@/components/layouts";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Button } from "@/components/ui/Button";
-import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Dialog } from "@/components/ui/Dialog";
 import { Avatar } from "@/components/ui/Avatar";
@@ -106,17 +105,15 @@ export default function SellerBuyersPage() {
           />
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 divide-x divide-border border-y border-border">
             {STAT_CARDS.map(({ label, value, Icon, color, bg }) => (
-              <Card key={label}>
-                <CardContent className="p-4 sm:p-6 flex flex-col items-center text-center gap-2">
-                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${bg}`}>
-                    <Icon className={`w-5 h-5 ${color}`} />
-                  </div>
-                  <p className="text-2xl sm:text-3xl font-black text-text-primary">{value}</p>
-                  <p className="text-xs sm:text-sm font-semibold text-text-muted">{label}</p>
-                </CardContent>
-              </Card>
+              <div key={label} className="flex flex-col items-center gap-2 px-2 py-4 text-center sm:py-5">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bg}`}>
+                  <Icon className={`w-5 h-5 ${color}`} />
+                </div>
+                <p className="text-2xl sm:text-3xl font-black text-text-primary">{value}</p>
+                <p className="text-xs sm:text-sm font-semibold text-text-muted">{label}</p>
+              </div>
             ))}
           </div>
 
@@ -124,10 +121,9 @@ export default function SellerBuyersPage() {
           {pending.length > 0 && (
             <div>
               <SectionHeading eyebrow="Action needed" title="Pending approval" description="These buyers are waiting to hear back from you." />
-              <div className="space-y-3">
+              <div className="divide-y divide-border border-y border-border">
                 {pending.map((rel) => (
-                  <Card key={rel.id} className="border-warning/30">
-                    <CardContent className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 sm:justify-between">
+                  <div key={rel.id} className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center gap-4">
                         <Avatar name={rel.buyer_name || "?"} size="lg" />
                         <div>
@@ -154,8 +150,7 @@ export default function SellerBuyersPage() {
                           <CheckCircle size={16} className="mr-1.5" /> Approve
                         </Button>
                       </div>
-                    </CardContent>
-                  </Card>
+                  </div>
                 ))}
               </div>
             </div>
@@ -165,10 +160,9 @@ export default function SellerBuyersPage() {
           {approved.length > 0 && (
             <div>
               <SectionHeading title="Approved buyers" description="These buyers can place orders from your store." />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="divide-y divide-border border-y border-border">
                 {approved.map((rel) => (
-                  <Card key={rel.id}>
-                    <CardContent className="p-5 flex items-center justify-between gap-3">
+                  <div key={rel.id} className="flex items-center justify-between gap-3 py-4">
                       <div className="flex items-center gap-3 min-w-0">
                         <Avatar name={rel.buyer_name || "?"} size="md" />
                         <div className="min-w-0">
@@ -179,15 +173,14 @@ export default function SellerBuyersPage() {
                       <Badge variant="success" className="shrink-0">
                         <CheckCircle size={12} className="mr-1" /> Approved
                       </Badge>
-                    </CardContent>
-                  </Card>
+                  </div>
                 ))}
               </div>
             </div>
           )}
 
           {buyerRels.length === 0 && (
-            <div className="bg-white border border-slate-100 rounded-2xl p-12 text-center text-text-muted flex flex-col items-center justify-center min-h-[260px]">
+            <div className="border-y border-slate-200 py-12 text-center text-text-muted flex flex-col items-center justify-center min-h-[260px]">
               <Users className="w-12 h-12 mx-auto mb-3 text-slate-300" />
               <p className="text-body font-bold text-text-secondary">No buyer requests yet</p>
               <p className="text-caption text-text-muted mt-1">Buyers will appear here when they request access to your store.</p>

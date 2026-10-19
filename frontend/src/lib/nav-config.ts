@@ -1,6 +1,6 @@
 import {
   Store, ClipboardList, Wallet, User, LayoutDashboard,
-  Package, ShoppingBag, Users,
+  Package, ShoppingBag, Users, CreditCard,
   type LucideIcon,
 } from "lucide-react";
 
@@ -24,10 +24,10 @@ const SELLER_LINKS: NavLink[] = [
   { href: "/seller/dashboard/orders", label: "Orders", Icon: ShoppingBag },
   { href: "/seller/dashboard/buyers", label: "Buyers", Icon: Users },
   { href: "/seller/dashboard/ledger", label: "Payments", Icon: Wallet },
+  { href: "/seller/dashboard/billing", label: "Billing", Icon: CreditCard },
 ];
 
-// Admins are redirected straight to the Django admin (a different origin)
-// on login — there's no in-app admin surface, so no nav links for them.
+// Staff access the Django admin management panel at /admin/.
 export const NAV_BY_ROLE: Record<string, NavLink[]> = {
   buyer: BUYER_LINKS,
   seller: SELLER_LINKS,
@@ -40,7 +40,7 @@ export function navLinksForRole(role?: string | null): NavLink[] {
 /**
  * Picks the single best-matching nav link for the current path. A plain
  * `pathname.startsWith(href)` breaks when one link's href (e.g. a "Home"
- * link at "/buyer") is itself a prefix of every sibling link — it would
+ * link at "/buyer") is itself a prefix of every sibling link â€” it would
  * show as active on every page. Instead we match on path-segment
  * boundaries and prefer the longest (most specific) match.
  */

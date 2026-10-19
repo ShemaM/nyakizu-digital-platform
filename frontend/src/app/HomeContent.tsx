@@ -151,7 +151,7 @@ export function HomeContent() {
             {/* Glowing Accent Ring behind Mockup */}
             <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-brand-gold/30 via-purple-600/30 to-blue-500/20 blur-xl opacity-75" />
 
-            <div className="relative rounded-2xl sm:rounded-3xl border border-white/10 bg-dark-card/60 backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] overflow-hidden">
+            <div className="relative overflow-hidden border-y border-dark-accent">
               {/* Browser Header Bar with Realistic Controls and Live Tabs */}
               <div className="px-4 py-3 bg-dark-secondary/70 backdrop-blur-md border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
                 {/* Traffic Light Window Dots */}
@@ -234,22 +234,22 @@ export function HomeContent() {
                         <p className="text-xs font-mono text-text-muted mt-0.5">sh••••••••••@gmail.com</p>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-2 py-1">
-                        <div className="bg-white/[0.04] border border-white/10 backdrop-blur-md rounded-xl p-3 text-center">
+                      <div className="grid grid-cols-3 divide-x divide-white/10 border-y border-white/10 py-1">
+                        <div className="py-3 text-center">
                           <p className="text-lg font-black text-text-primary">5</p>
                           <p className="text-[10px] text-text-muted font-bold">Total Orders</p>
                         </div>
-                        <div className="bg-brand-gold/[0.08] border border-brand-gold/30 backdrop-blur-md rounded-xl p-3 text-center">
+                        <div className="py-3 text-center">
                           <p className="text-lg font-black text-brand-gold">13.2K</p>
                           <p className="text-[10px] text-brand-gold font-bold">KES Volume</p>
                         </div>
-                        <div className="bg-white/[0.04] border border-white/10 backdrop-blur-md rounded-xl p-3 text-center">
+                        <div className="py-3 text-center">
                           <p className="text-lg font-black text-text-primary">11</p>
                           <p className="text-[10px] text-text-muted font-bold">Products</p>
                         </div>
                       </div>
 
-                      <div className="bg-white/[0.03] border border-white/[0.08] backdrop-blur-md rounded-xl p-3.5 space-y-2 text-xs text-text-secondary">
+                      <div className="divide-y divide-white/10 border-y border-white/10 py-2 text-xs text-text-secondary">
                         <div className="flex items-center justify-between">
                           <span className="text-text-muted">Ledger balance:</span>
                           <span className="text-emerald-500 font-bold flex items-center gap-1">
@@ -297,26 +297,26 @@ export function HomeContent() {
                         <ShoppingBag className="w-3.5 h-3.5" /> Verified Countrywide Buyer
                       </div>
                       <div>
-                        <h3 className="text-xl sm:text-2xl font-black text-text-primary">Kim Dreadlocks Kitengela</h3>
+                        <h3 className="text-xl sm:text-2xl font-black text-text-primary">Sample Seller</h3>
                         <p className="text-xs font-mono text-text-muted mt-0.5">ki••••••••••@gmail.com</p>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-2 py-1">
-                        <div className="bg-emerald-500/[0.08] border border-emerald-500/30 backdrop-blur-md rounded-xl p-3 text-center">
+                      <div className="grid grid-cols-3 divide-x divide-white/10 border-y border-white/10 py-1">
+                        <div className="py-3 text-center">
                           <p className="text-lg font-black text-emerald-400">KSh 0</p>
                           <p className="text-[10px] text-text-muted font-bold">Buyer Fee</p>
                         </div>
-                        <div className="bg-blue-500/[0.08] border border-blue-500/30 backdrop-blur-md rounded-xl p-3 text-center">
+                        <div className="py-3 text-center">
                           <p className="text-lg font-black text-blue-400">KES 12540</p>
                           <p className="text-[10px] text-blue-300 font-bold">Current Order</p>
                         </div>
-                        <div className="bg-white/[0.04] border border-white/10 backdrop-blur-md rounded-xl p-3 text-center">
+                        <div className="py-3 text-center">
                           <p className="text-lg font-black text-text-primary">2</p>
                           <p className="text-[10px] text-text-muted font-bold">Items in Cart</p>
                         </div>
                       </div>
 
-                      <div className="bg-white/[0.03] border border-white/[0.08] backdrop-blur-md rounded-xl p-3.5 space-y-2 text-xs text-text-secondary">
+                      <div className="divide-y divide-white/10 border-y border-white/10 py-2 text-xs text-text-secondary">
                         <div className="flex items-center justify-between">
                           <span className="text-text-muted">Approved supplier:</span>
                           <span className="text-brand-gold font-bold">Sample Shop (Nairobi CBD)</span>
@@ -332,7 +332,7 @@ export function HomeContent() {
                       </div>
 
                       <p className="text-[11px] text-text-muted leading-relaxed">
-                        Actual buyer dashboard for Kim Dreadlocks Kitengela. Countrywide retail shopkeepers and hawkers browse approved Nairobi wholesaler catalogs and submit orders with zero fees.
+                        Actual buyer dashboard. Countrywide retail shopkeepers and hawkers browse approved wholesaler catalogs and submit orders with zero fees.
                       </p>
                     </motion.div>
                   </div>
@@ -369,17 +369,13 @@ export function HomeContent() {
             </p>
           </div>
 
-          {/* Master Glassmorphic Stage Console */}
-          <div className="relative rounded-3xl border border-white/10 bg-dark-card/40 backdrop-blur-2xl p-4 sm:p-8 shadow-2xl overflow-hidden">
-            <div className="absolute -top-32 -left-32 w-80 h-80 bg-brand-gold/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-32 -right-32 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
-
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
+          <div className="border-y border-white/10">
+            <div className="grid divide-y divide-white/10 lg:grid-cols-4 lg:divide-y-0 lg:divide-x">
               {/* Stage 1: Pending */}
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-md p-5 flex flex-col justify-between hover:bg-white/[0.06] hover:border-brand-gold/30 transition-all">
+              <div className="py-5 lg:px-5 first:pl-0">
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <span className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/10 text-text-secondary font-black text-sm flex items-center justify-center">
+                    <span className="w-8 h-8 rounded-xl bg-white/6 border border-white/10 text-text-secondary font-black text-sm flex items-center justify-center">
                       1
                     </span>
                     <span className="text-xs font-extrabold uppercase px-2 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/20">
@@ -397,10 +393,10 @@ export function HomeContent() {
               </div>
 
               {/* Stage 2: Packing */}
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-md p-5 flex flex-col justify-between hover:bg-white/[0.06] hover:border-brand-gold/30 transition-all">
+              <div className="py-5 lg:px-5">
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <span className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/10 text-text-secondary font-black text-sm flex items-center justify-center">
+                    <span className="w-8 h-8 rounded-xl bg-white/6 border border-white/10 text-text-secondary font-black text-sm flex items-center justify-center">
                       2
                     </span>
                     <span className="text-xs font-extrabold uppercase px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/20">
@@ -418,7 +414,7 @@ export function HomeContent() {
               </div>
 
               {/* Stage 3: Awaiting Payment */}
-              <div className="rounded-2xl border border-brand-gold/40 bg-brand-gold/[0.07] backdrop-blur-md p-5 flex flex-col justify-between shadow-[0_0_24px_rgba(234,179,8,0.12)]">
+              <div className="py-5 lg:px-5">
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <span className="w-8 h-8 rounded-xl bg-brand-gold text-slate-950 font-black text-sm flex items-center justify-center">
@@ -439,10 +435,10 @@ export function HomeContent() {
               </div>
 
               {/* Stage 4: Completed */}
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-md p-5 flex flex-col justify-between hover:bg-white/[0.06] hover:border-emerald-500/30 transition-all">
+              <div className="py-5 lg:px-5">
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <span className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/10 text-text-secondary font-black text-sm flex items-center justify-center">
+                    <span className="w-8 h-8 rounded-xl bg-white/6 border border-white/10 text-text-secondary font-black text-sm flex items-center justify-center">
                       4
                     </span>
                     <span className="text-xs font-extrabold uppercase px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
@@ -509,16 +505,10 @@ export function HomeContent() {
             </div>
           </div>
 
-          {/* Master Glassmorphic Comparison Matrix */}
-          <div className="relative rounded-3xl border border-white/10 bg-dark-card/40 backdrop-blur-2xl p-6 sm:p-8 shadow-2xl overflow-hidden">
-            <div className="grid md:grid-cols-3 gap-6 relative z-10">
-              {/* Card 1 */}
+          <div className="border-y border-white/10">
+            <div className="grid md:grid-cols-3 divide-y divide-white/10 md:divide-y-0 md:divide-x">
               <div
-                className={`rounded-2xl border p-6 transition-all duration-300 backdrop-blur-md ${
-                  comparisonMode === "analog"
-                    ? "border-rose-500/30 bg-rose-500/[0.08]"
-                    : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:border-brand-gold/30"
-                }`}
+                className="py-5 md:px-5"
               >
                 <span className="text-xs font-mono font-bold text-text-muted block mb-2">01 &middot; Order Taking</span>
                 <h3 className="text-lg font-bold text-text-primary">
@@ -535,11 +525,7 @@ export function HomeContent() {
 
               {/* Card 2 */}
               <div
-                className={`rounded-2xl border p-6 transition-all duration-300 backdrop-blur-md ${
-                  comparisonMode === "analog"
-                    ? "border-rose-500/30 bg-rose-500/[0.08]"
-                    : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:border-brand-gold/30"
-                }`}
+                className="py-5 md:px-5"
               >
                 <span className="text-xs font-mono font-bold text-text-muted block mb-2">02 &middot; Price &amp; Packing</span>
                 <h3 className="text-lg font-bold text-text-primary">
@@ -556,11 +542,7 @@ export function HomeContent() {
 
               {/* Card 3 */}
               <div
-                className={`rounded-2xl border p-6 transition-all duration-300 backdrop-blur-md ${
-                  comparisonMode === "analog"
-                    ? "border-rose-500/30 bg-rose-500/[0.08]"
-                    : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:border-brand-gold/30"
-                }`}
+                className="py-5 md:px-5"
               >
                 <span className="text-xs font-mono font-bold text-text-muted block mb-2">03 &middot; Debt &amp; Credit</span>
                 <h3 className="text-lg font-bold text-text-primary">
@@ -599,19 +581,19 @@ export function HomeContent() {
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-8">
+          <div className="grid divide-y divide-white/10 lg:grid-cols-2 lg:divide-y-0 lg:divide-x">
             {/* Wholesaler Showcase */}
-            <div className="rounded-3xl border border-brand-gold/30 bg-gradient-to-br from-brand-gold/[0.08] via-dark-card/50 to-dark-card/30 backdrop-blur-2xl p-7 sm:p-9 flex flex-col justify-between shadow-[0_8px_32px_0_rgba(234,179,8,0.08)] relative overflow-hidden hover:border-brand-gold/50 transition-all">
+            <div className="flex flex-col justify-between py-6 lg:pr-8">
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-gold/15 text-brand-gold font-black text-xs border border-brand-gold/25">
                     <Store className="w-3.5 h-3.5" /> For Wholesale Shop Owners
                   </span>
-                  <span className="text-xs text-text-muted">Nairobi CBD &middot; Luthuli Avenue</span>
+                  <span className="text-xs text-text-muted">Nairobi &middot; CBD</span>
                 </div>
 
                 <h3 className="text-2xl font-black text-text-primary">
-                  Protect Your Margin, Speed Up Packing &amp; Secure Your Credit
+                  Protect Your Margin, Speed Up Packing &amp; Secure Your Debts
                 </h3>
 
                 <ul className="mt-6 space-y-4 text-sm sm:text-base text-text-secondary">
@@ -654,7 +636,7 @@ export function HomeContent() {
             </div>
 
             {/* Buyer Showcase */}
-            <div className="rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/[0.08] via-dark-card/50 to-dark-card/30 backdrop-blur-2xl p-7 sm:p-9 flex flex-col justify-between shadow-[0_8px_32px_0_rgba(16,185,129,0.08)] relative overflow-hidden hover:border-emerald-500/50 transition-all">
+            <div className="flex flex-col justify-between py-6 lg:pl-8">
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 font-black text-xs border border-emerald-500/25">
@@ -664,14 +646,14 @@ export function HomeContent() {
                 </div>
 
                 <h3 className="text-2xl font-black text-text-primary">
-                  Order from Nairobi at Wholesale Rates with Total Transparency
+                  Order at Wholesale Rates with Total Transparency
                 </h3>
 
                 <ul className="mt-6 space-y-4 text-sm sm:text-base text-text-secondary">
                   <li className="flex items-start gap-3">
                     <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                     <span>
-                      <strong className="text-text-primary">Direct Nairobi wholesale access:</strong> Browse genuine stock from trusted suppliers without having to travel to Nairobi in person.
+                      <strong className="text-text-primary">Direct wholesale access:</strong> Browse genuine stock from trusted suppliers.
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
@@ -743,16 +725,11 @@ export function HomeContent() {
             </Button>
           </div>
 
-          {/* Master Frosted Glass Pricing Suite */}
-          <div className="rounded-3xl border border-white/10 bg-dark-card/40 backdrop-blur-2xl p-6 sm:p-10 shadow-2xl relative overflow-hidden">
-            {/* Radiant Ambient Glass Orbs */}
-            <div className="absolute top-0 right-0 w-80 h-80 bg-brand-gold/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-
+          <div className="border-y border-white/10 py-6">
             {/* 2-Column Role Comparison */}
-            <div className="grid md:grid-cols-2 gap-8 lg:gap-12 relative z-10 pb-8 border-b border-white/10">
+            <div className="grid divide-y divide-white/10 md:grid-cols-2 md:divide-y-0 md:divide-x relative z-10 pb-8 border-b border-white/10">
               {/* Wholesaler Column */}
-              <div className="flex flex-col justify-between">
+              <div className="flex flex-col justify-between py-6 md:pr-8">
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-gold/15 text-brand-gold font-black text-xs border border-brand-gold/25">
@@ -798,7 +775,7 @@ export function HomeContent() {
               </div>
 
               {/* Buyer Column */}
-              <div className="flex flex-col justify-between md:pl-8 lg:pl-12 md:border-l md:border-white/10">
+              <div className="flex flex-col justify-between py-6 md:pl-8 lg:pl-12">
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 font-black text-xs border border-emerald-500/25">
@@ -896,8 +873,7 @@ export function HomeContent() {
             </p>
           </div>
 
-          {/* Master Glassmorphic FAQ Accordion */}
-          <div className="rounded-3xl border border-white/10 bg-dark-card/40 backdrop-blur-2xl shadow-2xl divide-y divide-white/[0.08] overflow-hidden">
+          <div className="border-y border-white/10 divide-y divide-white/10">
             {FAQS.map((faq, idx) => {
               const isOpen = openFaqIndex === idx;
               return (
@@ -908,7 +884,7 @@ export function HomeContent() {
                   <button
                     type="button"
                     onClick={() => toggleFaq(idx)}
-                    className="w-full px-5 py-4 sm:px-6 sm:py-5 text-left flex items-center justify-between gap-4 font-bold text-text-primary text-base sm:text-lg hover:text-brand-gold transition-colors"
+                    className="w-full py-4 sm:py-5 text-left flex items-center justify-between gap-4 font-bold text-text-primary text-base sm:text-lg hover:text-brand-gold transition-colors"
                   >
                     <span>{faq.q}</span>
                     <ChevronDown
@@ -918,7 +894,7 @@ export function HomeContent() {
                     />
                   </button>
                   {isOpen && (
-                    <div className="px-5 pb-5 sm:px-6 sm:pb-6 text-sm sm:text-base text-text-secondary leading-relaxed pt-1">
+                    <div className="pb-5 text-sm sm:text-base text-text-secondary leading-relaxed pt-1">
                       {faq.a}
                     </div>
                   )}
@@ -934,7 +910,7 @@ export function HomeContent() {
       {/* ========================================================================= */}
       <Section spacing="lg" className="bg-dark-primary relative overflow-hidden">
         <Container size="lg">
-          <div className="relative rounded-3xl border border-brand-gold/40 bg-gradient-to-br from-brand-gold/15 via-dark-card/70 to-purple-900/20 backdrop-blur-2xl p-8 sm:p-14 text-center shadow-[0_16px_48px_rgba(0,0,0,0.5)] overflow-hidden">
+          <div className="border-y border-brand-gold/30 py-10 sm:py-14 text-center">
             <div className="relative z-10 max-w-2xl mx-auto space-y-5">
               <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-brand-gold/20 text-brand-gold font-black text-xs uppercase tracking-wider border border-brand-gold/25">
                 <Sparkles className="w-3.5 h-3.5" /> Start Digitizing Your Business Today

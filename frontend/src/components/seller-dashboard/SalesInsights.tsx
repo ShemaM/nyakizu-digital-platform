@@ -141,7 +141,7 @@ export function SalesInsights({ orders = [] }: SalesInsightsProps) {
   }
 
   return (
-    <div className="bg-dark-card rounded-2xl border border-dark-accent shadow-sm p-5 sm:p-6 space-y-6">
+    <div className="border-y border-dark-accent py-5 sm:py-6 space-y-6">
       {/* Date picker */}
       <div className="flex items-center gap-2">
         <button
@@ -183,12 +183,12 @@ export function SalesInsights({ orders = [] }: SalesInsightsProps) {
       )}
 
       {/* Day summary */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4">
-        <div className="rounded-xl border border-dark-accent bg-dark-secondary/60 p-4">
+      <div className="grid grid-cols-2 divide-x divide-border border-y border-border">
+        <div className="px-3 py-3 first:pl-0">
           <p className="text-xs font-bold uppercase tracking-wider text-text-muted">Orders</p>
           <p className="text-2xl font-black text-text-primary mt-1 tabular-nums">{dayOrders.length}</p>
         </div>
-        <div className="rounded-xl border border-dark-accent bg-dark-secondary/60 p-4">
+        <div className="px-3 py-3">
           <p className="text-xs font-bold uppercase tracking-wider text-text-muted">Order value</p>
           <p className="text-2xl font-black text-text-primary mt-1 tabular-nums">{fmtKES(dayTotal)}</p>
         </div>

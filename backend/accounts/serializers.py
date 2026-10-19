@@ -127,18 +127,24 @@ class UserSerializer(serializers.ModelSerializer):
     avatar_url = serializers.SerializerMethodField()
     seller_profile = serializers.SerializerMethodField()
     buyer_profile = serializers.SerializerMethodField()
+    is_main_admin = serializers.SerializerMethodField()
 
     class Meta:
         model  = CustomUser
         fields = (
             "id", "username", "full_name", "email", "role",
-            "phone_number", "is_email_verified", "date_joined",
+            "phone_number", "is_email_verified", "date_joined", "is_main_admin",
             "avatar_url", "seller_profile", "buyer_profile",
         )
         read_only_fields = ("id", "date_joined", "is_email_verified")
 
     def get_full_name(self, obj):
         return obj.get_full_name() or obj.username
+
+    def get_is_main_admin(self, obj):
+        """Expose the signed-in user's management gate without granting staff access."""
+        request = self.context.get("request")
+        return bool(request and request.user.is_authenticated and request.user.pk == obj.pk and obj.is_superuser)
 
     def get_avatar_url(self, obj):
         if not obj.avatar:

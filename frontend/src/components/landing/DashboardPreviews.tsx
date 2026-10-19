@@ -53,7 +53,7 @@ export function SellerScreenPreview() {
 
       <div className="flex-1 px-2.5 space-y-1.5 overflow-hidden">
         {/* Today's Priorities / Shop Welcome Card */}
-        <div className="rounded-xl border border-dark-accent bg-dark-card p-2 shadow-xs">
+        <div className="border-y border-dark-accent py-2">
           <p className="text-[6px] font-black uppercase tracking-wider text-brand-gold">Today&apos;s priorities</p>
           <p className="font-extrabold text-text-primary text-[9px] leading-tight mt-0.5">Run your shop with confidence, Sample</p>
           <div className="flex items-center gap-1 mt-1 text-text-muted text-[6.5px]">
@@ -69,15 +69,15 @@ export function SellerScreenPreview() {
 
         {/* 3 Status indicators (matches SellerDashboardHeader) */}
         <div className="grid grid-cols-3 gap-1">
-          <div className="bg-dark-card rounded-lg border border-dark-accent p-1 text-center">
+          <div className="border-b border-dark-accent py-1 text-center">
             <p className="font-black text-text-primary text-[9px] leading-none">0</p>
             <p className="text-text-muted text-[5.5px] font-bold mt-0.5">New orders</p>
           </div>
-          <div className="bg-dark-card rounded-lg border border-dark-accent p-1 text-center">
+          <div className="border-b border-dark-accent py-1 text-center">
             <p className="font-black text-amber-400 text-[9px] leading-none">0</p>
             <p className="text-text-muted text-[5.5px] font-bold mt-0.5">Awaiting pay</p>
           </div>
-          <div className="bg-dark-card rounded-lg border border-dark-accent p-1 text-center">
+          <div className="border-b border-dark-accent py-1 text-center">
             <p className="font-black text-emerald-400 text-[9px] leading-none">5</p>
             <p className="text-text-muted text-[5.5px] font-bold mt-0.5">Confirmed</p>
           </div>
@@ -106,7 +106,7 @@ export function SellerScreenPreview() {
               { name: "A2 Core Cover Silicon", price: "KES 120", stock: "In Stock" },
               { name: "Hot 8 Screen Protectors", price: "KES 34", stock: "In Stock" },
             ].map((p) => (
-              <div key={p.name} className="bg-dark-card rounded-lg border border-dark-accent p-1 flex items-center gap-1.5">
+              <div key={p.name} className="border-b border-dark-accent py-1 flex items-center gap-1.5">
                 <span className="w-4 h-4 rounded bg-dark-secondary flex items-center justify-center shrink-0">
                   <Package size={7} className="text-brand-gold" />
                 </span>
@@ -138,29 +138,29 @@ export function BuyerScreenPreview() {
       </div>
 
       <div className="flex-1 px-2.5 space-y-1.5 overflow-hidden">
-        {/* Real Golden Hero Greeting Card (matches buyer/page.tsx) */}
-        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-brand-gold to-amber-500 p-2 shadow-xs text-slate-950">
+        {/* Buyer greeting */}
+        <div className="border-y border-brand-gold/30 py-2 text-text-primary">
           <p className="font-black text-[9px] leading-tight">Good evening, Kim</p>
-          <p className="text-[6px] font-semibold text-slate-950/80 mt-0.5 leading-tight">
+          <p className="text-[6px] font-semibold text-text-secondary mt-0.5 leading-tight">
             Here&apos;s what&apos;s happening with your trade today.
           </p>
         </div>
 
         {/* 4 Key Stats Grid (matches buyer/page.tsx: Active Orders, Completed, Total Spent, Suppliers) */}
         <div className="grid grid-cols-2 gap-1">
-          <div className="bg-dark-card rounded-lg border border-dark-accent p-1.5">
+          <div className="border-b border-dark-accent py-1.5">
             <p className="font-black text-text-primary text-[9.5px] leading-none">0</p>
             <p className="text-text-muted text-[6px] font-semibold mt-0.5">Active Orders</p>
           </div>
-          <div className="bg-dark-card rounded-lg border border-dark-accent p-1.5">
+          <div className="border-b border-dark-accent py-1.5">
             <p className="font-black text-emerald-400 text-[9.5px] leading-none">1</p>
             <p className="text-text-muted text-[6px] font-semibold mt-0.5">Completed</p>
           </div>
-          <div className="bg-dark-card rounded-lg border border-dark-accent p-1.5">
+          <div className="border-b border-dark-accent py-1.5">
             <p className="font-black text-brand-gold text-[9.5px] leading-none">KES 154</p>
             <p className="text-text-muted text-[6px] font-semibold mt-0.5">Total Spent</p>
           </div>
-          <div className="bg-dark-card rounded-lg border border-dark-accent p-1.5">
+          <div className="border-b border-dark-accent py-1.5">
             <p className="font-black text-blue-400 text-[9.5px] leading-none">1</p>
             <p className="text-text-muted text-[6px] font-semibold mt-0.5">Suppliers</p>
           </div>
@@ -175,7 +175,7 @@ export function BuyerScreenPreview() {
         {/* Recent Orders Card (matches buyer/page.tsx) */}
         <div>
           <p className="text-text-muted text-[6px] font-bold uppercase tracking-wider mb-1">Recent Order</p>
-          <div className="bg-dark-card rounded-lg border border-dark-accent p-1.5 space-y-1">
+          <div className="border-y border-dark-accent py-1.5 space-y-1">
             <div className="flex items-center justify-between">
               <span className="font-extrabold text-text-primary text-[7px] truncate">Sample Shop</span>
               <span className="text-emerald-400 font-black text-[7px]">KES 154</span>

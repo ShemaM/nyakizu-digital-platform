@@ -71,6 +71,30 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: "/management",
+        destination: `${BACKEND_ORIGIN}/admin/`,
+        permanent: false,
+      },
+      {
+        source: "/management/:path*",
+        destination: `${BACKEND_ORIGIN}/admin/:path*`,
+        permanent: false,
+      },
+      {
+        source: "/admin",
+        destination: `${BACKEND_ORIGIN}/admin/`,
+        permanent: false,
+      },
+      {
+        source: "/admin/:path*",
+        destination: `${BACKEND_ORIGIN}/admin/:path*`,
+        permanent: false,
+      },
+    ];
+  },
   async headers() {
     return [
       {

@@ -14,13 +14,14 @@ from decimal import Decimal
 from django.db.models import Count, DecimalField, Sum
 from django.db.models.functions import Coalesce, TruncDate, TruncMonth
 from django.utils import timezone
-from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.models import CustomUser, SellerProfile
 from orders.models import Order, OrderStatusEvent
 from products.models import Category, Product
+from .management_reporting import build_revenue_report
+from .management_permissions import IsMainAdmin
 
 # "Users" in every metric on this endpoint means platform members (buyers/
 # sellers) — staff/superuser accounts are internal, not something the
@@ -197,7 +198,7 @@ class AdminMetricsView(APIView):
     Admin only. Platform-wide totals, period-over-period rollups, and the
     chart series behind the analytics page.
     """
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsMainAdmin]
 
     def get(self, request):
         now = timezone.now()
@@ -224,7 +225,7 @@ class AdminMetricsView(APIView):
         order_status_counts = dict(Order.objects.values_list("status").annotate(count=Count("id")))
         orders_by_status = {choice: order_status_counts.get(choice, 0) for choice, _ in Order.STATUS_CHOICES}
 
-        return Response({
+        response = Response({
             # total_users = buyers + sellers only — staff/superuser accounts
             # are deliberately excluded (they're internal, not platform
             # members). total_admins is still reported separately for
@@ -251,4 +252,9 @@ class AdminMetricsView(APIView):
             "repeat_buyer_rate": _repeat_buyer_rate(),
             "debt_aging": _debt_aging(now),
             "order_funnel_30d": _order_funnel(now - timedelta(days=30)),
+            # Keep seller GMV, platform fees, seller-credit top-ups, and
+            # outstanding credit balances as separate measures.
+            "revenue": build_revenue_report(now),
         })
+        response["Cache-Control"] = "private, no-store"
+        return response

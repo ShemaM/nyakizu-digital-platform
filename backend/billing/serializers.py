@@ -1,7 +1,7 @@
 from django.conf import settings
 from rest_framework import serializers
 
-from .models import CreditEntry
+from .models import CreditEntry, Payment
 from .payments import normalize_phone
 
 
@@ -13,6 +13,14 @@ class CreditEntrySerializer(serializers.ModelSerializer):
     class Meta:
         model = CreditEntry
         fields = ("id", "kind", "amount_kes", "balance_after_kes", "order_id", "note", "created_at")
+
+
+class SellerPaymentHistorySerializer(serializers.ModelSerializer):
+    """Seller-scoped M-Pesa top-up attempts; never exposes Daraja payloads."""
+
+    class Meta:
+        model = Payment
+        fields = ("id", "reference", "amount_kes", "status", "created_at")
 
 
 class TopUpSerializer(serializers.Serializer):

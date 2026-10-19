@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/lib/auth-context";
 import { navLinksForRole, activeNavHref } from "@/lib/nav-config";
-import { Plus, User } from "lucide-react";
+import { CreditCard, Plus, User } from "lucide-react";
 
 export function BottomNav() {
   const { user } = useAuth();
@@ -15,6 +15,7 @@ export function BottomNav() {
         { href: "/seller/dashboard/orders", label: "Orders", Icon: navLinksForRole("seller")[2].Icon },
         { href: "/seller/dashboard/catalog/new", label: "Add", Icon: Plus },
         { href: "/seller/dashboard/ledger", label: "Sales", Icon: navLinksForRole("seller")[4].Icon },
+        { href: "/seller/dashboard/billing", label: "Billing", Icon: CreditCard },
         { href: "/seller/dashboard/account", label: "Account", Icon: User },
       ]
     : navLinksForRole(user?.role);

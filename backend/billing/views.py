@@ -13,7 +13,7 @@ from accounts.permissions import IsApprovedSeller
 from .daraja import DarajaError, DarajaNotConfigured
 from .models import CreditEntry, Payment
 from .payments import record_callback, settle_payment, start_topup
-from .serializers import CreditEntrySerializer, TopUpSerializer
+from .serializers import CreditEntrySerializer, SellerPaymentHistorySerializer, TopUpSerializer
 from .services import (
     build_fee_examples,
     build_fee_schedule_summary,
@@ -71,6 +71,23 @@ class LedgerView(APIView):
         account = ensure_account(request.user.seller_profile)
         entries = CreditEntry.objects.filter(account=account).select_related("order_fee")[:LEDGER_PAGE_SIZE]
         return Response(CreditEntrySerializer(entries, many=True).data)
+
+
+class SellerBillingHistoryView(APIView):
+    """GET /api/billing/history/ — the seller's fee ledger and M-Pesa records."""
+    permission_classes = [IsApprovedSeller]
+
+    def get(self, request):
+        account = ensure_account(request.user.seller_profile)
+        entries = CreditEntry.objects.filter(account=account).select_related("order_fee")[:LEDGER_PAGE_SIZE]
+        payments = Payment.objects.filter(account=account).order_by("-created_at", "-id")[:LEDGER_PAGE_SIZE]
+        response = Response({
+            "summary": build_summary(account),
+            "ledger": CreditEntrySerializer(entries, many=True).data,
+            "payments": SellerPaymentHistorySerializer(payments, many=True).data,
+        })
+        response["Cache-Control"] = "private, no-store"
+        return response
 
 
 class TopUpView(APIView):

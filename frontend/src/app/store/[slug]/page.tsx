@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, MapPin, Store } from "lucide-react";
-import { Logo } from "@/components/Logo";
+import { ArrowRight, MapPin, Package, ShieldCheck, Store } from "lucide-react";
+import { LogoLockup } from "@/components/Logo";
 import { StoreMark } from "@/components/ui/StoreMark";
 import { sellers, products } from "@/lib/api";
 import { SITE_URL } from "@/lib/seo";
@@ -73,75 +73,73 @@ export default async function PublicStorePage({ params }: { params: Promise<{ sl
         // seller-controlled free text, so `<` is escaped below to block a `</script>` breakout (stored XSS).
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
-      <header className="border-b border-dark-accent bg-dark-secondary/95 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
-          <Logo size="sm" />
+      <header className="sticky top-0 z-30 border-b border-dark-accent bg-dark-secondary/95 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+          <Link href="/" aria-label="Nyakizu home" className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold">
+            <LogoLockup size="sm" className="text-text-primary" />
+          </Link>
           <div className="flex items-center gap-2">
-            <Link href="/login" className="rounded-lg px-3 py-2 text-body font-bold text-text-secondary transition hover:bg-dark-tertiary hover:text-text-primary">
+            <Link href="/login" className="rounded-lg px-3 py-2 text-sm font-bold text-text-secondary transition hover:bg-dark-tertiary hover:text-text-primary">
               Sign in
             </Link>
-            <Link href="/register" className="rounded-lg bg-brand-gold px-3 py-2 text-body font-bold text-slate-950 transition hover:bg-brand-gold-dark">
-              Join
+            <Link href="/register" className="rounded-lg bg-brand-gold px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-brand-gold-dark">
+              Create account
             </Link>
           </div>
         </div>
       </header>
 
-      <section className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-        <div className="overflow-hidden rounded-2xl border border-dark-accent bg-dark-card shadow-card">
-          <div className="relative overflow-hidden bg-dark-deepest p-6 text-text-primary sm:p-8">
+      <section className="mx-auto max-w-6xl px-4 pb-16 pt-6 sm:px-6 sm:pt-9">
+        <div className="overflow-hidden rounded-3xl border border-dark-accent bg-dark-card shadow-card">
+          <div className="relative overflow-hidden bg-dark-secondary p-5 text-text-primary sm:p-8">
             <div
               className="pointer-events-none absolute inset-0"
               aria-hidden="true"
               style={{
                 background:
-                  "radial-gradient(ellipse 600px 400px at 90% -10%, rgba(245,158,11,0.15), transparent 60%)",
+                  "radial-gradient(ellipse 620px 300px at 100% 0%, rgba(245,158,11,0.13), transparent 65%)",
               }}
             />
-            <div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-              <div className="flex gap-4">
-                <StoreMark
-                  name={seller.store_name || "Store"}
-                  imageUrl={seller.user?.avatar_url}
-                  size="xl"
-                />
-                <div>
-                  <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-brand-gold/15 border border-brand-gold/30 px-3 py-1 text-caption font-bold text-brand-gold">
-                    <Store size={14} />
-                    Approved wholesaler
+            <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-start gap-4 sm:items-center sm:gap-5">
+                <StoreMark name={seller.store_name || "Store"} size="lg" className="ring-4 ring-dark-card shadow-md" />
+                <div className="min-w-0">
+                  <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-xs font-bold text-success">
+                    <ShieldCheck size={14} /> Verified seller
                   </div>
-                  <h1 className="text-display font-black tracking-normal text-text-primary">{seller.store_name}</h1>
-                  <div className="mt-3 flex items-center gap-1 text-body font-semibold text-text-secondary">
-                    <MapPin size={14} />
-                    <span>{seller.location}</span>
+                  <h1 className="text-2xl font-black leading-tight tracking-tight text-text-primary sm:text-3xl">{seller.store_name}</h1>
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-medium text-text-secondary">
+                    {seller.location && <span className="inline-flex items-center gap-1.5"><MapPin size={14} />{seller.location}</span>}
+                    <span className="text-text-muted">Selling on Nyakizu since {joinedDate}</span>
                   </div>
                   {seller.store_description && (
-                    <p className="mt-3 max-w-2xl text-body leading-6 text-text-secondary">{seller.store_description}</p>
+                    <p className="mt-3 max-w-2xl text-sm leading-6 text-text-secondary">{seller.store_description}</p>
                   )}
-                  <p className="mt-2 text-caption font-bold text-text-muted">Trading since {joinedDate}</p>
                 </div>
               </div>
-              <div className="relative grid gap-2 sm:min-w-64">
-                <Link href="/login" className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-gold px-4 py-3 text-body font-bold text-slate-950 transition hover:bg-brand-gold-dark shadow-sm">
+              <div className="relative grid shrink-0 gap-2 sm:w-52">
+                <Link href="/login" className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-gold px-4 py-3 text-sm font-extrabold text-slate-950 transition hover:bg-brand-gold-dark shadow-sm">
                   Sign in to order
                   <ArrowRight size={16} />
                 </Link>
-                <Link href="/register" className="inline-flex items-center justify-center rounded-xl bg-dark-tertiary border border-dark-accent px-4 py-3 text-body font-bold text-text-primary transition hover:bg-dark-tertiary/80">
-                  Create account
+                <p className="text-center text-xs text-text-muted">Buyer account required to place an order</p>
+                <Link href="/register" className="inline-flex items-center justify-center rounded-xl border border-dark-accent bg-dark-card px-4 py-2.5 text-sm font-bold text-text-primary transition hover:bg-dark-tertiary">
+                  Join Nyakizu
                 </Link>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 border-t border-dark-accent bg-dark-secondary p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-            <CopyStoreLink url={storeUrl} />
-            <p className="shrink-0 text-center text-caption text-text-muted sm:text-right">
-              Sign in as an approved buyer to order.
-            </p>
+          <div className="flex flex-col gap-3 border-t border-dark-accent bg-dark-card p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-6">
+            <div className="flex items-center gap-2 text-sm text-text-secondary">
+              <Package size={16} className="text-brand-gold" />
+              <span><strong className="text-text-primary">{storeProducts.length}</strong> products in this catalog</span>
+            </div>
+            <div className="w-full sm:max-w-md"><CopyStoreLink url={storeUrl} /></div>
           </div>
         </div>
 
-        <div className="mt-6 mb-8">
+        <div className="mt-9">
           <StoreProducts products={storeProducts} />
         </div>
       </section>

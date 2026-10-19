@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Package, Image as ImageIcon, Wallet, Share2, Check, ArrowRight } from "lucide-react";
-import { Card, CardSection } from "@/components/ui/Card";
 import { CopyStoreLink } from "@/app/store/[slug]/CopyStoreLink";
 import { SITE_URL } from "@/lib/seo";
 import { cn } from "@/lib/cn";
@@ -28,8 +27,7 @@ function ChecklistCard({
   cta: string;
 }) {
   return (
-    <Card>
-      <CardSection className="flex items-center gap-4 py-4">
+    <div className="flex items-center gap-4 py-4">
         <span
           className={cn(
             "flex items-center justify-center w-10 h-10 rounded-full shrink-0",
@@ -45,8 +43,7 @@ function ChecklistCard({
         <Link href={href} className="flex items-center gap-1 text-sm font-bold text-role-dark hover:opacity-80 shrink-0">
           {cta} <ArrowRight size={14} />
         </Link>
-      </CardSection>
-    </Card>
+    </div>
   );
 }
 
@@ -73,7 +70,7 @@ export function GetStartedView({ productCount, hasAvatar, hasPaymentMethod, user
         </p>
       </div>
 
-      <div className="space-y-3">
+      <div className="divide-y divide-dark-accent border-y border-dark-accent">
         <ChecklistCard
           done={hasProducts}
           Icon={Package}
@@ -108,8 +105,7 @@ export function GetStartedView({ productCount, hasAvatar, hasPaymentMethod, user
         {/* Unlocked — unlike the pending-approval checklist, an approved
             store is real and requestable right now. Not gated on products,
             just nudged toward doing that first. */}
-        <Card>
-          <CardSection className="flex items-center gap-4 py-4">
+        <div className="flex items-center gap-4 py-4">
             <span className="flex items-center justify-center w-10 h-10 rounded-full bg-role-soft text-role-dark shrink-0">
               <Share2 size={18} />
             </span>
@@ -121,16 +117,13 @@ export function GetStartedView({ productCount, hasAvatar, hasPaymentMethod, user
                   : "Works best once you've added a product or two to show off."}
               </p>
             </div>
-          </CardSection>
-        </Card>
+        </div>
       </div>
 
-      <Card variant="outlined">
-        <CardSection>
+      <div className="border-y border-dark-accent py-4">
           <p className="text-xs font-black text-text-muted uppercase tracking-widest mb-2">Your store link</p>
           <CopyStoreLink url={storeUrl} />
-        </CardSection>
-      </Card>
+      </div>
     </div>
   );
 }

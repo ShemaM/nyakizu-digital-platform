@@ -44,7 +44,7 @@ function LoginForm() {
   // If already logged in, navigate straight to their role dashboard
   useEffect(() => {
     if (user) {
-      const roleHome = user.role === "seller" ? "/seller/dashboard" : user.role === "admin" ? DJANGO_ADMIN_URL : "/buyer";
+      const roleHome = user.role === "admin" || user.is_main_admin ? DJANGO_ADMIN_URL : user.role === "seller" ? "/seller/dashboard" : "/buyer";
       const redirectTo = isSafeRedirect(nextUrl) ? nextUrl : roleHome;
       window.location.href = redirectTo;
     }
@@ -66,7 +66,7 @@ function LoginForm() {
       clearTimeout(timer);
       setSessionUser(loggedInUser);
 
-      if (loggedInUser.role === "admin") {
+      if (loggedInUser.role === "admin" || loggedInUser.is_main_admin) {
         window.location.href = DJANGO_ADMIN_URL;
         return;
       }
@@ -87,7 +87,12 @@ function LoginForm() {
   };
 
   return (
-    <AuthLayout title="Sign in" subtitle="Access your Nyakizu account." footnote="Secure sign in · Your data stays private" hidePanel>
+    <AuthLayout
+      title="Sign in"
+      subtitle="Buyer & Seller portal access."
+      footnote="Secure sign in · Wholesale marketplace"
+      hidePanel
+    >
       <form onSubmit={handleSubmit} className="space-y-5">
         {error && (
           <Alert variant="error">
@@ -182,6 +187,16 @@ function LoginForm() {
           Get help
         </Link>
       </p>
+
+      <div className="pt-3 border-t border-dark-accent text-center text-xs text-text-muted">
+        Are you a platform administrator?{" "}
+        <a
+          href={DJANGO_ADMIN_URL}
+          className="font-semibold text-brand-gold hover:underline underline-offset-4"
+        >
+          Sign in to Django Admin &rarr;
+        </a>
+      </div>
     </AuthLayout>
   );
 }
